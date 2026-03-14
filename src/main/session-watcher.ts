@@ -1,4 +1,4 @@
-import { readFileSync, statSync, watch } from 'fs'
+import { statSync, watch, openSync, readSync, closeSync } from 'fs'
 import { join, basename } from 'path'
 import { readdirSync, existsSync } from 'fs'
 import type { BrowserWindow } from 'electron'
@@ -122,7 +122,9 @@ export function startSessionWatcher(mainWindow: BrowserWindow): void {
   if (!jsonlPath) {
     console.log('[session-watcher] JSONL 파일을 찾을 수 없습니다')
     // 10초마다 재시도
-    setTimeout(() => startSessionWatcher(mainWindow), 10000)
+    setTimeout(() => {
+      if (!mainWindow.isDestroyed()) startSessionWatcher(mainWindow)
+    }, 10000)
     return
   }
 
@@ -147,10 +149,13 @@ export function startSessionWatcher(mainWindow: BrowserWindow): void {
       const currentSize = statSync(jsonlPath).size
       if (currentSize <= offset) return
 
-      const content = readFileSync(jsonlPath, 'utf-8')
-      const newContent = content.slice(offset)
+      const fd = openSync(jsonlPath, 'r')
+      const buf = Buffer.alloc(currentSize - offset)
+      readSync(fd, buf, 0, buf.length, offset)
+      closeSync(fd)
       offset = currentSize
 
+      const newContent = buf.toString('utf-8')
       const lines = newContent.split('\n').filter((l) => l.trim())
       for (const line of lines) {
         const event = parseLine(line)
@@ -164,10 +169,16 @@ export function startSessionWatcher(mainWindow: BrowserWindow): void {
   }
 
   // fs.watch로 파일 변경 감지
-  watch(jsonlPath, { persistent: false }, () => {
+  const watcher = watch(jsonlPath, { persistent: false }, () => {
     processNewLines()
   })
 
   // 폴백: 2초마다 폴링
-  setInterval(processNewLines, 2000)
+  const intervalId = setInterval(processNewLines, 2000)
+
+  // cleanup: 윈도우 닫힐 때 리소스 해제
+  mainWindow.on('closed', () => {
+    watcher.close()
+    clearInterval(intervalId)
+  })
 }

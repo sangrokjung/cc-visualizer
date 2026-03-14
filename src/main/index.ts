@@ -54,7 +54,7 @@ ipcMain.handle('get-system-paths', async () => {
     agents: join(home, '.claude/agents'),
     settings: join(home, '.claude/settings.json'),
     rules: join(home, 'qjc-office/dotclaude/rules'),
-    memory: join(home, '.claude/projects/-Users-sangrok/memory'),
+    memory: join(home, `.claude/projects/${process.cwd().replace(/\//g, '-')}/memory`),
     agentMemory: join(home, '.claude/agent-memory'),
     workLog: join(home, '.claude/work-log'),
     pipeline: join(home, 'qjc-office/dotclaude/reference/agent-pipeline.md')

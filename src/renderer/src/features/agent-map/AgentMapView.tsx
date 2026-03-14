@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import {
   ReactFlow,
   useNodesState,
@@ -47,7 +47,7 @@ export default function AgentMapView() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
   // 필터/데이터 변경 시 레이아웃 재계산
-  useMemo(() => {
+  useEffect(() => {
     setNodes(initialNodes)
     setEdges(initialEdges)
   }, [initialNodes, initialEdges, setNodes, setEdges])
