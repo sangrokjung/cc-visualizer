@@ -2,3 +2,8 @@ node_modules/
 out/
 dist/
 .DS_Store
+
+# Claude Code (v6 Post-Dev Workflow)
+.claude/handoff.md
+.claude/checkpoints/
+.claude/web-checklist-state.json

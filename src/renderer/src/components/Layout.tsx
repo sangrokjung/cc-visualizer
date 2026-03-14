@@ -1,9 +1,12 @@
 import type { ViewType } from '../App'
 import { Suspense, lazy } from 'react'
 
+const DashboardView = lazy(() => import('../features/dashboard/DashboardView'))
 const AgentMapView = lazy(() => import('../features/agent-map/AgentMapView'))
 const ArchitectureView = lazy(() => import('../features/architecture/ArchitectureView'))
 const LiveMonitorView = lazy(() => import('../features/live-monitor/LiveMonitorView'))
+const CatalogView = lazy(() => import('../features/catalog/CatalogView'))
+const SystemsView = lazy(() => import('../features/systems/SystemsView'))
 
 type Props = {
   activeView: ViewType
@@ -21,9 +24,12 @@ export default function Layout({ activeView }: Props) {
   return (
     <main className="flex-1 overflow-hidden">
       <Suspense fallback={<LoadingFallback />}>
+        {activeView === 'dashboard' && <DashboardView />}
         {activeView === 'agent-map' && <AgentMapView />}
         {activeView === 'architecture' && <ArchitectureView />}
         {activeView === 'live-monitor' && <LiveMonitorView />}
+        {activeView === 'catalog' && <CatalogView />}
+        {activeView === 'systems' && <SystemsView />}
       </Suspense>
     </main>
   )

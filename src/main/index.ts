@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { readFileSync, readdirSync, existsSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
+import { startFileWatcher } from './file-watcher'
+import { startSessionWatcher } from './session-watcher'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -61,6 +63,10 @@ ipcMain.handle('get-system-paths', async () => {
 
 app.whenReady().then(() => {
   createWindow()
+  if (mainWindow) {
+    startFileWatcher(mainWindow)
+    startSessionWatcher(mainWindow)
+  }
 })
 
 app.on('window-all-closed', () => {

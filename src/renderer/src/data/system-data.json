@@ -1,0 +1,2835 @@
+{
+  "scanTimestamp": "2026-03-14T13:35:45.559Z",
+  "agents": [
+    {
+      "id": "ad-compass",
+      "name": "ad-compass",
+      "description": "Cross-platform analyst for ad-optimizer team. Correlates Google + Meta data for unified ROAS, budget reallocation, and incrementality diagnosis.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "marketing",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "ad-optimizer-team",
+      "name": "ad-optimizer-team",
+      "description": "Use when optimizing ad campaigns across Google Ads, Meta Ads, and GA4. Leads a 4-agent opus team (Scout/Pixel/Compass/Strategist) using Agent Teams for parallel analysis. Generates prioritized, evidence-based optimization recommendations.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "marketing",
+      "maxTurns": 25,
+      "memory": "project"
+    },
+    {
+      "id": "ad-scout-google",
+      "name": "ad-scout-google",
+      "description": "Google Ads data analyst for ad-optimizer team. Collects campaign/keyword/search term data via Python SDK (uv run --with google-ads) GAQL and produces structured analysis JSON.",
+      "model": "sonnet",
+      "tools": [
+        "Bash",
+        "Read",
+        "Write",
+        "Grep",
+        "Glob"
+      ],
+      "category": "marketing",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "ad-scout-meta",
+      "name": "ad-scout-meta",
+      "description": "Meta Ads data analyst for ad-optimizer team. Collects campaign/adset/ad insights via curl + Graph API v25.0 and produces structured analysis JSON.",
+      "model": "sonnet",
+      "tools": [
+        "Bash",
+        "Read",
+        "Write",
+        "Grep",
+        "Glob"
+      ],
+      "category": "marketing",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "architect",
+      "name": "architect",
+      "description": "Use when making architectural decisions, diagnosing complex bugs, or evaluating system design trade-offs. Read-only analysis with file:line evidence. Triggers on: new feature planning, large refactoring, scalability concerns, technical debt assessment.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "category": "development",
+      "maxTurns": 20,
+      "memory": "project"
+    },
+    {
+      "id": "build-error-resolver",
+      "name": "build-error-resolver",
+      "description": "Use when build fails or type errors occur to get back to green with minimal changes. Fixes type errors, compilation failures, import errors, dependency issues. Minimal diffs only — no refactoring or architecture changes. For post-hoc verification use verify-agent instead.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "development",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "code-reviewer",
+      "name": "code-reviewer",
+      "description": "Use when completing code changes to review quality, security, and maintainability. Two-stage review: spec compliance first, then code quality. Severity-rated issues with fix suggestions. Primary Claude-based reviewer (see codex-reviewer for OpenAI second opinion, gemini-reviewer for frontend-focused Gemini review).",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "category": "review",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "codex-reviewer",
+      "name": "codex-reviewer",
+      "description": "Use for cross-model second opinion code review via OpenAI Codex (GPT). Complements code-reviewer by catching Claude-specific blind spots. Sends diffs to Codex CLI for independent analysis. Requires ChatGPT subscription.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "category": "review",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "contract-legal",
+      "name": "contract-legal",
+      "description": "한국 계약/법률 업무 전문 에이전트. 계약서 초안 작성, 검토/리스크 분석, 법령 조회(국가법령정보 Open API), 판례 검색, 계약 해지/위약금/약관 검토를 수행한다. 10명의 구루 프레임워크(Ken Adams, Tina Stark, WorldCC, Siedel/Haapio, Susskind, 양창수/김재형, 지원림, 송덕수, 이은영, 정상조)를 적용한다.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "Edit"
+      ],
+      "category": "legal",
+      "maxTurns": 25,
+      "memory": "project"
+    },
+    {
+      "id": "copywriting",
+      "name": "copywriting",
+      "description": "Use when writing or editing marketing copy: landing pages, ad copy, email sequences, sales pages, CTAs, headlines, value propositions, or conversion optimization. Applies proven frameworks from Schwartz, Hormozi, Ogilvy, Sugarman, Cialdini, StoryBrand, Wiebe, and Dunford. For long-form content (blogs, articles, newsletters) use content-creator skill instead.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "Bash"
+      ],
+      "category": "marketing",
+      "maxTurns": 25,
+      "memory": "user"
+    },
+    {
+      "id": "database-reviewer",
+      "name": "database-reviewer",
+      "description": "Use when writing SQL queries, creating migrations, or troubleshooting database performance in Supabase/PostgreSQL projects. Reviews indexes, RLS policies, schema types, N+1 patterns. Read-only reviewer with EXPLAIN ANALYZE capability.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "category": "review",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "doc-updater",
+      "name": "doc-updater",
+      "description": "Use when documentation or codemaps need updating after code changes. Generates codemaps from actual source code, refreshes READMEs and guides, validates paths and links. Never writes docs from memory — always from code.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "development",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "e2e-runner",
+      "name": "e2e-runner",
+      "description": "Use when creating, maintaining, or running E2E tests for critical user journeys (auth, payments, core features). Uses Vercel Agent Browser (preferred) with Playwright fallback. Page Object Model pattern, data-testid selectors, flaky test management.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "development",
+      "maxTurns": 20,
+      "memory": "project",
+      "isolation": true
+    },
+    {
+      "id": "email-action-team",
+      "name": "email-action-team",
+      "description": "/email-action Phase 2 전용. 이메일 심층 분석 4-Opus Team 리더 (Director). Mail-Scout/Folder-Hunter/Action-Architect 조율. 직접 호출 금지, 스킬 경유만 허용.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "operations",
+      "maxTurns": 30,
+      "memory": "project"
+    },
+    {
+      "id": "financial-accountant",
+      "name": "financial-accountant",
+      "description": "1인 기업/소규모 비즈니스의 재무·회계·세무 전문 에이전트. 세무 일정 관리, 부가세/소득세 계산, 비용 분류, 재무제표 분석, 절세 전략 수립을 수행한다. 10명의 구루 프레임워크(신방수, 이장원(두꺼비 세무사), 손봉석, 유종오, Michalowicz, Crabtree, Berman&Knight, Charan, Damodaran, Goldratt)를 적용하여 체계적 재무 관리를 지원한다.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "Edit"
+      ],
+      "category": "business",
+      "maxTurns": 30,
+      "memory": "project"
+    },
+    {
+      "id": "gemini-reviewer",
+      "name": "gemini-reviewer",
+      "description": "Use for frontend-focused second opinion code review via Gemini. Reviews React/Next.js patterns, accessibility, CSS/Tailwind, bundle size, performance. Complements code-reviewer for frontend-specific blind spots. Requires Google subscription.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "category": "review",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "gov-support-strategist",
+      "name": "gov-support-strategist",
+      "description": "정부지원사업 전략 전문 에이전트. 3개 공공 API(기업마당/K-Startup/보조금24)에서 공고를 자동 수집하고, QJC 기업 프로필 기반 적합도를 AI 분석하며, 사업계획서 작성을 보조한다. 10명의 구루 프레임워크(김상미, 하승범, 위너스랩TV, TIPA, 홍승민, Kellogg Foundation, Funding for Good, Beverly Browning, KISED, @carticker)를 적용하여 체계적 정부지원사업 전략을 지원한다.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "Edit"
+      ],
+      "category": "business",
+      "maxTurns": 30,
+      "memory": "project"
+    },
+    {
+      "id": "patent-attorney",
+      "name": "patent-attorney",
+      "description": "한국 변리사 업무 전문 에이전트. 선행기술 조사(KIPRIS API), 명세서/청구항 작성 보조, OA 대응, 특허 분석, IP 전략 수립을 수행한다. 10명의 구루 프레임워크(정차호, 조영선, 윤선희, 김원오, 이해영, Faber, Quinn, Krajec, Phelps, WIPO/MOIP(구 KIPO))를 적용하여 체계적 IP 실무를 지원한다.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "Edit",
+        "AskUserQuestion"
+      ],
+      "category": "legal",
+      "maxTurns": 30,
+      "memory": "project"
+    },
+    {
+      "id": "performance-growth-marketer",
+      "name": "performance-growth-marketer",
+      "description": "Use when making performance marketing strategy decisions, campaign planning, budget allocation, or growth marketing direction. Applies proven guru frameworks (Perry Marshall 80/20, Hormozi Value Equation, Depesh Mandalia CBO, Jon Loomer Testing, Charley T Olympic Ring) for evidence-based marketing decisions. For actual campaign data analysis and optimization execution, use ad-optimizer-team agent instead.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch"
+      ],
+      "category": "marketing",
+      "maxTurns": 25,
+      "memory": "project"
+    },
+    {
+      "id": "planner",
+      "name": "planner",
+      "description": "Use when creating implementation plans for complex features, architectural changes, or multi-step refactoring. Interviews user for preferences, researches codebase, produces 3-6 step actionable plans with acceptance criteria. Never implements — only plans.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit"
+      ],
+      "category": "development",
+      "maxTurns": 20,
+      "memory": "project"
+    },
+    {
+      "id": "product-strategist",
+      "name": "product-strategist",
+      "description": "제품/비즈니스/전략 기획 전문 에이전트. 12명의 구루 프레임워크(Cagan, Torres, Martin, Osterwalder, Kim, Rumelt, Biddle, Perri, Patton, Knapp, Ries, Singer)를 상황에 맞게 적용하고, 19개 PM 스킬을 오케스트레이션하여 체계적 기획 산출물을 생성한다. 코드 구현 계획(planner)이 아닌 비즈니스/제품 기획 전담.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "Bash",
+        "WebSearch",
+        "Agent"
+      ],
+      "category": "business",
+      "maxTurns": 30,
+      "memory": "project"
+    },
+    {
+      "id": "qjc-business",
+      "name": "qjc-business",
+      "description": "Use for QJC business strategy, sales planning, marketing strategy, and customer success analysis. Handles proposals, competitive analysis, pricing, GTM planning. For operational execution (consulting, education, finance) use qjc-operations instead.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "Bash"
+      ],
+      "category": "business",
+      "maxTurns": 25,
+      "memory": "user"
+    },
+    {
+      "id": "qjc-content",
+      "name": "qjc-content",
+      "description": "Use when creating YouTube scripts, planning video content, designing thumbnails, or optimizing content strategy. Data-driven content design with hook frameworks, SEO optimization, and repurpose planning. Delegates to /youtube for full pipeline.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit"
+      ],
+      "category": "marketing",
+      "maxTurns": 25,
+      "memory": "user"
+    },
+    {
+      "id": "qjc-operations",
+      "name": "qjc-operations",
+      "description": "Use for QJC operational execution: automation consulting (Make.com/n8n), education design (VOD/courses), financial management, customer support. For strategy and decision-making use qjc-business instead.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "Bash"
+      ],
+      "category": "operations",
+      "maxTurns": 25,
+      "memory": "user"
+    },
+    {
+      "id": "quotation",
+      "name": "quotation",
+      "description": "Use when creating B2B quotations, estimates, or pricing proposals for QJC automation consulting services. Applies pricing psychology from Ariely, Poundstone, Simon, Enns, and Voss. Generates professional quotation documents with 3-tier pricing, ROI justification, and value-based framing. For government proposals use /proposal skill instead. For marketing copy use copywriting agent.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "Bash"
+      ],
+      "category": "business",
+      "maxTurns": 30,
+      "memory": "user"
+    },
+    {
+      "id": "refactor-cleaner",
+      "name": "refactor-cleaner",
+      "description": "Use when cleaning up dead code, removing unused exports/dependencies, or consolidating duplicates. Uses knip/depcheck/ts-prune for detection, Grep for reference verification. Safety-first: never removes without tool confirmation. Works on feature branches only.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "development",
+      "maxTurns": 20,
+      "memory": "project",
+      "isolation": true
+    },
+    {
+      "id": "remotion-creator",
+      "name": "remotion-creator",
+      "description": "Use when creating programmatic videos with Remotion: YouTube intros/outros, captioned videos, data visualizations, social media content, tutorial overlays. Handles composition setup, animation design, caption integration, and rendering pipeline.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "creative",
+      "maxTurns": 30,
+      "memory": "project"
+    },
+    {
+      "id": "researcher",
+      "name": "researcher",
+      "description": "Use when gathering external information via web search, fact-checking, or competitive research. Produces structured reports with sources and confidence ratings. Escalation: jina-reader -> fetch -> scrapling. Also handles YouTube subtitle extraction via yt-dlp.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "WebSearch",
+        "mcp__exa__web_search_exa",
+        "mcp__fetch__fetch",
+        "mcp__jina-reader__jina_reader"
+      ],
+      "category": "research",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "security-reviewer",
+      "name": "security-reviewer",
+      "description": "Use when reviewing code that handles user input, authentication, API endpoints, or sensitive data. OWASP Top 10 analysis, secrets detection, dependency audit. Prioritizes by severity x exploitability x blast radius. Read-only reviewer — does not implement fixes.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "category": "review",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "seo-geo-aeo-strategist",
+      "name": "seo-geo-aeo-strategist",
+      "description": "Use when making SEO, GEO, or AEO strategy decisions, performing content/technical SEO audits, optimizing for AI search engines, or improving search visibility. Applies proven guru frameworks (Lily Ray E-E-A-T, Rand Fishkin Brand SEO, Princeton GEO 9 Strategies, Kevin Indig Topical Authority) for evidence-based search optimization decisions.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch"
+      ],
+      "category": "marketing",
+      "maxTurns": 25,
+      "memory": "project"
+    },
+    {
+      "id": "tdd-guide",
+      "name": "tdd-guide",
+      "description": "Use when writing new features, fixing bugs, or refactoring code to enforce Red-Green-Refactor TDD cycle. Writes tests first, implements minimal code to pass, then refactors. Targets 80%+ coverage with edge case analysis.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "review",
+      "maxTurns": 20,
+      "memory": "project",
+      "isolation": true
+    },
+    {
+      "id": "verify-agent",
+      "name": "verify-agent",
+      "description": "Use for fresh-context post-implementation verification. Runs typecheck -> lint -> build -> test pipeline independently. Auto-fixes simple errors (imports, types), classifies non-fixable ones. Spawned by /handoff-verify.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "development",
+      "maxTurns": 10,
+      "memory": "project"
+    },
+    {
+      "id": "web-designer",
+      "name": "web-designer",
+      "description": "Use when creating or redesigning UI/UX: landing pages, dashboards, component libraries. 7-phase workflow from requirements to QA. Requires ui-ux-pro-max skill for design system generation. Handles .html/.tsx/.vue/.svelte files, color/font/layout decisions.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "creative",
+      "maxTurns": 20,
+      "memory": "project"
+    }
+  ],
+  "skills": [
+    {
+      "id": "ab-test-setup",
+      "name": "ab-test-setup",
+      "description": "When the user wants to plan, design, or implement an A/B test or experiment. Also use when the user mentions \"A/B test,\" \"split test,\" \"experiment,\" \"test this change,\" \"variant copy,\" \"multivariate test,\" or \"hypothesis.\" For tracking implementation, see analytics-tracking.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "auto-loop",
+      "name": "/auto-loop - 장기 자율 개발 루프 (v1)",
+      "description": "대규모 작업을 여러 반복으로 자동 실행할 때, TODO 기반 장기 자율 개발이 필요할 때",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "auto",
+      "name": "/auto - 원스톱 자동 워크플로우 (v7)",
+      "description": "계획부터 PR까지 원버튼 자동 실행. 중간에 멈추지 않습니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "bizmodel",
+      "name": "비즈니스 모델 캔버스 생성",
+      "description": "BMC 비즈니스 모델 캔버스 생성 (v2.1 버그 수정)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "blog-publish",
+      "name": "blog-publish",
+      "description": "네이버 블로그 포스팅이 필요할 때",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "browser-extension-developer",
+      "name": "browser-extension-developer",
+      "description": "Use this skill when developing or maintaining browser extension code in the `browser/` directory, including Chrome/Firefox/Edge compatibility, content scripts, background scripts, or i18n updates.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "build-fix",
+      "name": "Build and Fix",
+      "description": "빌드 에러를 자동으로 분석하고 수정합니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "card-news",
+      "name": "card-news",
+      "description": "카드뉴스 제작 및 소셜 미디어 포스팅 시",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "ceo-advisor",
+      "name": "ceo-advisor",
+      "description": "Executive leadership guidance for strategic decision-making, organizational development, and stakeholder management. Includes strategy analyzer, financial scenario modeling, board governance frameworks, and investor relations playbooks. Use when planning strategy, preparing board presentations, managing investors, developing organizational culture, making executive decisions, or when user mentions CEO, strategic planning, board meetings, investor updates, organizational leadership, or executive strategy.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "checkpoint",
+      "name": "/checkpoint - 작업 상태 저장/복원 (v6)",
+      "description": "작업 상태 저장/복원 (v6)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "code-review",
+      "name": "Code Review",
+      "description": "방금 작성한 코드를 보안+품질 검사합니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "codex-review",
+      "name": "Codex 크로스모델 코드 리뷰",
+      "description": "Codex CLI로 크로스모델 코드 리뷰를 실행합니다. (커밋 전 사용 권장)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "commit-push-pr",
+      "name": "PR만 생성 (리뷰 필요할 때)",
+      "description": "검증 완료 후 커밋 & PR & 머지 + MCP 알림 (v6)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "community-converter",
+      "name": "community-converter",
+      "description": "무료 커뮤니티 멤버를 유료 고객으로 전환하는 파이프라인 설계. 세그먼트화, 가치 사다리, 전환 트리거, 업셀 시퀀스. QJC 앰버서더 모델 최적화.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "competitive-ads-extractor",
+      "name": "competitive-ads-extractor",
+      "description": "Extracts and analyzes competitors' ads from ad libraries (Facebook, LinkedIn, etc.) to understand what messaging, problems, and creative approaches are working. Helps inspire and improve your own ad campaigns.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "content-creator",
+      "name": "content-creator",
+      "description": "장문 콘텐츠 제작 (블로그, 아티클, 뉴스레터, 튜토리얼). 브랜드 보이스 분석, SEO 최적화, 리서치, 인용 관리, 콘텐츠 캘린더 포함. 페이지 카피/랜딩페이지/CTA는 copywriting 스킬 사용.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "content-manage",
+      "name": "content-manage",
+      "description": "콘텐츠 기획, 제작, 분석이 필요할 때",
+      "type": "skill-dir",
+      "hasSubcommands": true
+    },
+    {
+      "id": "contract-draft",
+      "name": "/contract-draft — 계약서 초안 작성",
+      "description": "AI 보조 계약서 초안 작성. 계약 유형과 조건을 입력하면 구조화된 계약서 초안을 생성한다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "contract-review",
+      "name": "/contract-review — 계약서 검토 및 리스크 분석",
+      "description": "계약서 검토 및 리스크 분석. 계약서 파일을 입력하면 불리한 조항, 누락 조항, 법적 리스크를 분석한다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "copywriting",
+      "name": "copywriting",
+      "description": "마케팅 카피 전문 (홈페이지, 랜딩페이지, 가격, 기능, 소개 페이지, 광고, 이메일). Seven Sweeps 편집 + 14명의 마케팅 구루 프레임워크 (Schwartz 인식수준, Hormozi Value Equation, Cialdini 설득, Sugarman Slippery Slide, StoryBrand SB7, Wiebe VoC 마이닝, Dunford 포지셔닝, PASTOR) + 뉴로카피라이팅. 블로그/아티클/뉴스레터 등 장문 콘텐츠는 content-creator 스킬 사용.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "data-research",
+      "name": "data-research",
+      "description": "공공데이터(KOSIS, ECOS)·국제경제데이터(World Bank, OECD, FRED)를 수집·분석하여 차트 포함 종합 리서치 리포트 생성. 마크다운 + Python 차트(PNG) + DOCX 변환 지원.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "data-storytelling",
+      "name": "data-storytelling",
+      "description": "Transform data into compelling narratives using visualization, context, and persuasive structure. Use when presenting analytics to stakeholders, creating data reports, or building executive presentations.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "dc",
+      "name": "/dc - dotclaude 멀티PC 동기화",
+      "description": "dotclaude 설정 저장소 멀티PC 동기화 관리자. 스킬/에이전트/규칙 수정 후 push, 다른 PC에서 pull.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "debugging-strategies",
+      "name": "debugging-strategies",
+      "description": "디버깅 기법, 프로파일링 도구, 분석 전략 레퍼런스. /debugging-strategies로 수동 호출. 자동 프로세스 강제는 systematic-debugging 스킬이 담당.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "dependency-upgrade",
+      "name": "dependency-upgrade",
+      "description": "Manage major dependency version upgrades with compatibility analysis, staged rollout, and comprehensive testing. Use when upgrading framework versions, updating major dependencies, or managing breaking changes in libraries.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "developer-growth-analysis",
+      "name": "developer-growth-analysis",
+      "description": "Analyzes your recent Claude Code chat history to identify coding patterns, development gaps, and areas for improvement, curates relevant learning resources from HackerNews, and automatically sends a personalized growth report to your Slack DMs.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "e2e",
+      "name": "E2E Command",
+      "description": "Generate and run end-to-end tests with Playwright. Creates test journeys, runs tests, captures screenshots/videos/traces, and uploads artifacts.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "email-action",
+      "name": "email-action",
+      "description": "3-Phase 이메일 처리. 빈 입력→미읽음 목록, 번호→매칭, 그 외→4-Opus 팀 심층 분석.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "esign",
+      "name": "/esign - 전자서명 워크플로우",
+      "description": "전자서명 요청 생성부터 서명 완료까지 자동 진행",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "eval",
+      "name": "Eval Command",
+      "description": "eval-harness 스킬을 실행하여 세션 평가를 수행합니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "evening-wrap",
+      "name": "Evening Wrap",
+      "description": "저녁 루틴 - 완료 체크 + 내일 우선순위 + memory suggest",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "explore",
+      "name": "/explore - 반복 정제 코드베이스 탐색 (v6)",
+      "description": "코드베이스를 탐색하여 구조를 파악합니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "extract-errors",
+      "name": "extract-errors",
+      "description": "Use when adding new error messages to React, or seeing \"unknown error code\" warnings.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "feasibility",
+      "name": "Feasibility Check (RPI Research Gate)",
+      "description": "기능 구현 전 타당성 검증 (GO/NO-GO). RPI Research Phase.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "financial-analysis",
+      "name": "financial-analysis",
+      "description": "Comprehensive financial analysis suite including DCF modeling, ratio analysis, sensitivity testing, Monte Carlo simulations, and financial statement evaluation for companies and investment opportunities",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "finish-branch",
+      "name": "finish-branch",
+      "description": "구현 완료 후 브랜치 통합 방법을 결정할 때, 테스트 통과 후 merge/PR/유지/폐기 선택 시",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "fred-economic-data",
+      "name": "fred-economic-data",
+      "description": "Query FRED (Federal Reserve Economic Data) API for 800,000+ economic time series from 100+ sources. Access GDP, unemployment, inflation, interest rates, exchange rates, housing, and regional data. Use for macroeconomic analysis, financial research, policy studies, economic forecasting, and academic research requiring U.S. and international economic indicators.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "gemini-review",
+      "name": "Gemini 프론트엔드 크로스모델 리뷰",
+      "description": "Gemini CLI로 프론트엔드 크로스모델 리뷰를 실행합니다. (React/Next.js, a11y, 성능, CSS, 번들, 보안)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "generate-image",
+      "name": "generate-image",
+      "description": "This skill should be used when the user asks to \"generate image\", \"create image\", \"이미지 생성해줘\", \"이미지 만들어줘\", \"사진 생성\", \"그림 그려줘\", \"썸네일 만들어줘\", \"배너 만들어줘\", \"로고 만들어줘\", \"일러스트 그려줘\", \"포스터 만들어줘\", or \"아이콘 만들어줘\". Generates images using Gemini API with flash/pro/budget models, 512px~4K resolution, reference images, and text rendering.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "ghost-writer",
+      "name": "ghost-writer",
+      "description": "사용자 글쓰기 스타일 학습 후 대필. 보이스 캘리브레이션(샘플 분석), 스타일 프로파일 생성, 프로파일 기반 초안 작성. humanizer + content-creator 연계.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "guide",
+      "name": "/guide - 첫 사용자 인터랙티브 가이드",
+      "description": "처음 사용자를 위한 인터랙티브 가이드. 약 3분이면 끝납니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "handoff-verify",
+      "name": "/handoff-verify - 핸드오프 + 자동 검증 통합 (v6)",
+      "description": "빌드/테스트/린트를 한 번에 자동 검증합니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "init-project",
+      "name": "/init-project - 프로젝트 초기화 (v6)",
+      "description": "프로젝트 초기 설정 (v6)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "law-search",
+      "name": "/law-search — 법령/판례 검색 (국가법령정보 API)",
+      "description": "국가법령정보 Open API 기반 법령/판례 검색. 법령 조문 조회, 판례 검색, 약관 규제 확인을 수행한다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "leads",
+      "name": "리드 발굴 에이전트",
+      "description": "리드 발굴 + 콜드메일 작성 (v2.1 버그 수정)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "learn",
+      "name": "/learn - 교훈 기록 + 자동화 제안 (v6)",
+      "description": "교훈 기록 + 자동화 제안 (v6 - suggest-automation 통합)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "linkedin-viral-writer",
+      "name": "linkedin-viral-writer",
+      "description": "LinkedIn 바이럴 포스트 작성. 플랫폼 전용 훅 공식, 모바일 최적화 포맷팅, 알고리즘 최적화. copywriting 프레임워크 기반.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "log-decision",
+      "name": "Log Decision",
+      "description": "주요 의사결정을 memory/decisions.jsonl에 기록",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "log-experience",
+      "name": "Log Experience",
+      "description": "경험/교훈을 memory/experiences.jsonl에 기록",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "log-failure",
+      "name": "Log Failure",
+      "description": "실패/회고를 memory/failures.jsonl에 기록",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "market-research-reports",
+      "name": "market-research-reports",
+      "description": "Generate comprehensive market research reports (50+ pages) in the style of top consulting firms (McKinsey, BCG, Gartner). Features professional LaTeX formatting, extensive visual generation with scientific-schematics and generate-image, deep integration with research-lookup for data gathering, and multi-framework strategic analysis including Porter's Five Forces, PESTLE, SWOT, TAM/SAM/SOM, and BCG Matrix.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "market-sizing-analysis",
+      "name": "market-sizing-analysis",
+      "description": "This skill should be used when the user asks to \"calculate TAM\", \"determine SAM\", \"estimate SOM\", \"size the market\", \"calculate market opportunity\", \"what's the total addressable market\", or requests market sizing analysis for a startup or business opportunity.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "marketing-demand-acquisition",
+      "name": "marketing-demand-acquisition",
+      "description": "Multi-channel demand generation, paid media optimization, SEO strategy, and partnership programs for Series A+ startups. Includes CAC calculator, channel playbooks, HubSpot integration, and international expansion tactics. Use when planning demand generation campaigns, optimizing paid media, building SEO strategies, establishing partnerships, or when user mentions demand gen, paid ads, PPC, paid media, ad copy, ad creative, LinkedIn ads, Google ads, Meta ads, Twitter/X ads, TikTok ads, ROAS, CPA, CAC, acquisition, lead generation, pipeline generation, retargeting, or audience targeting.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "mcp-recipes",
+      "name": "MCP 자동화 레시피",
+      "description": "MCP 서버 활용 자동화 레시피를 안내합니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "md-to-docx",
+      "name": "MD to DOCX 변환 (v2)",
+      "description": "마크다운 파일을 스타일된 DOCX/PDF로 변환 (QJC 브랜딩)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "morning-sync",
+      "name": "Morning Sync",
+      "description": "아침 루틴 - context-sync + todos + 캘린더 + network overdue + 정부지원사업 수집",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "motion-canvas",
+      "name": "motion-canvas",
+      "description": "Complete production-ready guide for Motion Canvas with ESM/CommonJS workarounds, full setup templates, and troubleshooting for programmatic video creation using TypeScript",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "next-task",
+      "name": "/next-task - 다음 Task 시작 준비 (v6)",
+      "description": "다음 작업 추천 (v6)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "orchestrate",
+      "name": "/orchestrate - Agent Teams 기반 병렬 오케스트레이션 (v6)",
+      "description": "Agent Teams 기반 병렬 오케스트레이션 (v6)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "patent-draft",
+      "name": "patent-draft",
+      "description": "AI 보조 특허 명세서/청구항 초안 작성. 발명 설명을 입력하면 구조화된 초안을 생성한다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "patent-oa",
+      "name": "patent-oa",
+      "description": "OA(의견제출통지) 거절이유 분석 및 대응 의견서/보정서 초안 작성. 거절이유통지서 파일을 입력하면 분석 보고서를 생성한다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "patent-search",
+      "name": "patent-search",
+      "description": "KIPRIS API 기반 선행기술 조사. 특허/실용신안/상표 검색 및 분석 보고서 생성.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "plan",
+      "name": "Plan Command",
+      "description": "AI가 구현 계획을 세워줍니다. 확인 후 코딩 시작.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "plotly",
+      "name": "plotly",
+      "description": "Interactive scientific and statistical data visualization library for Python. Use when creating charts, plots, or visualizations including scatter plots, line charts, bar charts, heatmaps, 3D plots, geographic maps, statistical distributions, financial charts, and dashboards. Supports both quick visualizations (Plotly Express) and fine-grained customization (graph objects). Outputs interactive HTML or static images (PNG, PDF, SVG).",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-ab-test",
+      "name": "pm-ab-test",
+      "description": "A/B 테스트 결과를 통계적으로 분석하고 Ship/Extend/Stop 의사결정을 내립니다. Use when evaluating experiment results, checking statistical significance, or deciding whether to ship a variant.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-battlecard",
+      "name": "pm-battlecard",
+      "description": "경쟁사 대응 배틀카드 생성 -- 포지셔닝, 기능 비교, 이의 대응, 승리 전략을 영업팀이 바로 쓸 수 있는 형태로 정리. Use when preparing sales teams for competitive deals, creating competitive materials, or responding to 'why not competitor X?'",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-competitive",
+      "name": "pm-competitive",
+      "description": "경쟁 환경 분석 -- 경쟁사 식별, 강약점 비교, 차별화 기회 도출. Use when doing competitive research, preparing a competitive brief, or finding differentiation opportunities.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-discover",
+      "name": "pm-discover",
+      "description": "제품 디스커버리 전체 사이클 -- 아이디에이션, 가정 식별, 우선순위화, 실험 설계. Teresa Torres Continuous Discovery Habits 기반. Use when 신제품 기획, 기존 제품 개선, 가설 검증이 필요할 때.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-feedback",
+      "name": "pm-feedback",
+      "description": "사용자 피드백을 대규모로 분석 -- 감성 분석, 테마 추출, 세그먼트별 인사이트. Use when analyzing user feedback at scale, running sentiment analysis, or identifying satisfaction patterns.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-growth",
+      "name": "pm-growth",
+      "description": "성장 루프와 GTM 모션을 설계하여 지속 가능한 성장 전략을 수립합니다. Use when designing growth loops, selecting GTM channels, or building a 90-day growth plan.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-launch",
+      "name": "pm-launch",
+      "description": "GTM 전략 수립 -- Beachhead 세그먼트, ICP, 포지셔닝, 채널, 런칭 타임라인까지 완전한 Go-to-Market 플랜 생성. Use when planning a product launch, entering a new market, or creating a GTM strategy from scratch.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-marketing",
+      "name": "pm-marketing",
+      "description": "마케팅 캠페인 아이디어, 포지셔닝, 가치 제안 카피, 제품 네이밍을 생성하는 크리에이티브 마케팅 툴킷. Use when brainstorming campaigns, crafting positioning, writing value prop copy, or naming products.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-northstar",
+      "name": "pm-northstar",
+      "description": "North Star Metric과 Input Metrics를 정의하고 검증합니다. 비즈니스 게임을 분류하고 7개 기준으로 검증. Use when choosing a North Star Metric, setting up a metrics framework, or deciding what to measure.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-okrs",
+      "name": "pm-okrs",
+      "description": "팀 OKR 브레인스토밍. 회사 목표에 정렬된 정성적 Objective와 정량적 Key Results 3세트 생성. Use when setting quarterly OKRs, aligning team goals with company strategy, drafting objectives, or learning how to write effective OKRs.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-prd",
+      "name": "pm-prd",
+      "description": "제품 요구사항 문서(PRD) 작성. 9섹션 템플릿으로 문제, 목표, 세그먼트, 가치 제안, 솔루션, 릴리즈를 체계적으로 정리. Use when writing a PRD, documenting product requirements, preparing a feature spec, or reviewing an existing PRD.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-premortem",
+      "name": "pm-premortem",
+      "description": "PRD나 런칭 계획의 Pre-mortem (프리모템) 리스크 분석을 실행합니다. Tigers/Paper Tigers/Elephants 프레임워크. Use when stress-testing a launch plan or identifying what could go wrong.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-sprint",
+      "name": "pm-sprint",
+      "description": "스프린트 플래닝과 회고를 실행합니다. plan 모드로 용량 추정/스토리 선택/리스크 식별, retro 모드로 회고 진행. Use when planning a sprint or running a retrospective.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-stakeholder",
+      "name": "pm-stakeholder",
+      "description": "이해관계자 맵 작성. Power x Interest 그리드로 분류하고 맞춤형 커뮤니케이션 플랜 생성. Use when managing stakeholders, preparing for a launch, aligning cross-functional teams, or planning stakeholder engagement.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-stories",
+      "name": "pm-stories",
+      "description": "기능을 백로그 항목으로 분해합니다. User Story (사용자 스토리) 또는 Job Story (잡 스토리) 형식. Use when writing stories, breaking down features, or defining acceptance criteria.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pm-user-research",
+      "name": "pm-user-research",
+      "description": "사용자 리서치 종합 -- 페르소나 구축, 세그먼테이션, 고객 여정 맵을 데이터 기반으로 생성. Use when building personas from research data, segmenting users, or mapping the customer journey.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "proposal",
+      "name": "사업계획서 작성 에이전트",
+      "description": "정부지원사업 사업계획서 작성 (v2.1 버그 수정)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "quick-commit",
+      "name": "/quick-commit - 빠른 커밋 (v6)",
+      "description": "간단한 수정용 빠른 커밋 (v6)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "quotation",
+      "name": "견적서 작성 스킬",
+      "description": "QJC B2B 견적서 작성. 가격 심리학(Ariely/Hormozi/Voss)과 3-Tier 가격 구조, ROI 분석 적용.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "reddit-marketing",
+      "name": "reddit-marketing",
+      "description": "Reddit 마케팅 통합 도구. scan(서브레딧 모니터링/VoC), post(게시글 작성), comment(댓글 작성). 1인기업/SaaS 핵심 커뮤니티 마케팅.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "refactor-clean",
+      "name": "Refactor Clean",
+      "description": "데드 코드 정리 및 리팩토링을 수행합니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "remotion-best-practices",
+      "name": "remotion-best-practices",
+      "description": "Best practices for Remotion - Video creation in React",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "research",
+      "name": "research",
+      "description": "YouTube 검색 -> NotebookLM 수집/분석 -> 결과 추출까지 리서치 전체 파이프라인. 키워드 기반 영상 검색, 소스 수집, AI 분석, 결과 내보내기를 하나의 워크플로우로 통합.",
+      "type": "skill-dir",
+      "hasSubcommands": true
+    },
+    {
+      "id": "resume-builder",
+      "name": "resume-builder",
+      "description": "Generate professional resumes that conform to the Reactive Resume schema. Use when the user wants to create, build, or generate a resume through conversational AI, or asks about resume structure, sections, or content. This skill guides the agent to ask clarifying questions, avoid hallucination, and produce valid JSON output for https://rxresu.me.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "save-work",
+      "name": "save-work",
+      "description": "세션 종료 시 업무 기록 저장 + QJC 파일 자동 정리가 필요할 때",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "sdd",
+      "name": "sdd",
+      "description": "구현 계획의 독립 태스크들을 서브에이전트로 실행할 때",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "security-compliance",
+      "name": "security-compliance",
+      "description": "Guides security professionals in implementing defense-in-depth security architectures, achieving compliance with industry frameworks (SOC2, ISO27001, GDPR, HIPAA), conducting threat modeling and risk assessments, managing security operations and incident response, and embedding security throughout the SDLC.",
+      "type": "skill-dir",
+      "hasSubcommands": true
+    },
+    {
+      "id": "security-review",
+      "name": "--auto: git diff 변경 파일만",
+      "description": "CWE 기반 보안 검토 + STRIDE 위협 모델링 (v6 - effort:max 강제)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "seo-review",
+      "name": "seo-review",
+      "description": "Perform SEO/GEO/AEO audit on any web page or content. Covers Technical SEO, on-page optimization, Featured Snippet, AI search citation, and content structure. For deep strategy use seo-geo-aeo-strategist agent instead.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "setup-pm",
+      "name": "Package Manager Setup",
+      "description": "Configure your preferred package manager (npm/pnpm/yarn/bun)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "show-setup",
+      "name": "/show-setup - Claude Forge 설치 현황",
+      "description": "현재 Claude Forge 설치 상태와 프로젝트 정보를 보여줍니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "social-slide-marketing",
+      "name": "social-slide-marketing",
+      "description": "소셜 미디어 슬라이드쇼 마케팅 자동화. 6장 세로 이미지 생성(Gemini 3 Pro) → 텍스트 오버레이 → TikTok/Instagram 게시(Postiz) → 성과 추적 → 자동 최적화. Use when: TikTok 마케팅, 슬라이드쇼, 소셜 미디어 자동화, 인스타 릴스, 바이럴 콘텐츠, social media marketing, slideshow ads, TikTok growth, viral content.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "startup-business-analyst-business-case",
+      "name": "startup-business-analyst-business-case",
+      "description": "Generate comprehensive investor-ready business case document with market, solution, financials, and strategy",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "startup-financial-modeling",
+      "name": "startup-financial-modeling",
+      "description": "This skill should be used when the user asks to \"create financial projections\", \"build a financial model\", \"forecast revenue\", \"calculate burn rate\", \"estimate runway\", \"model cash flow\", or requests 3-5 year financial planning for a startup.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "startup-metrics-framework",
+      "name": "startup-metrics-framework",
+      "description": "This skill should be used when the user asks about \"key startup metrics\", \"SaaS metrics\", \"CAC and LTV\", \"unit economics\", \"burn multiple\", \"rule of 40\", \"marketplace metrics\", or requests guidance on tracking and optimizing business performance metrics.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "stride-analysis-patterns",
+      "name": "stride-analysis-patterns",
+      "description": "Apply STRIDE methodology to systematically identify threats. Use when analyzing system security, conducting threat modeling sessions, or creating security documentation.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "suggest-automation",
+      "name": "생성: .claude/commands/[이름].md",
+      "description": "반복 패턴 분석하여 자동화 기회 제안 (주기적 실행 권장)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "summarize",
+      "name": "summarize",
+      "description": "Summarize or extract text/transcripts from URLs, podcasts, and local files (great fallback for “transcribe this YouTube/video”).",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "swipe-file-saver",
+      "name": "swipe-file-saver",
+      "description": "우수 카피/광고/이메일 아카이빙 + 분류 + 검색. 마케팅 레퍼런스 수집과 참조 기반 새 카피 생성. copywriting VoC 마이닝 연계.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "symphony",
+      "name": "symphony",
+      "description": "Symphony-CC 오케스트레이션 제어",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "sync-docs",
+      "name": "/sync-docs - 문서 동기화 (v7)",
+      "description": "prompt_plan.md, spec.md, CLAUDE.md + rules/ 문서 동기화 (v7)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "sync",
+      "name": "/sync - Git Pull + 문서 동기화",
+      "description": "git pull + 문서 동기화 통합 (pull → sync-docs v7 순차 실행)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "tdd",
+      "name": "TDD Command",
+      "description": "테스트 먼저 만들고 코드 작성. 한 단위 작업에 사용.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "team-patterns",
+      "name": "팀 워크플로우 패턴",
+      "description": "Agent Teams 구성 방법, 패턴 선택이 필요할 때",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "test-coverage",
+      "name": "Test Coverage",
+      "description": "테스트 커버리지를 분석하고 누락된 테스트를 추가합니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "thumbnail",
+      "name": "thumbnail",
+      "description": "유튜브 썸네일 생성이 필요할 때",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "twitter-algorithm-optimizer",
+      "name": "twitter-algorithm-optimizer",
+      "description": "Analyze and optimize tweets for maximum reach using Twitter's open-source algorithm insights. Rewrite and edit user tweets to improve engagement and visibility based on how the recommendation system ranks content.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "update-codemaps",
+      "name": "Update Codemaps",
+      "description": "코드맵 문서를 최신 상태로 업데이트합니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "update-docs",
+      "name": "Update Documentation",
+      "description": "프로젝트 문서를 최신 상태로 업데이트합니다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "verify-loop",
+      "name": "verify-loop",
+      "description": "자동 재검증 루프 (최대 3회 재시도, 실패 시 자동 수정) — handoff-verify를 감싸는 자동 재시도 래퍼 (최대 3회)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "video-frames",
+      "name": "video-frames",
+      "description": "Extract frames or short clips from videos using ffmpeg.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "warm-dm-strategist",
+      "name": "warm-dm-strategist",
+      "description": "웜 리드 대상 SNS DM 전략 수립. LinkedIn/Instagram/카카오톡 DM 시퀀스, 타이밍, 개인화, 전환 스크립트. QJC 유튜브→인스타→DM→앰버서더 퍼널 최적화.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "web-checklist",
+      "name": "기본 사용 (머지 후)",
+      "description": "머지 후 웹 테스트 체크리스트 + 완료 추적 (v6)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "worktree-cleanup",
+      "name": "워크트리 제거",
+      "description": "PR 완료 후 Git Worktree 정리 (v6)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "worktree-start",
+      "name": ".gitignore에 Claude Code 자동 생성 파일이 있는지 확인",
+      "description": "병렬 개발용 Git Worktree 생성 + 도메인 템플릿 (v6)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "youtube-downloader",
+      "name": "youtube-downloader",
+      "description": "Download YouTube videos with customizable quality and format options. Use this skill when the user asks to download, save, or grab YouTube videos. Supports various quality settings (best, 1080p, 720p, 480p, 360p), multiple formats (mp4, webm, mkv), and audio-only downloads as MP3.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "youtube-search",
+      "name": "youtube-search",
+      "description": "YouTube 키워드 검색 + 자막 추출. 검색(메타데이터/URL), 자막 다운로드(SRT/VTT/텍스트), NotebookLM 연동을 지원합니다.",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "youtube",
+      "name": "유튜브 기획 에이전트",
+      "description": "유튜브 영상 기획 (PPT + 스크립트 + 썸네일) (v4.1 - 절대경로 전환)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "zdog",
+      "name": "zdog",
+      "description": "Zdog pseudo-3D 엔진 가이드 - 도형, 애니메이션, 인터랙션, Remotion 연동",
+      "type": "skill-dir",
+      "hasSubcommands": false
+    }
+  ],
+  "hooks": [
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/supabase-mcp-reminder.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/remote-command-guard.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/gws-auth-check.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/image-prompt-enhancer.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/ads-guard.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/qjc-office/dotclaude/hooks/email-mime-validate.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/email-guard.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/gov-api-key-check.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "mcp__gmail__send_email",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/email-guard.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "mcp__(supabase|plugin_supabase_supabase)__(execute_sql|apply_migration)",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/db-guard.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "mcp__(meta-ads-mcp|google-ads-mcp)__*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/ads-guard.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "mcp__(playwright|plugin_playwright_playwright)__browser_run_code",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/expensive-mcp-warning.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "mcp__*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/rate-limiter.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/mcp-usage-tracker.sh",
+          "timeout": 3000,
+          "async": true
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Write|Edit",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/ui-ux-auto-detect.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/quotation-section-validate.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/remotion-auto-detect.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "SessionStart",
+      "matcher": "*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/tdl-session-start.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/context-sync-suggest.sh",
+          "timeout": 10000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/dotclaude-sync-check.sh",
+          "timeout": 10000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/sound-notify.sh session-start",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/network-touch-reminder.sh",
+          "timeout": 10000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/telegram-notify.sh start",
+          "timeout": 5000,
+          "async": true
+        },
+        {
+          "command": "~/.claude/hooks/ads-auth-check.sh",
+          "timeout": 10000,
+          "async": true
+        }
+      ]
+    },
+    {
+      "event": "UserPromptSubmit",
+      "matcher": "*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/work-tracker-prompt.sh",
+          "timeout": 5000,
+          "async": true
+        }
+      ]
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/work-tracker-tool.sh",
+          "timeout": 5000,
+          "async": true
+        },
+        {
+          "command": "~/.claude/skills/continuous-learning-v2/hooks/observe.sh",
+          "timeout": 5000,
+          "async": true
+        }
+      ]
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash|Read|Grep|mcp__.*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/output-secret-filter.sh",
+          "timeout": 10000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/docx-font-verify.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/post-edit-write.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/ui-ux-qa-gate.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/output-path-display.sh",
+          "timeout": 3000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/quotation-auto-convert.sh",
+          "timeout": 30000,
+          "async": true
+        },
+        {
+          "command": "~/.claude/hooks/tax-disclaimer-check.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/work-tracker-stop.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/session-end-suggest.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/sound-notify.sh stop-success",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "SessionEnd",
+      "matcher": "*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/tdl-session-end.sh",
+          "timeout": 10000,
+          "async": true
+        },
+        {
+          "command": "~/.claude/hooks/dotclaude-auto-push.sh",
+          "timeout": 15000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/session-summary-writer.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/telegram-notify.sh stop",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "TaskCompleted",
+      "matcher": "*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/task-completed.sh",
+          "timeout": 10000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/sound-notify.sh task-completed",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/telegram-notify.sh task-completed",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "Notification",
+      "matcher": "idle_prompt|permission_prompt",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/notification-telegram.sh",
+          "timeout": 10000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "PreCompact",
+      "matcher": "*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/pre-compact-snapshot.sh",
+          "timeout": 10000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "SubagentStop",
+      "matcher": "*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/subagent-stop-log.sh",
+          "timeout": 10000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "TeammateIdle",
+      "matcher": "*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/teammate-idle.sh",
+          "timeout": 10000,
+          "async": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "agents-v2",
+      "name": "Agent Orchestration",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/agents-v2.md",
+      "priority": "normal"
+    },
+    {
+      "id": "coding-style",
+      "name": "Coding Style",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/coding-style.md",
+      "priority": "normal"
+    },
+    {
+      "id": "contract-legal",
+      "name": "계약/법률(Contract-Legal) 에이전트 트리거 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/contract-legal.md",
+      "priority": "critical"
+    },
+    {
+      "id": "document-production",
+      "name": "문서 제작 파이프라인 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/document-production.md",
+      "priority": "critical"
+    },
+    {
+      "id": "email",
+      "name": "Email Rules",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/email.md",
+      "priority": "critical"
+    },
+    {
+      "id": "esign",
+      "name": "전자서명 CLI 도구 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/esign.md",
+      "priority": "critical"
+    },
+    {
+      "id": "financial-accountant",
+      "name": "재무/회계(Financial Accountant) 에이전트 트리거 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/financial-accountant.md",
+      "priority": "critical"
+    },
+    {
+      "id": "git-workflow-v2",
+      "name": "Git Workflow",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/git-workflow-v2.md",
+      "priority": "normal"
+    },
+    {
+      "id": "golden-principles",
+      "name": "Golden Principles",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/golden-principles.md",
+      "priority": "critical"
+    },
+    {
+      "id": "gov-support",
+      "name": "정부지원사업(Government Support) 에이전트 트리거 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/gov-support.md",
+      "priority": "critical"
+    },
+    {
+      "id": "gws",
+      "name": "Google Workspace CLI (gws) 사용 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/gws.md",
+      "priority": "critical"
+    },
+    {
+      "id": "image-generation",
+      "name": "이미지 생성 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/image-generation.md",
+      "priority": "critical"
+    },
+    {
+      "id": "interaction",
+      "name": "Interaction Rules",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/interaction.md",
+      "priority": "critical"
+    },
+    {
+      "id": "patent-attorney",
+      "name": "변리사(Patent Attorney) 에이전트 트리거 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/patent-attorney.md",
+      "priority": "critical"
+    },
+    {
+      "id": "performance-marketing",
+      "name": "퍼포먼스 마케팅 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/performance-marketing.md",
+      "priority": "critical"
+    },
+    {
+      "id": "personal-os",
+      "name": "Personal OS Rules",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/personal-os.md",
+      "priority": "critical"
+    },
+    {
+      "id": "planning",
+      "name": "기획(Planning) 에이전트 트리거 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/planning.md",
+      "priority": "critical"
+    },
+    {
+      "id": "qjc-auto",
+      "name": "QJC 자동 정리 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/qjc-auto.md",
+      "priority": "critical"
+    },
+    {
+      "id": "quotation",
+      "name": "견적서 작성 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/quotation.md",
+      "priority": "critical"
+    },
+    {
+      "id": "ralph-loop",
+      "name": "Ralph Loop (다중 턴 자율 작업)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/ralph-loop.md",
+      "priority": "normal"
+    },
+    {
+      "id": "receiving-review",
+      "name": "코드 리뷰 수신 프로토콜",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/receiving-review.md",
+      "priority": "normal"
+    },
+    {
+      "id": "remotion",
+      "name": "Remotion 영상 제작 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/remotion.md",
+      "priority": "critical"
+    },
+    {
+      "id": "scrapling",
+      "name": "Scrapling CLI 자동 활용 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/scrapling.md",
+      "priority": "critical"
+    },
+    {
+      "id": "seo-geo-aeo",
+      "name": "SEO/GEO/AEO 전략 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/seo-geo-aeo.md",
+      "priority": "critical"
+    },
+    {
+      "id": "session",
+      "name": "Session Lifecycle",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/session.md",
+      "priority": "important"
+    },
+    {
+      "id": "supabase-mcp",
+      "name": "Supabase MCP (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/supabase-mcp.md",
+      "priority": "critical"
+    },
+    {
+      "id": "verification",
+      "name": "Verification Before Completion (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/verification.md",
+      "priority": "critical"
+    },
+    {
+      "id": "youtube-subtitle",
+      "name": "YouTube 자막 추출 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/youtube-subtitle.md",
+      "priority": "critical"
+    }
+  ],
+  "pipelines": [
+    {
+      "name": "코드리뷰 파이프라인",
+      "steps": [
+        {
+          "from": "code-reviewer",
+          "to": "security-reviewer",
+          "condition": "보안 민감 코드 (인증, 결제, 데이터 접근)",
+          "auto": false
+        },
+        {
+          "from": "security-reviewer",
+          "to": "database-reviewer",
+          "condition": "DB 스키마/쿼리 변경 시",
+          "auto": false
+        },
+        {
+          "from": "database-reviewer",
+          "to": "/codex-review",
+          "condition": "사용자 요청 시",
+          "auto": false
+        },
+        {
+          "from": "/codex-review",
+          "to": "/gemini-review",
+          "condition": "사용자 요청 시",
+          "auto": false
+        }
+      ]
+    },
+    {
+      "name": "검증 파이프라인",
+      "steps": [
+        {
+          "from": "build-error-resolver",
+          "to": "tdd-guide",
+          "auto": true
+        },
+        {
+          "from": "tdd-guide",
+          "to": "/handoff-verify",
+          "auto": true
+        }
+      ]
+    },
+    {
+      "name": "비즈니스 파이프라인",
+      "steps": [
+        {
+          "from": "qjc-business",
+          "to": "quotation",
+          "auto": true
+        },
+        {
+          "from": "quotation",
+          "to": "qjc-operations",
+          "auto": true
+        },
+        {
+          "from": "qjc-operations",
+          "to": "qjc-content",
+          "auto": true
+        },
+        {
+          "from": "qjc-content",
+          "to": "financial-accountant",
+          "auto": true
+        },
+        {
+          "from": "financial-accountant",
+          "to": "performance-growth-marketer",
+          "auto": true
+        },
+        {
+          "from": "performance-growth-marketer",
+          "to": "ad-optimizer-team",
+          "auto": true
+        }
+      ]
+    },
+    {
+      "name": "콘텐츠/마케팅 파이프라인",
+      "steps": [
+        {
+          "from": "copywriting",
+          "to": "content-creator",
+          "condition": "장문 콘텐츠로 확장 필요 시 (/copywriting → /content-creator)",
+          "auto": false
+        },
+        {
+          "from": "content-creator",
+          "to": "qjc-content",
+          "condition": "영상/SNS 콘텐츠로 변환 시",
+          "auto": false
+        },
+        {
+          "from": "qjc-content",
+          "to": "web-designer",
+          "condition": "카피 기반 랜딩페이지 구현 시",
+          "auto": false
+        }
+      ]
+    },
+    {
+      "name": "이메일 처리 파이프라인 (2-Phase)",
+      "steps": [
+        {
+          "from": "",
+          "to": "email-action-team",
+          "auto": true
+        },
+        {
+          "from": "email-action-team",
+          "to": "qjc-business",
+          "condition": "견적/제안서 필요 시",
+          "auto": false
+        },
+        {
+          "from": "qjc-business",
+          "to": "quotation",
+          "auto": true
+        },
+        {
+          "from": "quotation",
+          "to": "qjc-operations",
+          "condition": "교육/자동화 설계 필요 시",
+          "auto": false
+        },
+        {
+          "from": "qjc-operations",
+          "to": "qjc-content",
+          "condition": "콘텐츠 제작 필요 시",
+          "auto": false
+        }
+      ]
+    },
+    {
+      "name": "SEO/GEO/AEO 파이프라인",
+      "steps": [
+        {
+          "from": "seo-geo-aeo-strategist",
+          "to": "researcher",
+          "condition": "경쟁사/키워드 외부 리서치 필요 시",
+          "auto": false
+        },
+        {
+          "from": "researcher",
+          "to": "copywriting",
+          "condition": "SEO 최적화 카피 작성 시",
+          "auto": false
+        },
+        {
+          "from": "copywriting",
+          "to": "web-designer",
+          "condition": "Technical SEO 코드 구현 시",
+          "auto": false
+        },
+        {
+          "from": "web-designer",
+          "to": "qjc-content",
+          "condition": "콘텐츠 캘린더/전략 실행 시",
+          "auto": false
+        },
+        {
+          "from": "qjc-content",
+          "to": "/seo-review",
+          "condition": "코드 수준 감사 필요 시",
+          "auto": false
+        }
+      ]
+    },
+    {
+      "name": "기획 파이프라인",
+      "steps": [
+        {
+          "from": "product-strategist",
+          "to": "researcher",
+          "condition": "외부 시장/경쟁사 리서치 필요 시",
+          "auto": false
+        },
+        {
+          "from": "researcher",
+          "to": "/pm-discover",
+          "condition": "디스커버리 단계",
+          "auto": false
+        },
+        {
+          "from": "/pm-discover",
+          "to": "/pm-competitive",
+          "condition": "경쟁 분석 필요 시",
+          "auto": false
+        },
+        {
+          "from": "/pm-competitive",
+          "to": "/pm-prd",
+          "condition": "PRD 구체화 필요 시",
+          "auto": false
+        },
+        {
+          "from": "/pm-prd",
+          "to": "/bizmodel",
+          "condition": "비즈니스 모델 설계 시",
+          "auto": false
+        },
+        {
+          "from": "/bizmodel",
+          "to": "/pm-premortem",
+          "condition": "리스크 분석 시",
+          "auto": false
+        },
+        {
+          "from": "/pm-premortem",
+          "to": "planner",
+          "auto": true
+        }
+      ]
+    },
+    {
+      "name": "재무/회계 파이프라인",
+      "steps": [
+        {
+          "from": "financial-accountant",
+          "to": "researcher",
+          "condition": "최신 세법/세율 웹 리서치 필요 시",
+          "auto": false
+        },
+        {
+          "from": "researcher",
+          "to": "qjc-operations",
+          "condition": "운영 재무 데이터 연동 (매출/비용 실적)",
+          "auto": false
+        },
+        {
+          "from": "qjc-operations",
+          "to": "quotation",
+          "condition": "견적서 가격 전략 연계",
+          "auto": false
+        },
+        {
+          "from": "quotation",
+          "to": "qjc-business",
+          "condition": "사업 전략 ↔ 재무 계획 연계",
+          "auto": false
+        }
+      ]
+    },
+    {
+      "name": "법무/계약 파이프라인",
+      "steps": [
+        {
+          "from": "contract-legal",
+          "to": "researcher",
+          "condition": "최신 법령/판례 웹 리서치 필요 시",
+          "auto": false
+        },
+        {
+          "from": "researcher",
+          "to": "patent-attorney",
+          "condition": "IP 관련 계약 (라이선스, 기술이전) 시",
+          "auto": false
+        },
+        {
+          "from": "patent-attorney",
+          "to": "qjc-business",
+          "condition": "사업 조건 ↔ 계약 조건 연계 시",
+          "auto": false
+        },
+        {
+          "from": "qjc-business",
+          "to": "quotation",
+          "condition": "계약 금액 산정 ↔ 견적서 연계 시",
+          "auto": false
+        },
+        {
+          "from": "quotation",
+          "to": "planner",
+          "condition": "계약 관리 코드 구현으로 전환 시",
+          "auto": false
+        }
+      ]
+    },
+    {
+      "name": "정부지원사업 파이프라인",
+      "steps": [
+        {
+          "from": "gov-support-strategist",
+          "to": "researcher",
+          "condition": "최신 정부지원사업 트렌드/정보 리서치 시",
+          "auto": false
+        },
+        {
+          "from": "researcher",
+          "to": "qjc-business",
+          "condition": "사업 전략과 정부지원 연계 시",
+          "auto": false
+        },
+        {
+          "from": "qjc-business",
+          "to": "qjc-operations",
+          "condition": "정부지원사업 교육 콘텐츠/컨설팅 연계 시",
+          "auto": false
+        },
+        {
+          "from": "qjc-operations",
+          "to": "patent-attorney",
+          "condition": "IP 확보로 가점 전략 수립 시",
+          "auto": false
+        },
+        {
+          "from": "patent-attorney",
+          "to": "financial-accountant",
+          "condition": "재무 요건 검토, 자부담금 계산 시",
+          "auto": false
+        },
+        {
+          "from": "financial-accountant",
+          "to": "contract-legal",
+          "condition": "정부지원사업 협약/계약 검토 시",
+          "auto": false
+        },
+        {
+          "from": "contract-legal",
+          "to": "copywriting",
+          "condition": "사업계획서 카피 개선 시",
+          "auto": false
+        }
+      ]
+    },
+    {
+      "name": "설계/구현 파이프라인",
+      "steps": [
+        {
+          "from": "",
+          "to": "plan",
+          "auto": true
+        },
+        {
+          "from": "plan",
+          "to": "architect",
+          "auto": true
+        },
+        {
+          "from": "architect",
+          "to": "tdd-guide",
+          "auto": true
+        },
+        {
+          "from": "tdd-guide",
+          "to": "code-reviewer",
+          "auto": true
+        }
+      ]
+    }
+  ],
+  "mcpServers": [
+    {
+      "name": "supabase",
+      "command": "",
+      "args": [],
+      "projectPath": "/Users/sangrok/.claude.backup.20260220_003519"
+    },
+    {
+      "name": "google-calendar",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cocal/google-calendar-mcp@latest"
+      ],
+      "projectPath": "/Users/sangrok/admin-ops-caw"
+    },
+    {
+      "name": "n8n-mcp",
+      "command": "npx",
+      "args": [
+        "-y",
+        "n8n-mcp"
+      ],
+      "projectPath": "/Users/sangrok/admin-ops-caw"
+    },
+    {
+      "name": "data-go-nts",
+      "command": "uvx",
+      "args": [
+        "data-go-mcp.nts-business-verification@latest"
+      ],
+      "projectPath": "/Users/sangrok/admin-ops-caw"
+    },
+    {
+      "name": "youtube-transcript",
+      "command": "npx",
+      "args": [
+        "@fabriqa.ai/youtube-transcript-mcp@latest"
+      ],
+      "projectPath": "/Users/sangrok/admin-ops-caw"
+    },
+    {
+      "name": "youtube-transcript",
+      "command": "npx",
+      "args": [
+        "@fabriqa.ai/youtube-transcript-mcp@latest"
+      ],
+      "projectPath": "/Users/sangrok/content-automation"
+    },
+    {
+      "name": "hyperbrowser",
+      "command": "npx",
+      "args": [
+        "-y",
+        "hyperbrowser-mcp"
+      ],
+      "projectPath": "/Users/sangrok/content-automation"
+    },
+    {
+      "name": "stitch",
+      "command": "npx",
+      "args": [
+        "-y",
+        "stitch-mcp"
+      ],
+      "projectPath": "/Users/sangrok/content-automation"
+    },
+    {
+      "name": "google-calendar",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cocal/google-calendar-mcp@latest"
+      ],
+      "projectPath": "/Users/sangrok/content-automation"
+    },
+    {
+      "name": "remotion",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@remotion/mcp@latest"
+      ],
+      "projectPath": "/Users/sangrok/content-automation"
+    },
+    {
+      "name": "hyperbrowser",
+      "command": "npx",
+      "args": [
+        "hyperbrowser-mcp"
+      ],
+      "projectPath": "/Users/sangrok/fightgod-toss"
+    },
+    {
+      "name": "data-go-fsc",
+      "command": "uvx",
+      "args": [
+        "data-go-mcp.fsc-financial-info@latest"
+      ],
+      "projectPath": "/Users/sangrok/finance-caw-system"
+    },
+    {
+      "name": "data-go-nts",
+      "command": "uvx",
+      "args": [
+        "data-go-mcp.nts-business-verification@latest"
+      ],
+      "projectPath": "/Users/sangrok/finance-caw-system"
+    },
+    {
+      "name": "data-go-nps",
+      "command": "uvx",
+      "args": [
+        "data-go-mcp.nps-business-enrollment@latest"
+      ],
+      "projectPath": "/Users/sangrok/finance-caw-system"
+    },
+    {
+      "name": "data-go-pps",
+      "command": "uvx",
+      "args": [
+        "data-go-mcp.pps-narajangteo@latest"
+      ],
+      "projectPath": "/Users/sangrok/g2b-monitor"
+    },
+    {
+      "name": "supabase",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest"
+      ],
+      "projectPath": "/Users/sangrok/g2b-monitor"
+    },
+    {
+      "name": "hyperbrowser",
+      "command": "npx",
+      "args": [
+        "-y",
+        "hyperbrowser-mcp"
+      ],
+      "projectPath": "/Users/sangrok/industry-analysis-system"
+    },
+    {
+      "name": "fred",
+      "command": "npx",
+      "args": [
+        "-y",
+        "fred-mcp-server"
+      ],
+      "projectPath": "/Users/sangrok/industry-analysis-system"
+    },
+    {
+      "name": "alpha-vantage",
+      "command": "",
+      "args": [],
+      "projectPath": "/Users/sangrok/industry-analysis-system"
+    },
+    {
+      "name": "korea-stock",
+      "command": "npx",
+      "args": [
+        "-y",
+        "korea-stock-mcp"
+      ],
+      "projectPath": "/Users/sangrok/industry-analysis-system"
+    },
+    {
+      "name": "youtube-transcript",
+      "command": "npx",
+      "args": [
+        "@fabriqa.ai/youtube-transcript-mcp@latest"
+      ],
+      "projectPath": "/Users/sangrok/instructor-automation"
+    },
+    {
+      "name": "stitch",
+      "command": "npx",
+      "args": [
+        "-y",
+        "stitch-mcp"
+      ],
+      "projectPath": "/Users/sangrok/instructor-automation"
+    },
+    {
+      "name": "remotion",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@remotion/mcp"
+      ],
+      "projectPath": "/Users/sangrok/instructor-automation"
+    },
+    {
+      "name": "google-calendar",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cocal/google-calendar-mcp@latest"
+      ],
+      "projectPath": "/Users/sangrok/instructor-automation"
+    },
+    {
+      "name": "supabase",
+      "command": "",
+      "args": [],
+      "projectPath": "/Users/sangrok/lunch-vote"
+    },
+    {
+      "name": "youtube-transcript",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@sinco-lab/mcp-youtube-transcript"
+      ],
+      "projectPath": "/Users/sangrok/marketing-caw"
+    },
+    {
+      "name": "remotion",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@remotion/mcp@latest"
+      ],
+      "projectPath": "/Users/sangrok/marketing-caw"
+    },
+    {
+      "name": "memory",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "projectPath": "/Users/sangrok/marketing-caw"
+    },
+    {
+      "name": "sequential-thinking",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "projectPath": "/Users/sangrok/marketing-caw"
+    },
+    {
+      "name": "stitch",
+      "command": "npx",
+      "args": [
+        "-y",
+        "stitch-mcp"
+      ],
+      "projectPath": "/Users/sangrok/marketing-caw"
+    },
+    {
+      "name": "brightdata",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@brightdata/mcp"
+      ],
+      "projectPath": "/Users/sangrok/marketing-caw"
+    },
+    {
+      "name": "hyperbrowser",
+      "command": "npx",
+      "args": [
+        "-y",
+        "hyperbrowser-mcp"
+      ],
+      "projectPath": "/Users/sangrok/marketing-caw"
+    },
+    {
+      "name": "stitch",
+      "command": "npx",
+      "args": [
+        "-y",
+        "stitch-mcp"
+      ],
+      "projectPath": "/Users/sangrok/product-detail-generator"
+    },
+    {
+      "name": "hyperbrowser",
+      "command": "npx",
+      "args": [
+        "-y",
+        "hyperbrowser-mcp"
+      ],
+      "projectPath": "/Users/sangrok/product-detail-generator"
+    },
+    {
+      "name": "data-go-pps",
+      "command": "uvx",
+      "args": [
+        "data-go-mcp.pps-narajangteo@latest"
+      ],
+      "projectPath": "/Users/sangrok/proposal-agent"
+    },
+    {
+      "name": "data-go-nts",
+      "command": "uvx",
+      "args": [
+        "data-go-mcp.nts-business-verification@latest"
+      ],
+      "projectPath": "/Users/sangrok/proposal-agent"
+    },
+    {
+      "name": "notion",
+      "command": "",
+      "args": [],
+      "projectPath": "/Users/sangrok/qjc-office"
+    },
+    {
+      "name": "context7",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ],
+      "projectPath": "/Users/sangrok/quantum-jump"
+    },
+    {
+      "name": "sequential-thinking",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "projectPath": "/Users/sangrok/quantum-jump"
+    },
+    {
+      "name": "hyperbrowser",
+      "command": "npx",
+      "args": [
+        "--yes",
+        "hyperbrowser-mcp"
+      ],
+      "projectPath": "/Users/sangrok/quantum-jump"
+    },
+    {
+      "name": "filesystem",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "."
+      ],
+      "projectPath": "/Users/sangrok/quantum-jump"
+    },
+    {
+      "name": "memory",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "projectPath": "/Users/sangrok/quantum-jump"
+    },
+    {
+      "name": "youtube-transcript",
+      "command": "npx",
+      "args": [
+        "@fabriqa.ai/youtube-transcript-mcp@latest"
+      ],
+      "projectPath": "/Users/sangrok/subtitle-extraction-system"
+    },
+    {
+      "name": "desktop-commander",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wonderwhy-er/desktop-commander"
+      ],
+      "projectPath": "/Users/sangrok/subtitle-extraction-system"
+    },
+    {
+      "name": "alpha-vantage",
+      "command": "",
+      "args": [],
+      "projectPath": "/Users/sangrok/wealth-advisory-system"
+    },
+    {
+      "name": "fred",
+      "command": "npx",
+      "args": [
+        "-y",
+        "fred-mcp-server"
+      ],
+      "projectPath": "/Users/sangrok/wealth-advisory-system"
+    },
+    {
+      "name": "korea-stock",
+      "command": "npx",
+      "args": [
+        "-y",
+        "korea-stock-mcp"
+      ],
+      "projectPath": "/Users/sangrok/wealth-advisory-system"
+    },
+    {
+      "name": "coingecko",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@coingecko/coingecko-mcp"
+      ],
+      "projectPath": "/Users/sangrok/wealth-advisory-system"
+    }
+  ],
+  "memory": {
+    "autoMemory": {
+      "path": "/Users/sangrok/.claude/projects/-Users-sangrok/memory",
+      "fileCount": 6,
+      "files": [
+        "MEMORY.md",
+        "context-optimization.md",
+        "experiences.jsonl",
+        "feedback_hook_output.md",
+        "project_customer_index.md",
+        "research-docs.md"
+      ]
+    },
+    "agentMemory": {
+      "path": "/Users/sangrok/.claude/agent-memory",
+      "agents": [
+        {
+          "name": "ad-optimizer-team",
+          "fileCount": 0
+        },
+        {
+          "name": "architect",
+          "fileCount": 0
+        },
+        {
+          "name": "build-error-resolver",
+          "fileCount": 0
+        },
+        {
+          "name": "code-reviewer",
+          "fileCount": 0
+        },
+        {
+          "name": "codex-reviewer",
+          "fileCount": 0
+        },
+        {
+          "name": "copywriting",
+          "fileCount": 1
+        },
+        {
+          "name": "database-reviewer",
+          "fileCount": 0
+        },
+        {
+          "name": "doc-updater",
+          "fileCount": 0
+        },
+        {
+          "name": "e2e-runner",
+          "fileCount": 0
+        },
+        {
+          "name": "gemini-reviewer",
+          "fileCount": 0
+        },
+        {
+          "name": "planner",
+          "fileCount": 0
+        },
+        {
+          "name": "qjc-business",
+          "fileCount": 0
+        },
+        {
+          "name": "qjc-content",
+          "fileCount": 0
+        },
+        {
+          "name": "qjc-operations",
+          "fileCount": 0
+        },
+        {
+          "name": "quotation",
+          "fileCount": 0
+        },
+        {
+          "name": "refactor-cleaner",
+          "fileCount": 0
+        },
+        {
+          "name": "remotion-creator",
+          "fileCount": 0
+        },
+        {
+          "name": "researcher",
+          "fileCount": 21
+        },
+        {
+          "name": "security-reviewer",
+          "fileCount": 0
+        },
+        {
+          "name": "tdd-guide",
+          "fileCount": 0
+        },
+        {
+          "name": "verify-agent",
+          "fileCount": 0
+        },
+        {
+          "name": "web-designer",
+          "fileCount": 0
+        }
+      ]
+    },
+    "personalOS": {
+      "path": "/Users/sangrok/qjc-office/personal-os",
+      "directories": []
+    }
+  },
+  "stats": {
+    "agentCount": 33,
+    "skillCount": 123,
+    "hookCount": 48,
+    "ruleCount": 28,
+    "pipelineCount": 11,
+    "mcpServerCount": 48
+  }
+}
