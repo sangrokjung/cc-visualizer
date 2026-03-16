@@ -1,0 +1,568 @@
+{
+  "scanTimestamp": "2026-03-16T03:25:51.311Z",
+  "summary": {
+    "totalEvents": 658041,
+    "totalSessions": 568,
+    "totalProjects": 201
+  },
+  "projects": [
+    {
+      "name": "QJC",
+      "events": 63297,
+      "sessions": 109
+    },
+    {
+      "name": "qjc-webapp",
+      "events": 62319,
+      "sessions": 56
+    },
+    {
+      "name": "sangrok",
+      "events": 58417,
+      "sessions": 115
+    },
+    {
+      "name": "yt-factory",
+      "events": 53237,
+      "sessions": 58
+    },
+    {
+      "name": "instructor-automation",
+      "events": 46509,
+      "sessions": 37
+    },
+    {
+      "name": "clariva",
+      "events": 21459,
+      "sessions": 12
+    },
+    {
+      "name": "mobile",
+      "events": 17423,
+      "sessions": 5
+    },
+    {
+      "name": "content-automation",
+      "events": 15613,
+      "sessions": 15
+    },
+    {
+      "name": "qjc-webapp-광고-최적화",
+      "events": 13691,
+      "sessions": 3
+    },
+    {
+      "name": "backend",
+      "events": 13356,
+      "sessions": 4
+    },
+    {
+      "name": "qjc-webapp-특이점-전환율-개선",
+      "events": 12686,
+      "sessions": 11
+    },
+    {
+      "name": "qjc-webapp-프론트-디자인-개선",
+      "events": 11987,
+      "sessions": 10
+    },
+    {
+      "name": "qjc-webapp-특이점-리뷰-시스템",
+      "events": 11884,
+      "sessions": 4
+    },
+    {
+      "name": "qjc-webapp-결제-실패",
+      "events": 9229,
+      "sessions": 4
+    },
+    {
+      "name": "remotion",
+      "events": 8888,
+      "sessions": 23
+    },
+    {
+      "name": "samyook-ai-center",
+      "events": 8592,
+      "sessions": 7
+    },
+    {
+      "name": "agent-factory",
+      "events": 8229,
+      "sessions": 8
+    },
+    {
+      "name": "nlm-research",
+      "events": 7991,
+      "sessions": 9
+    },
+    {
+      "name": "qjc-webapp-b2b-문의-자동화",
+      "events": 7903,
+      "sessions": 2
+    },
+    {
+      "name": "qjc-webapp-추천-할인-시스템",
+      "events": 6436,
+      "sessions": 4
+    },
+    {
+      "name": "dotclaude",
+      "events": 6335,
+      "sessions": 13
+    },
+    {
+      "name": "cc-visualizer",
+      "events": 5351,
+      "sessions": 2
+    },
+    {
+      "name": "g2b-monitor",
+      "events": 5277,
+      "sessions": 2
+    },
+    {
+      "name": "claude-forge",
+      "events": 4867,
+      "sessions": 3
+    },
+    {
+      "name": "qjc-webapp-특이점-빌더스-랜딩-수정",
+      "events": 4844,
+      "sessions": 2
+    },
+    {
+      "name": "qjc-webapp-안내-문자-메세지-확인",
+      "events": 4801,
+      "sessions": 1
+    },
+    {
+      "name": "qjc-webapp-홈페이지-개선-v2",
+      "events": 4390,
+      "sessions": 3
+    },
+    {
+      "name": "agent-factory-변리-에이전트",
+      "events": 4239,
+      "sessions": 1
+    },
+    {
+      "name": "lunch-vote",
+      "events": 4231,
+      "sessions": 8
+    },
+    {
+      "name": "qjc-webapp-관리자-페이지-변경",
+      "events": 4127,
+      "sessions": 3
+    }
+  ],
+  "toolUsage": [
+    {
+      "name": "Bash",
+      "count": 68089
+    },
+    {
+      "name": "Read",
+      "count": 39920
+    },
+    {
+      "name": "Edit",
+      "count": 28644
+    },
+    {
+      "name": "Agent",
+      "count": 8069
+    },
+    {
+      "name": "Write",
+      "count": 7769
+    },
+    {
+      "name": "Grep",
+      "count": 7768
+    },
+    {
+      "name": "TaskUpdate",
+      "count": 5980
+    },
+    {
+      "name": "ToolSearch",
+      "count": 5962
+    },
+    {
+      "name": "SendMessage",
+      "count": 5734
+    },
+    {
+      "name": "TaskCreate",
+      "count": 5361
+    },
+    {
+      "name": "Glob",
+      "count": 4831
+    },
+    {
+      "name": "WebSearch",
+      "count": 2162
+    },
+    {
+      "name": "TeamDelete",
+      "count": 1395
+    },
+    {
+      "name": "TeamCreate",
+      "count": 1205
+    },
+    {
+      "name": "TaskOutput",
+      "count": 870
+    },
+    {
+      "name": "TaskList",
+      "count": 717
+    },
+    {
+      "name": "mcp__context7__query-docs",
+      "count": 681
+    },
+    {
+      "name": "mcp__context7__resolve-library-id",
+      "count": 465
+    },
+    {
+      "name": "AskUserQuestion",
+      "count": 452
+    },
+    {
+      "name": "Skill",
+      "count": 360
+    }
+  ],
+  "agentSpawns": [
+    {
+      "name": "a7549bc7f391",
+      "count": 4,
+      "project": "qjc-webapp-특이점-마케팅-개선"
+    },
+    {
+      "name": "acd8592e0e9f",
+      "count": 2,
+      "project": "g2b-monitor"
+    },
+    {
+      "name": "a38b5b7ae01c",
+      "count": 2,
+      "project": "g2b-monitor"
+    },
+    {
+      "name": "af5f1792b010",
+      "count": 2,
+      "project": "g2b-monitor"
+    },
+    {
+      "name": "a7b94743ec8c",
+      "count": 2,
+      "project": "agent-factory-이미지-크리에이터"
+    },
+    {
+      "name": "ae717ce6f0c5",
+      "count": 2,
+      "project": "agent-factory-이미지-크리에이터"
+    },
+    {
+      "name": "a535a96d2016",
+      "count": 2,
+      "project": "clariva"
+    },
+    {
+      "name": "a1e4c22a7607",
+      "count": 2,
+      "project": "lunch-vote"
+    },
+    {
+      "name": "a298375be5e0",
+      "count": 2,
+      "project": "lunch-vote-location-recommend"
+    },
+    {
+      "name": "a5530998f739",
+      "count": 2,
+      "project": "qjc-webapp"
+    },
+    {
+      "name": "a9129df7bdcf",
+      "count": 2,
+      "project": "qjc-webapp"
+    },
+    {
+      "name": "ae2d25d2382d",
+      "count": 2,
+      "project": "qjc-webapp-특이점-랜딩-개선"
+    },
+    {
+      "name": "a8538a6d19d9",
+      "count": 2,
+      "project": "qjc-webapp-특이점-랜딩-포모"
+    },
+    {
+      "name": "af0fe82dbe77",
+      "count": 2,
+      "project": "qjc-webapp-uiux-개선"
+    },
+    {
+      "name": "a6ed11a6cd6c",
+      "count": 2,
+      "project": "yt-factory"
+    },
+    {
+      "name": "a680600bf697",
+      "count": 2,
+      "project": "yt-factory"
+    },
+    {
+      "name": "a42b9f8c2934",
+      "count": 1,
+      "project": "ui-ux-pro-max"
+    },
+    {
+      "name": "a64e21ce4593",
+      "count": 1,
+      "project": "ui-ux-pro-max"
+    },
+    {
+      "name": "a1fb456de86e",
+      "count": 1,
+      "project": "ui-ux-pro-max"
+    },
+    {
+      "name": "a0af5e3d4d85",
+      "count": 1,
+      "project": "ui-ux-pro-max"
+    },
+    {
+      "name": "a715b85f83fd",
+      "count": 1,
+      "project": "ui-ux-pro-max"
+    },
+    {
+      "name": "af0c39e83c4a",
+      "count": 1,
+      "project": "ui-ux-pro-max"
+    },
+    {
+      "name": "a5c0942b6e96",
+      "count": 1,
+      "project": "ui-ux-pro-max"
+    },
+    {
+      "name": "a3743217e68d",
+      "count": 1,
+      "project": "dotclaude"
+    },
+    {
+      "name": "a936dbf08b00",
+      "count": 1,
+      "project": "sangrok"
+    },
+    {
+      "name": "a558505bc5bf",
+      "count": 1,
+      "project": "sangrok"
+    },
+    {
+      "name": "a6d9b0e3ff60",
+      "count": 1,
+      "project": "sangrok"
+    },
+    {
+      "name": "a8de76dd29c3",
+      "count": 1,
+      "project": "sangrok"
+    },
+    {
+      "name": "af7e12195e3e",
+      "count": 1,
+      "project": "sangrok"
+    },
+    {
+      "name": "ad5e3f396d6f",
+      "count": 1,
+      "project": "sangrok"
+    }
+  ],
+  "hookEvents": [
+    {
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "count": 83524
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "count": 68089
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "Read",
+      "count": 39920
+    },
+    {
+      "event": "Stop",
+      "tool": "Stop",
+      "count": 34690
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "Edit",
+      "count": 28644
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "Agent",
+      "count": 8069
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "Write",
+      "count": 7769
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "Grep",
+      "count": 7768
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "TaskUpdate",
+      "count": 5980
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "ToolSearch",
+      "count": 5962
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "SendMessage",
+      "count": 5734
+    },
+    {
+      "event": "PreToolUse",
+      "tool": "Edit",
+      "count": 5655
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "TaskCreate",
+      "count": 5361
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "Glob",
+      "count": 4831
+    },
+    {
+      "event": "SessionStart",
+      "tool": "compact",
+      "count": 3342
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "WebSearch",
+      "count": 2162
+    },
+    {
+      "event": "SessionStart",
+      "tool": "startup",
+      "count": 1868
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "TeamDelete",
+      "count": 1395
+    },
+    {
+      "event": "PreToolUse",
+      "tool": "Write",
+      "count": 1343
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "TeamCreate",
+      "count": 1205
+    }
+  ],
+  "dailyActivity": [
+    {
+      "date": "2026-03-02",
+      "events": 31748,
+      "sessions": 18
+    },
+    {
+      "date": "2026-03-03",
+      "events": 37482,
+      "sessions": 33
+    },
+    {
+      "date": "2026-03-04",
+      "events": 26048,
+      "sessions": 33
+    },
+    {
+      "date": "2026-03-05",
+      "events": 69812,
+      "sessions": 81
+    },
+    {
+      "date": "2026-03-06",
+      "events": 76300,
+      "sessions": 89
+    },
+    {
+      "date": "2026-03-07",
+      "events": 55205,
+      "sessions": 50
+    },
+    {
+      "date": "2026-03-09",
+      "events": 73937,
+      "sessions": 73
+    },
+    {
+      "date": "2026-03-10",
+      "events": 62931,
+      "sessions": 68
+    },
+    {
+      "date": "2026-03-11",
+      "events": 20977,
+      "sessions": 38
+    },
+    {
+      "date": "2026-03-12",
+      "events": 82321,
+      "sessions": 74
+    },
+    {
+      "date": "2026-03-13",
+      "events": 44716,
+      "sessions": 33
+    },
+    {
+      "date": "2026-03-14",
+      "events": 47698,
+      "sessions": 49
+    },
+    {
+      "date": "2026-03-15",
+      "events": 10332,
+      "sessions": 25
+    },
+    {
+      "date": "2026-03-16",
+      "events": 10466,
+      "sessions": 28
+    }
+  ]
+}

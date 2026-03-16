@@ -7,7 +7,8 @@ const views: { id: ViewType; label: string; icon: string }[] = [
   { id: 'architecture', label: '시스템 아키텍처', icon: '🏗' },
   { id: 'live-monitor', label: '실시간 모니터', icon: '📡' },
   { id: 'catalog', label: '카탈로그', icon: '📚' },
-  { id: 'systems', label: '시스템', icon: '⚙' }
+  { id: 'systems', label: '시스템', icon: '⚙' },
+  { id: 'usage', label: '사용량', icon: '📈' }
 ]
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000

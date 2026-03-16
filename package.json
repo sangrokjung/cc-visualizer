@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dist": "electron-vite build && electron-builder --mac",
-    "scan": "npx tsx scripts/scan-system.ts"
+    "scan": "npx tsx scripts/scan-system.ts",
+    "scan:usage": "npx tsx scripts/scan-usage.ts"
   },
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
