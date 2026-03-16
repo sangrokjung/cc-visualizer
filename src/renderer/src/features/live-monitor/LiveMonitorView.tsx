@@ -152,6 +152,8 @@ export default function LiveMonitorView() {
               <StatCard label="AI 응답" count={stats.assistant} color="#7961DB" />
               <StatCard label="도구 호출" count={stats.tool_use} color="#00A396" />
               <StatCard label="훅 실행" count={stats.hook} color="#29A634" />
+              <StatCard label="에이전트" count={stats.agent_spawn} color="#D1980B" />
+              <StatCard label="시스템" count={stats.system} color="#738091" />
             </div>
           </div>
 
@@ -172,16 +174,23 @@ export default function LiveMonitorView() {
                       className="flex items-center justify-between px-3 py-2 rounded-lg"
                       style={{ backgroundColor: C.cardSub }}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="relative flex h-2 w-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="relative flex h-2 w-2 shrink-0">
                           {isRecent && (
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: '#D1980B' }} />
                           )}
                           <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: isRecent ? '#D1980B' : C.textDim }} />
                         </span>
-                        <span className="text-[11px] font-mono truncate" style={{ color: C.textSub }}>
-                          {agent.name.slice(0, 30)}
-                        </span>
+                        <div className="min-w-0">
+                          <span className="text-[11px] font-mono truncate block" style={{ color: C.textSub }}>
+                            {agent.name.slice(0, 30)}
+                          </span>
+                          {agent.lastTool && (
+                            <span className="text-[9px] font-mono" style={{ color: C.textDim }}>
+                              ⚙ {agent.lastTool}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <span className="text-[9px]" style={{ color: C.textDim }}>{agent.eventCount}</span>
                     </div>

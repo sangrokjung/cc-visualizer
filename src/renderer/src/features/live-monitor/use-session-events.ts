@@ -8,6 +8,7 @@ interface ActiveAgent {
   name: string
   lastSeen: string
   eventCount: number
+  lastTool?: string
 }
 
 interface SessionStats {
@@ -16,6 +17,7 @@ interface SessionStats {
   tool_use: number
   hook: number
   agent_spawn: number
+  agent_progress: number
   system: number
 }
 
@@ -63,9 +65,27 @@ export function useSessionEvents() {
         } else {
           agents.set(ev.data.agentId, {
             id: ev.data.agentId,
+            name: ev.data.agentName && ev.data.agentName.length < 40
+              ? ev.data.agentName
+              : ev.data.agentId?.slice(0, 12) || 'unknown',
+            lastSeen: ev.timestamp,
+            eventCount: 1,
+          })
+        }
+      }
+      if (ev.type === 'tool_use' && ev.data.agentId) {
+        const existing = agents.get(ev.data.agentId)
+        if (existing) {
+          existing.eventCount++
+          existing.lastTool = ev.data.toolName
+          if (ev.timestamp > existing.lastSeen) existing.lastSeen = ev.timestamp
+        } else {
+          agents.set(ev.data.agentId, {
+            id: ev.data.agentId,
             name: ev.data.agentName || ev.data.agentId.slice(0, 12),
             lastSeen: ev.timestamp,
             eventCount: 1,
+            lastTool: ev.data.toolName,
           })
         }
       }
@@ -74,7 +94,7 @@ export function useSessionEvents() {
   }, [events])
 
   const stats = useMemo((): SessionStats => {
-    const counts: SessionStats = { user: 0, assistant: 0, tool_use: 0, hook: 0, agent_spawn: 0, system: 0 }
+    const counts: SessionStats = { user: 0, assistant: 0, tool_use: 0, hook: 0, agent_spawn: 0, agent_progress: 0, system: 0 }
     for (const ev of events) {
       const key = ev.type as keyof SessionStats
       if (key in counts) counts[key]++
