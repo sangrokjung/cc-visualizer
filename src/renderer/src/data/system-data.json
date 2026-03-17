@@ -1,6 +1,21 @@
 {
-  "scanTimestamp": "2026-03-14T13:35:45.559Z",
+  "scanTimestamp": "2026-03-17T07:39:08.990Z",
   "agents": [
+    {
+      "id": "action-architect",
+      "name": "action-architect",
+      "description": "Action plan designer for email-action-team. Synthesizes email analysis into prioritized action items.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "development",
+      "maxTurns": 15,
+      "memory": "project"
+    },
     {
       "id": "ad-compass",
       "name": "ad-compass",
@@ -67,10 +82,32 @@
       "memory": "project"
     },
     {
+      "id": "ai-researcher",
+      "name": "ai-researcher",
+      "description": "자율 AI 연구 에이전트. 논문 탐색→가설 생성→실험 설계→결과 분석→보고서 작성.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "Agent",
+        "mcp__exa__web_search_exa",
+        "mcp__jina-reader__jina_reader",
+        "mcp__fetch__fetch"
+      ],
+      "category": "development",
+      "maxTurns": 30,
+      "memory": "user"
+    },
+    {
       "id": "architect",
       "name": "architect",
       "description": "Use when making architectural decisions, diagnosing complex bugs, or evaluating system design trade-offs. Read-only analysis with file:line evidence. Triggers on: new feature planning, large refactoring, scalability concerns, technical debt assessment.",
-      "model": "opus",
+      "model": "sonnet",
       "tools": [
         "Read",
         "Grep",
@@ -82,9 +119,27 @@
       "memory": "project"
     },
     {
+      "id": "auto-experimenter",
+      "name": "auto-experimenter",
+      "description": "자율 실험 루프 에이전트. 단일 파일을 반복 수정하며 정량 메트릭 기반 keep/discard 판단. /auto-experiment 스킬의 실행 엔진.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "Edit",
+        "Write"
+      ],
+      "category": "development",
+      "maxTurns": 30,
+      "memory": "project",
+      "isolation": true
+    },
+    {
       "id": "build-error-resolver",
       "name": "build-error-resolver",
-      "description": "Use when build fails or type errors occur to get back to green with minimal changes. Fixes type errors, compilation failures, import errors, dependency issues. Minimal diffs only — no refactoring or architecture changes. For post-hoc verification use verify-agent instead.",
+      "description": "Use when build fails or type errors occur to get back to green with minimal changes. Fixes type errors, compilation failures, import errors, dependency issues. Minimal diffs only -- no refactoring or architecture changes.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -101,8 +156,8 @@
     {
       "id": "code-reviewer",
       "name": "code-reviewer",
-      "description": "Use when completing code changes to review quality, security, and maintainability. Two-stage review: spec compliance first, then code quality. Severity-rated issues with fix suggestions. Primary Claude-based reviewer (see codex-reviewer for OpenAI second opinion, gemini-reviewer for frontend-focused Gemini review).",
-      "model": "opus",
+      "description": "Use when completing code changes to review quality, security, and maintainability. Two-stage review: spec compliance first, then code quality. Severity-rated issues with fix suggestions.",
+      "model": "sonnet",
       "tools": [
         "Read",
         "Grep",
@@ -149,7 +204,7 @@
     {
       "id": "copywriting",
       "name": "copywriting",
-      "description": "Use when writing or editing marketing copy: landing pages, ad copy, email sequences, sales pages, CTAs, headlines, value propositions, or conversion optimization. Applies proven frameworks from Schwartz, Hormozi, Ogilvy, Sugarman, Cialdini, StoryBrand, Wiebe, and Dunford. For long-form content (blogs, articles, newsletters) use content-creator skill instead.",
+      "description": "Use when writing or editing marketing copy: landing pages, ad copy, email sequences, sales pages, CTAs, headlines, value propositions. Applies Schwartz, Hormozi, Ogilvy, Sugarman, Cialdini, StoryBrand, Wiebe, Dunford frameworks.",
       "model": "opus",
       "tools": [
         "Read",
@@ -161,6 +216,25 @@
       ],
       "category": "marketing",
       "maxTurns": 25,
+      "memory": "user"
+    },
+    {
+      "id": "crm-manager",
+      "name": "crm-manager",
+      "description": "QJC CRM 전담 에이전트. Use this agent proactively when the user mentions customers, leads, deals, follow-ups, pipeline, sales, contacts, or customer health. 리드 관리, 파이프라인 추적, 팔로업 자동화, 고객 건강 점수 산정, 이탈 방지, 활동 로그를 수행한다. Notion CRM DB + Gmail + Calendar를 통합 활용한다. 10명의 구루 프레임워크(Lincoln Murphy, David Skok, Jill Konrath, Aaron Ross, Brent Adamson, HubSpot, Jacco van der Kooij, Nick Mehta, Jay Baer, 최규철)를 적용하여 1인 기업 맞춤 CRM을 운영한다.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "Bash",
+        "WebSearch",
+        "AskUserQuestion"
+      ],
+      "category": "business",
+      "maxTurns": 30,
       "memory": "user"
     },
     {
@@ -182,7 +256,7 @@
       "id": "doc-updater",
       "name": "doc-updater",
       "description": "Use when documentation or codemaps need updating after code changes. Generates codemaps from actual source code, refreshes READMEs and guides, validates paths and links. Never writes docs from memory — always from code.",
-      "model": "sonnet",
+      "model": "haiku",
       "tools": [
         "Read",
         "Write",
@@ -247,6 +321,21 @@
       "memory": "project"
     },
     {
+      "id": "folder-hunter",
+      "name": "folder-hunter",
+      "description": "QJC file and document search specialist for email-action-team. Locates referenced files across local and cloud storage.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "category": "development",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
       "id": "gemini-reviewer",
       "name": "gemini-reviewer",
       "description": "Use for frontend-focused second opinion code review via Gemini. Reviews React/Next.js patterns, accessibility, CSS/Tailwind, bundle size, performance. Complements code-reviewer for frontend-specific blind spots. Requires Google subscription.",
@@ -280,9 +369,24 @@
       "memory": "project"
     },
     {
+      "id": "mail-scout",
+      "name": "mail-scout",
+      "description": "Gmail inbox analysis specialist for email-action-team. Scans unread emails, extracts metadata, and categorizes by priority.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "development",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
       "id": "patent-attorney",
       "name": "patent-attorney",
-      "description": "한국 변리사 업무 전문 에이전트. 선행기술 조사(KIPRIS API), 명세서/청구항 작성 보조, OA 대응, 특허 분석, IP 전략 수립을 수행한다. 10명의 구루 프레임워크(정차호, 조영선, 윤선희, 김원오, 이해영, Faber, Quinn, Krajec, Phelps, WIPO/MOIP(구 KIPO))를 적용하여 체계적 IP 실무를 지원한다.",
+      "description": "한국 변리사 업무 전문 에이전트. 선행기술 조사(KIPRIS API), 명세서/청구항 작성 보조, OA 대응, 특허 분석, IP 전략 수립. 10명 구루 프레임워크 적용.",
       "model": "opus",
       "tools": [
         "Read",
@@ -291,8 +395,7 @@
         "Grep",
         "Glob",
         "WebSearch",
-        "Edit",
-        "AskUserQuestion"
+        "Edit"
       ],
       "category": "legal",
       "maxTurns": 30,
@@ -318,7 +421,7 @@
     {
       "id": "planner",
       "name": "planner",
-      "description": "Use when creating implementation plans for complex features, architectural changes, or multi-step refactoring. Interviews user for preferences, researches codebase, produces 3-6 step actionable plans with acceptance criteria. Never implements — only plans.",
+      "description": "Use when creating implementation plans for complex features, architectural changes, or multi-step refactoring. Interviews user for preferences, researches codebase, produces 3-6 step actionable plans with acceptance criteria. Never implements -- only plans.",
       "model": "opus",
       "tools": [
         "Read",
@@ -453,9 +556,31 @@
       "memory": "project"
     },
     {
+      "id": "research-pi",
+      "name": "research-pi",
+      "description": "범용 연구 오케스트레이터. 시장분석, 기술동향, 정책연구, 비즈니스 리서치 등 도메인 무관 체계적 연구를 수행.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "Agent",
+        "mcp__exa__web_search_exa",
+        "mcp__jina-reader__jina_reader",
+        "mcp__fetch__fetch"
+      ],
+      "category": "development",
+      "maxTurns": 50,
+      "memory": "user"
+    },
+    {
       "id": "researcher",
       "name": "researcher",
-      "description": "Use when gathering external information via web search, fact-checking, or competitive research. Produces structured reports with sources and confidence ratings. Escalation: jina-reader -> fetch -> scrapling. Also handles YouTube subtitle extraction via yt-dlp.",
+      "description": "Use when gathering external information via web search, fact-checking, or competitive research. Produces structured reports with sources and confidence ratings. Escalation: jina-reader -> fetch -> scrapling.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -474,8 +599,8 @@
     {
       "id": "security-reviewer",
       "name": "security-reviewer",
-      "description": "Use when reviewing code that handles user input, authentication, API endpoints, or sensitive data. OWASP Top 10 analysis, secrets detection, dependency audit. Prioritizes by severity x exploitability x blast radius. Read-only reviewer — does not implement fixes.",
-      "model": "opus",
+      "description": "Use when reviewing code that handles user input, authentication, API endpoints, or sensitive data. OWASP Top 10 analysis, secrets detection, dependency audit. Prioritizes by severity x exploitability x blast radius. Read-only.",
+      "model": "sonnet",
       "tools": [
         "Read",
         "Grep",
@@ -504,10 +629,26 @@
       "memory": "project"
     },
     {
+      "id": "storyteller",
+      "name": "storyteller",
+      "description": "자율 스토리텔링 전문 에이전트. 비즈니스 내러티브, 브랜드 스토리, 고객 성공 사례, 프레젠테이션 스토리, 콘텐츠 스토리 구조, 피치덱 내러티브를 설계한다. 12명의 구루 프레임워크(McKee, Campbell, Miller, Duarte, Hall, Dicks, Pixar, Vonnegut, Snyder, Gottschall, Zak, Storr)를 상황에 맞게 적용하고, copywriting·content-creator·qjc-content와 연계하여 스토리 중심 산출물을 생성한다.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit"
+      ],
+      "category": "marketing",
+      "maxTurns": 25,
+      "memory": "user"
+    },
+    {
       "id": "tdd-guide",
       "name": "tdd-guide",
       "description": "Use when writing new features, fixing bugs, or refactoring code to enforce Red-Green-Refactor TDD cycle. Writes tests first, implements minimal code to pass, then refactors. Targets 80%+ coverage with edge case analysis.",
-      "model": "opus",
+      "model": "sonnet",
       "tools": [
         "Read",
         "Write",
@@ -525,7 +666,7 @@
       "id": "verify-agent",
       "name": "verify-agent",
       "description": "Use for fresh-context post-implementation verification. Runs typecheck -> lint -> build -> test pipeline independently. Auto-fixes simple errors (imports, types), classifies non-fixable ones. Spawned by /handoff-verify.",
-      "model": "sonnet",
+      "model": "haiku",
       "tools": [
         "Read",
         "Write",
@@ -541,7 +682,7 @@
     {
       "id": "web-designer",
       "name": "web-designer",
-      "description": "Use when creating or redesigning UI/UX: landing pages, dashboards, component libraries. 7-phase workflow from requirements to QA. Requires ui-ux-pro-max skill for design system generation. Handles .html/.tsx/.vue/.svelte files, color/font/layout decisions.",
+      "description": "Use when creating or redesigning UI/UX: landing pages, dashboards, component libraries. 7-phase workflow from requirements to QA. Requires ui-ux-pro-max skill for design system generation.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -562,6 +703,13 @@
       "name": "ab-test-setup",
       "description": "When the user wants to plan, design, or implement an A/B test or experiment. Also use when the user mentions \"A/B test,\" \"split test,\" \"experiment,\" \"test this change,\" \"variant copy,\" \"multivariate test,\" or \"hypothesis.\" For tracking implementation, see analytics-tracking.",
       "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "agent-router",
+      "name": "agent-router",
+      "description": "전문 에이전트 자동 라우팅. 법률, 재무, 특허, SEO, 마케팅, 기획, 코드리뷰, 아키텍처, 견적, CRM, 리서치 등 30+ 도메인",
+      "type": "skill-file",
       "hasSubcommands": false
     },
     {
@@ -1450,17 +1598,17 @@
           "async": false
         },
         {
-          "command": "~/qjc-office/dotclaude/hooks/email-mime-validate.sh",
-          "timeout": 5000,
-          "async": false
-        },
-        {
-          "command": "~/.claude/hooks/email-guard.sh",
+          "command": "~/.claude/hooks/email-mime-validate.sh",
           "timeout": 5000,
           "async": false
         },
         {
           "command": "~/.claude/hooks/gov-api-key-check.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/email-guard.sh",
           "timeout": 5000,
           "async": false
         }
@@ -1479,7 +1627,7 @@
     },
     {
       "event": "PreToolUse",
-      "matcher": "mcp__(supabase|plugin_supabase_supabase)__(execute_sql|apply_migration)",
+      "matcher": "mcp__supabase__(execute_sql|apply_migration)",
       "commands": [
         {
           "command": "~/.claude/hooks/db-guard.sh",
@@ -1501,7 +1649,18 @@
     },
     {
       "event": "PreToolUse",
-      "matcher": "mcp__(playwright|plugin_playwright_playwright)__browser_run_code",
+      "matcher": "mcp__Google_Calendar__*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/calendar-guard.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "mcp__playwright__browser_run_code",
       "commands": [
         {
           "command": "~/.claude/hooks/expensive-mcp-warning.sh",
@@ -1564,7 +1723,7 @@
         {
           "command": "~/.claude/hooks/dotclaude-sync-check.sh",
           "timeout": 10000,
-          "async": false
+          "async": true
         },
         {
           "command": "~/.claude/hooks/sound-notify.sh session-start",
@@ -1585,6 +1744,11 @@
           "command": "~/.claude/hooks/ads-auth-check.sh",
           "timeout": 10000,
           "async": true
+        },
+        {
+          "command": "~/.claude/hooks/gov-support-daily-check.sh",
+          "timeout": 5000,
+          "async": false
         }
       ]
     },
@@ -1673,11 +1837,6 @@
       "matcher": "*",
       "commands": [
         {
-          "command": "~/.claude/hooks/work-tracker-stop.sh",
-          "timeout": 5000,
-          "async": false
-        },
-        {
           "command": "~/.claude/hooks/session-end-suggest.sh",
           "timeout": 5000,
           "async": false
@@ -1699,19 +1858,24 @@
           "async": true
         },
         {
+          "command": "~/.claude/hooks/work-tracker-stop.sh",
+          "timeout": 10000,
+          "async": true
+        },
+        {
           "command": "~/.claude/hooks/dotclaude-auto-push.sh",
           "timeout": 15000,
-          "async": false
+          "async": true
         },
         {
           "command": "~/.claude/hooks/session-summary-writer.sh",
           "timeout": 5000,
-          "async": false
+          "async": true
         },
         {
           "command": "~/.claude/hooks/telegram-notify.sh stop",
           "timeout": 5000,
-          "async": false
+          "async": true
         }
       ]
     },
@@ -1743,7 +1907,7 @@
         {
           "command": "~/.claude/hooks/notification-telegram.sh",
           "timeout": 10000,
-          "async": false
+          "async": true
         }
       ]
     },
@@ -1783,10 +1947,34 @@
   ],
   "rules": [
     {
+      "id": "AUDIT-REPORT",
+      "name": "Rules 감사 리포트",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/AUDIT-REPORT.md",
+      "priority": "normal"
+    },
+    {
       "id": "agents-v2",
       "name": "Agent Orchestration",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/agents-v2.md",
+      "priority": "critical"
+    },
+    {
+      "id": "ai-research",
+      "name": "AI Research 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/ai-research.md",
       "priority": "normal"
+    },
+    {
+      "id": "auto-experiment",
+      "name": "자율 실험(Auto-Experiment) 스킬 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/auto-experiment.md",
+      "priority": "critical"
+    },
+    {
+      "id": "cli-anything",
+      "name": "CLI-Anything 사용 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/cli-anything.md",
+      "priority": "critical"
     },
     {
       "id": "coding-style",
@@ -1795,9 +1983,9 @@
       "priority": "normal"
     },
     {
-      "id": "contract-legal",
-      "name": "계약/법률(Contract-Legal) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/contract-legal.md",
+      "id": "crm",
+      "name": "CRM(고객 관계 관리) 에이전트 트리거 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/crm.md",
       "priority": "critical"
     },
     {
@@ -1819,12 +2007,6 @@
       "priority": "critical"
     },
     {
-      "id": "financial-accountant",
-      "name": "재무/회계(Financial Accountant) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/financial-accountant.md",
-      "priority": "critical"
-    },
-    {
       "id": "git-workflow-v2",
       "name": "Git Workflow",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/git-workflow-v2.md",
@@ -1834,12 +2016,6 @@
       "id": "golden-principles",
       "name": "Golden Principles",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/golden-principles.md",
-      "priority": "critical"
-    },
-    {
-      "id": "gov-support",
-      "name": "정부지원사업(Government Support) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/gov-support.md",
       "priority": "critical"
     },
     {
@@ -1861,12 +2037,6 @@
       "priority": "critical"
     },
     {
-      "id": "patent-attorney",
-      "name": "변리사(Patent Attorney) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/patent-attorney.md",
-      "priority": "critical"
-    },
-    {
       "id": "performance-marketing",
       "name": "퍼포먼스 마케팅 규칙 (IMPORTANT)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/performance-marketing.md",
@@ -1876,12 +2046,6 @@
       "id": "personal-os",
       "name": "Personal OS Rules",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/personal-os.md",
-      "priority": "critical"
-    },
-    {
-      "id": "planning",
-      "name": "기획(Planning) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/planning.md",
       "priority": "critical"
     },
     {
@@ -1915,15 +2079,9 @@
       "priority": "critical"
     },
     {
-      "id": "scrapling",
-      "name": "Scrapling CLI 자동 활용 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/scrapling.md",
-      "priority": "critical"
-    },
-    {
-      "id": "seo-geo-aeo",
-      "name": "SEO/GEO/AEO 전략 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/seo-geo-aeo.md",
+      "id": "research",
+      "name": "범용 연구 에이전트 (research-pi) 트리거",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/research.md",
       "priority": "critical"
     },
     {
@@ -1931,6 +2089,12 @@
       "name": "Session Lifecycle",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/session.md",
       "priority": "important"
+    },
+    {
+      "id": "storyteller",
+      "name": "Storyteller 에이전트 트리거 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/storyteller.md",
+      "priority": "normal"
     },
     {
       "id": "supabase-mcp",
@@ -2016,6 +2180,11 @@
         },
         {
           "from": "qjc-content",
+          "to": "crm-manager",
+          "auto": true
+        },
+        {
+          "from": "crm-manager",
           "to": "financial-accountant",
           "auto": true
         },
@@ -2275,6 +2444,64 @@
           "from": "contract-legal",
           "to": "copywriting",
           "condition": "사업계획서 카피 개선 시",
+          "auto": false
+        }
+      ]
+    },
+    {
+      "name": "CRM 파이프라인",
+      "steps": [
+        {
+          "from": "crm-manager",
+          "to": "researcher",
+          "condition": "고객사/산업 외부 리서치 필요 시",
+          "auto": false
+        },
+        {
+          "from": "researcher",
+          "to": "quotation",
+          "condition": "딜 → 견적서 생성 시",
+          "auto": false
+        },
+        {
+          "from": "quotation",
+          "to": "contract-legal",
+          "auto": true
+        },
+        {
+          "from": "contract-legal",
+          "to": "qjc-business",
+          "condition": "전략적 영업 의사결정 (ICP, 시장 분석)",
+          "auto": false
+        },
+        {
+          "from": "qjc-business",
+          "to": "copywriting",
+          "condition": "이메일 카피, 제안서 카피 작성 시",
+          "auto": false
+        },
+        {
+          "from": "copywriting",
+          "to": "financial-accountant",
+          "condition": "매출 예측, 재무 분석 시",
+          "auto": false
+        },
+        {
+          "from": "financial-accountant",
+          "to": "/leads",
+          "condition": "리드 발굴 + 콜드메일 자동화 시",
+          "auto": false
+        },
+        {
+          "from": "/leads",
+          "to": "/warm-dm-strategist",
+          "condition": "SNS DM 시퀀스 전략 시",
+          "auto": false
+        },
+        {
+          "from": "/warm-dm-strategist",
+          "to": "/qjc-cs-ops",
+          "condition": "고객 서비스 운영 (수강생 관리) 시",
           "auto": false
         }
       ]
@@ -2750,6 +2977,10 @@
           "fileCount": 0
         },
         {
+          "name": "contract-legal",
+          "fileCount": 0
+        },
+        {
           "name": "copywriting",
           "fileCount": 1
         },
@@ -2763,6 +2994,10 @@
         },
         {
           "name": "e2e-runner",
+          "fileCount": 0
+        },
+        {
+          "name": "financial-accountant",
           "fileCount": 0
         },
         {
@@ -2825,11 +3060,11 @@
     }
   },
   "stats": {
-    "agentCount": 33,
-    "skillCount": 123,
-    "hookCount": 48,
+    "agentCount": 41,
+    "skillCount": 124,
+    "hookCount": 50,
     "ruleCount": 28,
-    "pipelineCount": 11,
+    "pipelineCount": 12,
     "mcpServerCount": 48
   }
 }
