@@ -61,6 +61,30 @@ ipcMain.handle('get-system-paths', async () => {
   }
 })
 
+// IPC: 시스템 데이터 재스캔
+ipcMain.handle('rescan-system', async () => {
+  try {
+    const { execSync } = require('child_process')
+    execSync('npm run scan', { cwd: join(__dirname, '../..'), timeout: 30000 })
+    const content = readFileSync(join(__dirname, '../../src/renderer/src/data/system-data.json'), 'utf-8')
+    return { ok: true, data: JSON.parse(content) }
+  } catch (error) {
+    return { ok: false, error: String(error) }
+  }
+})
+
+// IPC: 사용량 데이터 재스캔
+ipcMain.handle('rescan-usage', async () => {
+  try {
+    const { execSync } = require('child_process')
+    execSync('npm run scan:usage', { cwd: join(__dirname, '../..'), timeout: 60000 })
+    const content = readFileSync(join(__dirname, '../../src/renderer/src/data/usage-stats.json'), 'utf-8')
+    return { ok: true, data: JSON.parse(content) }
+  } catch (error) {
+    return { ok: false, error: String(error) }
+  }
+})
+
 app.whenReady().then(() => {
   createWindow()
   if (mainWindow) {

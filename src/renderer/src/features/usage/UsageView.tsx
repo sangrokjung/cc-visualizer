@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   BarChart, Bar, AreaChart, Area, XAxis, YAxis,
   Tooltip, ResponsiveContainer, Cell, CartesianGrid
@@ -28,6 +28,17 @@ function StatCard({ label, value, color }: { label: string; value: string; color
 
 export default function UsageView() {
   const { summary, projects, toolUsage, agentSpawns, hookEvents, dailyActivity } = usageData
+  const [refreshing, setRefreshing] = useState(false)
+
+  const handleRefreshUsage = async () => {
+    setRefreshing(true)
+    try {
+      const result = await window.electronAPI?.rescanUsage()
+      if (result?.ok) window.location.reload()
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   const toolChartData = useMemo(() => toolUsage.slice(0, 15), [])
   const projectChartData = useMemo(() => projects.slice(0, 12), [])
@@ -46,10 +57,22 @@ export default function UsageView() {
           background: 'linear-gradient(135deg, rgba(45,114,210,0.12) 0%, rgba(0,163,150,0.08) 50%, rgba(121,97,219,0.12) 100%)',
           border: '1px solid rgba(45,114,210,0.2)',
         }}>
-          <h1 className="text-xl font-bold" style={{ color: C.text }}>Usage Analytics</h1>
-          <p className="text-xs mt-1" style={{ color: C.textSub }}>
-            Claude Code 전체 세션의 에이전트, 도구, 훅 사용 통계
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold" style={{ color: C.text }}>Usage Analytics</h1>
+              <p className="text-xs mt-1" style={{ color: C.textSub }}>
+                Claude Code 전체 세션의 에이전트, 도구, 훅 사용 통계
+              </p>
+            </div>
+            <button
+              onClick={handleRefreshUsage}
+              disabled={refreshing}
+              className="text-[11px] px-3 py-1.5 rounded-lg transition-colors"
+              style={{ backgroundColor: '#252A31', color: refreshing ? '#5F6B7C' : '#ABB3BF', border: '1px solid #404854' }}
+            >
+              {refreshing ? '스캔 중...' : '⟳ 데이터 새로고침'}
+            </button>
+          </div>
         </div>
 
         {/* 요약 카드 4개 */}

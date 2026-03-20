@@ -5,6 +5,12 @@ import type { BrowserWindow } from 'electron'
 
 const home = process.env.HOME ?? ''
 
+// 모듈 레벨 상태 변수
+let currentJsonlPath: string | null = null
+let currentWatcher: ReturnType<typeof watch> | null = null
+let currentPollInterval: ReturnType<typeof setInterval> | null = null
+let offset = 0
+
 interface SessionEvent {
   id: string
   timestamp: string
@@ -208,20 +214,19 @@ function parseLines(line: string): SessionEvent[] {
   }
 }
 
-export function startSessionWatcher(mainWindow: BrowserWindow): void {
-  const jsonlPath = findLatestJsonl()
-  if (!jsonlPath) {
-    console.log('[session-watcher] JSONL 파일을 찾을 수 없습니다')
-    // 10초마다 재시도
-    setTimeout(() => {
-      if (!mainWindow.isDestroyed()) startSessionWatcher(mainWindow)
-    }, 10000)
-    return
+function startWatching(mainWindow: BrowserWindow, jsonlPath: string): void {
+  // 기존 cleanup
+  if (currentWatcher) {
+    currentWatcher.close()
+    currentWatcher = null
+  }
+  if (currentPollInterval) {
+    clearInterval(currentPollInterval)
+    currentPollInterval = null
   }
 
-  console.log(`[session-watcher] 감시 시작: ${basename(jsonlPath)}`)
-
-  let offset = 0
+  currentJsonlPath = jsonlPath
+  offset = 0
   try {
     offset = statSync(jsonlPath).size
   } catch {
@@ -233,6 +238,8 @@ export function startSessionWatcher(mainWindow: BrowserWindow): void {
   if (!mainWindow.isDestroyed()) {
     mainWindow.webContents.send('session-id', sessionId)
   }
+
+  console.log(`[session-watcher] 감시 시작: ${basename(jsonlPath)}`)
 
   const processNewLines = (): void => {
     if (mainWindow.isDestroyed()) return
@@ -259,17 +266,35 @@ export function startSessionWatcher(mainWindow: BrowserWindow): void {
     }
   }
 
-  // fs.watch로 파일 변경 감지
-  const watcher = watch(jsonlPath, { persistent: false }, () => {
-    processNewLines()
-  })
+  currentWatcher = watch(jsonlPath, { persistent: false }, () => processNewLines())
+  currentPollInterval = setInterval(processNewLines, 2000)
+}
 
-  // 폴백: 2초마다 폴링
-  const intervalId = setInterval(processNewLines, 2000)
+function checkForNewSession(mainWindow: BrowserWindow): void {
+  if (mainWindow.isDestroyed()) return
+  const latest = findLatestJsonl()
+  if (!latest || latest === currentJsonlPath) return
 
-  // cleanup: 윈도우 닫힐 때 리소스 해제
+  console.log(`[session-watcher] 새 세션 감지: ${basename(latest)}`)
+  startWatching(mainWindow, latest)
+}
+
+export function startSessionWatcher(mainWindow: BrowserWindow): void {
+  // 초기 세션 찾기
+  checkForNewSession(mainWindow)
+
+  // 10초마다 새 세션 체크
+  const sessionCheckInterval = setInterval(() => {
+    if (mainWindow.isDestroyed()) {
+      clearInterval(sessionCheckInterval)
+      return
+    }
+    checkForNewSession(mainWindow)
+  }, 10000)
+
   mainWindow.on('closed', () => {
-    watcher.close()
-    clearInterval(intervalId)
+    clearInterval(sessionCheckInterval)
+    if (currentWatcher) currentWatcher.close()
+    if (currentPollInterval) clearInterval(currentPollInterval)
   })
 }

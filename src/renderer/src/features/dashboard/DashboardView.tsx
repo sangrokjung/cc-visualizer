@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { HeroSection } from './HeroSection'
 import { StatCards } from './StatCards'
 import { SystemRadar } from './SystemRadar'
@@ -10,9 +11,33 @@ import { MemoryPanel } from './MemoryPanel'
 
 // 팔란티어 온톨로지 대시보드 — 스크롤 가능한 풀 레이아웃
 export default function DashboardView() {
+  const [refreshing, setRefreshing] = useState(false)
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    try {
+      const result = await window.electronAPI?.rescanSystem()
+      if (result?.ok) window.location.reload()
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   return (
     <div className="h-full overflow-y-auto" style={{ backgroundColor: '#111418' }}>
       <div className="max-w-[1400px] mx-auto p-6 space-y-6">
+        {/* 새로고침 버튼 (우상단) */}
+        <div className="flex justify-end">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="text-[11px] px-3 py-1.5 rounded-lg transition-colors"
+            style={{ backgroundColor: '#252A31', color: refreshing ? '#5F6B7C' : '#ABB3BF', border: '1px solid #404854' }}
+          >
+            {refreshing ? '스캔 중...' : '⟳ 데이터 새로고침'}
+          </button>
+        </div>
+
         {/* 1. 히어로 섹션 */}
         <HeroSection />
 

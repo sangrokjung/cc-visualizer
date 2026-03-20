@@ -9,6 +9,8 @@ export type ElectronAPI = {
   onSessionEvent: (callback: (event: any) => void) => void
   removeSessionEventListener: () => void
   onSessionId: (callback: (id: string) => void) => void
+  rescanSystem: () => Promise<{ ok: boolean; data?: any; error?: string }>
+  rescanUsage: () => Promise<{ ok: boolean; data?: any; error?: string }>
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -29,5 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onSessionId: (callback: (id: string) => void) => {
     ipcRenderer.on('session-id', (_event, id) => callback(id))
-  }
+  },
+  rescanSystem: () => ipcRenderer.invoke('rescan-system'),
+  rescanUsage: () => ipcRenderer.invoke('rescan-usage')
 } satisfies ElectronAPI)
