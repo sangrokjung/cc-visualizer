@@ -8,6 +8,7 @@ const LiveMonitorView = lazy(() => import('../features/live-monitor/LiveMonitorV
 const CatalogView = lazy(() => import('../features/catalog/CatalogView'))
 const SystemsView = lazy(() => import('../features/systems/SystemsView'))
 const UsageView = lazy(() => import('../features/usage/UsageView'))
+const ProcessView = lazy(() => import('../features/process/ProcessView'))
 
 type Props = {
   activeView: ViewType
@@ -32,6 +33,7 @@ export default function Layout({ activeView }: Props) {
         {activeView === 'catalog' && <CatalogView />}
         {activeView === 'systems' && <SystemsView />}
         {activeView === 'usage' && <UsageView />}
+        {activeView === 'process' && <ProcessView />}
       </Suspense>
     </main>
   )
