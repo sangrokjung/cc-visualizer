@@ -158,6 +158,15 @@ const SHORTCUTS = [
   { situation: '원스톱', path: '/auto [설명]' }
 ]
 
+const RECIPE_CATEGORIES = [
+  { key: null as string | null, label: '전체', color: C.blue },
+  { key: 'bug', label: '버그', color: C.red, ids: [2, 3, 9, 10] },
+  { key: 'feature', label: '기능', color: C.green, ids: [1, 4, 5, 6, 7, 14] },
+  { key: 'review', label: '리뷰/정리', color: C.purple, ids: [11, 12, 15, 20] },
+  { key: 'deploy', label: '배포/UI', color: C.cyan, ids: [8, 13, 16, 17, 18] },
+  { key: 'other', label: '기타', color: C.yellow, ids: [19] },
+]
+
 // 구현 전략 선택 플로차트 데이터
 const IMPL_STRATEGY_NODES = [
   { id: 'start', label: '독립 태스크 2+개?', x: 250, y: 0 },
@@ -180,6 +189,8 @@ const IMPL_STRATEGY_EDGES = [
 
 export default function ProcessView() {
   const [activePhase, setActivePhase] = useState(0)
+  const [recipeFilter, setRecipeFilter] = useState<string | null>(null)
+  const [hoveredStrategy, setHoveredStrategy] = useState<string | null>(null)
   const recipesRef = useRef<HTMLDivElement>(null)
 
   return (
@@ -241,20 +252,42 @@ export default function ProcessView() {
           <h2 className="text-sm font-bold mb-3" style={{ color: C.text }}>
             프로세스 단계별 상세
           </h2>
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {PHASES.map((phase) => (
-              <button
-                key={phase.id}
-                onClick={() => setActivePhase(phase.id)}
-                className="shrink-0 px-4 py-2 rounded-lg text-xs font-medium transition-all"
-                style={{
-                  backgroundColor: activePhase === phase.id ? `${phase.color}20` : C.cardSub,
-                  color: activePhase === phase.id ? phase.color : C.textWeak,
-                  border: `1px solid ${activePhase === phase.id ? phase.color : C.border}`
-                }}
-              >
-                Phase {phase.id}: {phase.name}
-              </button>
+          <div className="flex items-center overflow-x-auto pb-2">
+            {PHASES.map((phase, i) => (
+              <React.Fragment key={phase.id}>
+                <button
+                  onClick={() => setActivePhase(phase.id)}
+                  className="relative flex flex-col items-center shrink-0 group"
+                >
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                    style={{
+                      backgroundColor: activePhase === phase.id ? phase.color : activePhase > phase.id ? `${phase.color}30` : C.cardSub,
+                      color: activePhase === phase.id ? '#fff' : activePhase > phase.id ? phase.color : C.textWeak,
+                      border: `2px solid ${activePhase >= phase.id ? phase.color : C.border}`,
+                      boxShadow: activePhase === phase.id ? `0 0 12px ${phase.color}30` : 'none',
+                    }}
+                  >
+                    {phase.id}
+                  </div>
+                  <span
+                    className="text-[9px] mt-1.5 whitespace-nowrap transition-colors"
+                    style={{ color: activePhase === phase.id ? phase.color : C.textDim }}
+                  >
+                    {phase.name}
+                  </span>
+                </button>
+                {i < PHASES.length - 1 && (
+                  <div
+                    className="flex-1 h-0.5 mx-2 rounded-full transition-colors"
+                    style={{
+                      backgroundColor: activePhase > i ? PHASES[i].color : C.border,
+                      minWidth: 24,
+                      opacity: activePhase > i ? 0.6 : 0.3,
+                    }}
+                  />
+                )}
+              </React.Fragment>
             ))}
           </div>
         </div>
@@ -334,17 +367,24 @@ export default function ProcessView() {
               {IMPL_STRATEGY_NODES.map((node) => {
                 const isTerminal = 'terminal' in node && node.terminal
                 const nodeColor = ('color' in node ? node.color : C.textSub) as string
+                const isHovered = hoveredStrategy === node.id
+                const isDimmed = hoveredStrategy !== null && !isHovered
                 return (
-                  <g key={node.id}>
+                  <g
+                    key={node.id}
+                    onMouseEnter={() => setHoveredStrategy(node.id)}
+                    onMouseLeave={() => setHoveredStrategy(null)}
+                    style={{ cursor: 'pointer', opacity: isDimmed ? 0.3 : 1, transition: 'opacity 0.2s' }}
+                  >
                     <rect
                       x={node.x}
                       y={node.y}
                       width={100}
                       height={30}
                       rx={isTerminal ? 6 : 15}
-                      fill={isTerminal ? `${nodeColor}20` : C.cardSub}
-                      stroke={isTerminal ? nodeColor : C.border}
-                      strokeWidth={1}
+                      fill={isHovered ? (isTerminal ? `${nodeColor}40` : `${C.cardSub}`) : (isTerminal ? `${nodeColor}20` : C.cardSub)}
+                      stroke={isHovered ? (isTerminal ? nodeColor : C.text) : (isTerminal ? nodeColor : C.border)}
+                      strokeWidth={isHovered ? 2 : 1}
                     />
                     <text
                       x={node.x + 50}
@@ -369,8 +409,27 @@ export default function ProcessView() {
           <h2 className="text-sm font-bold mb-3" style={{ color: C.text }}>
             상황별 레시피
           </h2>
+          <div className="flex gap-2 mb-4">
+            {RECIPE_CATEGORIES.map(cat => (
+              <button
+                key={cat.key ?? 'all'}
+                onClick={() => setRecipeFilter(cat.key)}
+                className="text-[10px] px-2.5 py-1 rounded-full border transition-all"
+                style={{
+                  borderColor: recipeFilter === cat.key ? cat.color : C.border,
+                  backgroundColor: recipeFilter === cat.key ? `${cat.color}15` : 'transparent',
+                  color: recipeFilter === cat.key ? cat.color : C.textWeak,
+                }}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
           <div ref={recipesRef} className="grid grid-cols-3 gap-4">
-            {RECIPES.map((recipe) => (
+            {(recipeFilter
+              ? RECIPES.filter(r => RECIPE_CATEGORIES.find(c => c.key === recipeFilter)?.ids?.includes(r.id))
+              : RECIPES
+            ).map((recipe) => (
               <div
                 key={recipe.id}
                 data-recipe={recipe.id}
@@ -427,34 +486,36 @@ export default function ProcessView() {
           <h2 className="text-sm font-bold mb-3" style={{ color: C.text }}>
             일과 루틴
           </h2>
-          <div
-            className="rounded-xl p-5"
-            style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
-          >
-            <div className="flex items-start">
+          <div className="rounded-xl p-5" style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}>
+            {/* 프로그레스 바 */}
+            <div className="relative h-1.5 rounded-full mb-6 overflow-hidden" style={{ backgroundColor: C.cardSub }}>
               {ROUTINE.map((r, i) => (
-                <React.Fragment key={i}>
-                  <div className="flex-1 text-center">
-                    <div
-                      className="w-3 h-3 rounded-full mx-auto mb-2"
-                      style={{ backgroundColor: r.color }}
-                    />
-                    <p className="text-xs font-bold mb-1" style={{ color: C.text }}>
-                      {r.time}
-                    </p>
-                    {r.commands.map((cmd) => (
-                      <p key={cmd} className="text-[10px] font-mono" style={{ color: r.color }}>
-                        {cmd}
-                      </p>
+                <div
+                  key={i}
+                  className="absolute top-0 h-full"
+                  style={{
+                    left: `${i * 25}%`,
+                    width: '24.5%',
+                    backgroundColor: `${r.color}50`,
+                    borderRadius: i === 0 ? '9999px 0 0 9999px' : i === ROUTINE.length - 1 ? '0 9999px 9999px 0' : 0,
+                  }}
+                />
+              ))}
+            </div>
+            {/* 라벨 그리드 */}
+            <div className="grid grid-cols-4 gap-4">
+              {ROUTINE.map((r, i) => (
+                <div key={i}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: r.color }} />
+                    <span className="text-xs font-bold" style={{ color: C.text }}>{r.time}</span>
+                  </div>
+                  <div className="space-y-0.5 ml-4">
+                    {r.commands.map(cmd => (
+                      <p key={cmd} className="text-[10px] font-mono" style={{ color: r.color }}>{cmd}</p>
                     ))}
                   </div>
-                  {i < ROUTINE.length - 1 && (
-                    <div
-                      className="flex-shrink-0 mt-1.5 w-12 h-px"
-                      style={{ backgroundColor: C.border }}
-                    />
-                  )}
-                </React.Fragment>
+                </div>
               ))}
             </div>
           </div>
@@ -465,26 +526,16 @@ export default function ProcessView() {
           <h2 className="text-sm font-bold mb-3" style={{ color: C.red }}>
             절대 건너뛰면 안 되는 게이트
           </h2>
-          <div
-            className="rounded-xl p-5"
-            style={{ backgroundColor: C.card, border: `2px solid ${C.red}40` }}
-          >
+          <div className="rounded-xl p-5" style={{ backgroundColor: C.card, border: `2px solid ${C.red}30` }}>
             <div className="space-y-2">
-              {GATES.map((gate) => (
-                <div
-                  key={gate.name}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg"
-                  style={{ backgroundColor: C.cardSub }}
-                >
-                  <span
-                    className="text-xs font-mono font-bold shrink-0"
-                    style={{ color: gate.color }}
-                  >
-                    {gate.name}
+              {GATES.map(gate => (
+                <div key={gate.name} className="flex items-center gap-3 px-3 py-3 rounded-lg" style={{ backgroundColor: `${C.red}06` }}>
+                  <span className="relative flex h-3 w-3 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-40" style={{ backgroundColor: gate.color }} />
+                    <span className="relative inline-flex rounded-full h-3 w-3" style={{ backgroundColor: gate.color }} />
                   </span>
-                  <span className="text-xs flex-1" style={{ color: C.textSub }}>
-                    {gate.rule}
-                  </span>
+                  <span className="text-xs font-mono font-bold shrink-0" style={{ color: gate.color }}>{gate.name}</span>
+                  <span className="text-xs flex-1" style={{ color: C.textSub }}>{gate.rule}</span>
                 </div>
               ))}
             </div>
