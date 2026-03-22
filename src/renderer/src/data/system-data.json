@@ -1,5 +1,5 @@
 {
-  "scanTimestamp": "2026-03-20T02:21:18.883Z",
+  "scanTimestamp": "2026-03-22T08:59:32.531Z",
   "agents": [
     {
       "id": "action-architect",
@@ -560,7 +560,7 @@
     {
       "id": "real-estate-investor",
       "name": "real-estate-investor",
-      "description": "한국 부동산 투자 전문 에이전트. 공공데이터 API(실거래가/공시지가/경매/청약/임대차)에서 시장 데이터를 자동 수집하고, 투자 적합도를 AI 분석하며, 매일 시장 동향 리포트를 생성한다. 10명의 구루 프레임워크(빠숑, 너나위/월급쟁이부자들, 부읽남, 아기곰, 이현정, 채상욱, 부동산지인, 호갱노노, 류태민, 기대위)를 적용하여 체계적 부동산 투자 전략을 지원한다.",
+      "description": "한국 부동산 투자 전문 에이전트. 공공데이터 API(실거래가/공시지가/경매/청약/임대차) + 거시경제 API(ECOS 기준금리/CPI/환율)에서 시장 데이터를 자동 수집하고, 투자 적합도를 AI 분석하며, 매일 시장 동향 리포트를 생성한다. 15명의 구루 프레임워크 — 부동산 10명(빠숑, 너나위, 부읽남, 아기곰, 이현정, 채상욱, 부동산지인, 호갱노노, 류태민, 기대위) + 거시경제/지정학 5명(레이 달리오, 하워드 막스, 홍춘욱, 오건영, 피터 자이한) — 을 적용하여 체계적 부동산 투자 전략을 지원한다.",
       "model": "opus",
       "tools": [
         "Read",
@@ -649,6 +649,24 @@
       ],
       "category": "research",
       "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "saju-myeongri",
+      "name": "saju-myeongri",
+      "description": "사주명리학(四柱命理學) 전문 에이전트. 만세력 기반 사주팔자 산출, 오행 분석, 용신 판단, 대운/세운 해석, 궁합 분석, 택일, 작명 보조를 수행한다. 10명의 구루 프레임워크(강헌, 김동완, 박주현, 이석영, 백경학, 적천수/임철초, 서자평, 서락오, 심효첨, 만민영)를 적용하여 체계적 명리 분석을 지원한다.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "Edit"
+      ],
+      "category": "development",
+      "maxTurns": 30,
       "memory": "project"
     },
     {
@@ -781,7 +799,7 @@
     {
       "id": "agent-router",
       "name": "agent-router",
-      "description": "전문 에이전트 자동 라우팅. 법률, 재무, 특허, SEO, 마케팅, 기획, 코드리뷰, 아키텍처, 견적, CRM, 리서치, 데이터 분석, 제1원칙 사고, 주식 투자, 부동산 투자 등 37 도메인",
+      "description": "전문 에이전트 자동 라우팅. 법률, 재무, 특허, SEO, 마케팅, 기획, 코드리뷰, 아키텍처, 견적, CRM, 리서치, 데이터 분석, 제1원칙 사고, 주식 투자, 부동산 투자, 명리학 등 38 도메인",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -1194,7 +1212,7 @@
     {
       "id": "morning-sync",
       "name": "Morning Sync",
-      "description": "아침 루틴 - context-sync + todos + 캘린더 + network overdue + 정부지원사업 수집 + 주식 시장 체크",
+      "description": "아침 루틴 - context-sync + todos + 캘린더 + network overdue + 정부지원사업 수집 + 주식 시장 체크 + 부동산 시장 체크",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -1388,6 +1406,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "real-estate-daily",
+      "name": "일일 부동산 시장 리포트",
+      "description": "일일 부동산 시장 리포트 자동 생성. 실거래/거시경제/청약 수집 → 구루 프레임워크 분석 → 리포트 저장",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "reddit-marketing",
       "name": "reddit-marketing",
       "description": "Reddit 마케팅 통합 도구. scan(서브레딧 모니터링/VoC), post(게시글 작성), comment(댓글 작성). 1인기업/SaaS 핵심 커뮤니티 마케팅.",
@@ -1552,6 +1577,13 @@
       "id": "sync",
       "name": "/sync - Git Pull + 문서 동기화",
       "description": "git pull + 문서 동기화 통합 (pull → sync-docs v7 순차 실행)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "task",
+      "name": "/task - TDL 태스크 관리",
+      "description": "TDL 태스크 관리 — 추가, 완료, 수정, 이동, 할당, 이력, 달성율 조회",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -1724,17 +1756,6 @@
     },
     {
       "event": "PreToolUse",
-      "matcher": "mcp__gmail__send_email",
-      "commands": [
-        {
-          "command": "~/.claude/hooks/email-guard.sh",
-          "timeout": 5000,
-          "async": false
-        }
-      ]
-    },
-    {
-      "event": "PreToolUse",
       "matcher": "mcp__supabase__(execute_sql|apply_migration)|mcp__plugin_supabase_supabase__(execute_sql|apply_migration)",
       "commands": [
         {
@@ -1870,6 +1891,11 @@
         },
         {
           "command": "~/.claude/hooks/real-estate-daily-check.sh",
+          "timeout": 30000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/stock-daily-check.sh",
           "timeout": 30000,
           "async": false
         }
@@ -2125,7 +2151,7 @@
     },
     {
       "id": "email",
-      "name": "Email Rules",
+      "name": "이메일 규칙 (Email Rules)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/email.md",
       "priority": "critical"
     },
@@ -2163,7 +2189,7 @@
       "id": "gws",
       "name": "Google Workspace CLI (gws) 사용 규칙",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/gws.md",
-      "priority": "critical"
+      "priority": "normal"
     },
     {
       "id": "image-generation",
@@ -2229,6 +2255,12 @@
       "id": "research",
       "name": "범용 연구 에이전트 (research-pi) 트리거",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/research.md",
+      "priority": "critical"
+    },
+    {
+      "id": "saju-myeongri",
+      "name": "사주명리학(Saju-Myeongri) 에이전트 트리거 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/saju-myeongri.md",
       "priority": "critical"
     },
     {
@@ -3257,10 +3289,10 @@
     }
   },
   "stats": {
-    "agentCount": 45,
-    "skillCount": 129,
+    "agentCount": 46,
+    "skillCount": 131,
     "hookCount": 53,
-    "ruleCount": 33,
+    "ruleCount": 34,
     "pipelineCount": 13,
     "mcpServerCount": 48
   }

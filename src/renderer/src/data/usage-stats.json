@@ -1,90 +1,80 @@
 {
-  "scanTimestamp": "2026-03-20T02:21:31.856Z",
+  "scanTimestamp": "2026-03-22T08:59:39.301Z",
   "summary": {
-    "totalEvents": 782982,
-    "totalSessions": 899,
-    "totalProjects": 206
+    "totalEvents": 693170,
+    "totalSessions": 840,
+    "totalProjects": 187
   },
   "projects": [
     {
-      "name": "yt-factory",
-      "events": 93039,
-      "sessions": 120
+      "name": "QJC",
+      "events": 91581,
+      "sessions": 203
     },
     {
-      "name": "QJC",
-      "events": 88985,
-      "sessions": 202
+      "name": "yt-factory",
+      "events": 77088,
+      "sessions": 99
     },
     {
       "name": "qjc-webapp",
-      "events": 60230,
-      "sessions": 65
-    },
-    {
-      "name": "sangrok",
-      "events": 48817,
-      "sessions": 91
+      "events": 49871,
+      "sessions": 59
     },
     {
       "name": "qjc-os",
-      "events": 28774,
-      "sessions": 53
+      "events": 30146,
+      "sessions": 55
+    },
+    {
+      "name": "sangrok",
+      "events": 28563,
+      "sessions": 59
     },
     {
       "name": "instructor-automation",
-      "events": 26685,
-      "sessions": 24
-    },
-    {
-      "name": "clariva",
-      "events": 23448,
-      "sessions": 12
-    },
-    {
-      "name": "qjc-webapp-광고-최적화",
-      "events": 20108,
-      "sessions": 6
-    },
-    {
-      "name": "mobile",
-      "events": 17847,
-      "sessions": 6
-    },
-    {
-      "name": ".openclaw",
-      "events": 16723,
+      "events": 24020,
       "sessions": 21
     },
     {
+      "name": "qjc-webapp-광고-최적화",
+      "events": 23972,
+      "sessions": 7
+    },
+    {
       "name": "agent-factory",
-      "events": 15651,
-      "sessions": 28
+      "events": 18465,
+      "sessions": 37
     },
     {
-      "name": "backend",
-      "events": 13557,
-      "sessions": 5
+      "name": ".openclaw",
+      "events": 17024,
+      "sessions": 21
     },
     {
-      "name": "g2b-monitor",
-      "events": 12618,
-      "sessions": 12
+      "name": "clariva",
+      "events": 16216,
+      "sessions": 7
     },
     {
       "name": "qjc-webapp-구글-광고-최적화",
-      "events": 12387,
-      "sessions": 6
+      "events": 13209,
+      "sessions": 7
     },
     {
-      "name": "qjc-webapp-프론트-디자인-개선",
-      "events": 11987,
-      "sessions": 10
+      "name": "g2b-monitor",
+      "events": 13011,
+      "sessions": 12
     },
     {
-      "name": "content-automation",
-      "events": 11695,
-      "sessions": 9
+      "name": "backend",
+      "events": 12735,
+      "sessions": 4
+    },
+    {
+      "name": "agent-factory-변리-에이전트",
+      "events": 12105,
+      "sessions": 17
     },
     {
       "name": "cc-playground",
@@ -92,9 +82,9 @@
       "sessions": 23
     },
     {
-      "name": "samyook-ai-center",
-      "events": 10283,
-      "sessions": 12
+      "name": "mobile",
+      "events": 10901,
+      "sessions": 4
     },
     {
       "name": "qjc-webapp-특이점-수익화",
@@ -102,14 +92,19 @@
       "sessions": 16
     },
     {
-      "name": "remotion",
-      "events": 9298,
-      "sessions": 28
+      "name": "samyook-ai-center",
+      "events": 10008,
+      "sessions": 11
     },
     {
-      "name": "qjc-webapp-결제-실패",
-      "events": 9229,
-      "sessions": 4
+      "name": "qjc-webapp-홈페이지",
+      "events": 9391,
+      "sessions": 14
+    },
+    {
+      "name": "qjc-webapp-안내-메세지",
+      "events": 8652,
+      "sessions": 14
     },
     {
       "name": "qjc-webapp-b2b-문의-자동화",
@@ -117,14 +112,24 @@
       "sessions": 2
     },
     {
-      "name": "agent-factory-변리-에이전트",
-      "events": 7756,
-      "sessions": 7
+      "name": "OpenClaw_인스타_셀러DM_자동화",
+      "events": 7777,
+      "sessions": 15
+    },
+    {
+      "name": "qjc-webapp-챗봇",
+      "events": 7699,
+      "sessions": 5
     },
     {
       "name": "cc-visualizer",
-      "events": 6935,
+      "events": 7336,
       "sessions": 2
+    },
+    {
+      "name": "agent-factory-재무-회계",
+      "events": 7101,
+      "sessions": 7
     },
     {
       "name": "qjc-webapp-추천-할인-시스템",
@@ -132,19 +137,9 @@
       "sessions": 4
     },
     {
-      "name": "OpenClaw_인스타_셀러DM_자동화",
-      "events": 5822,
-      "sessions": 15
-    },
-    {
-      "name": "nlm-research",
-      "events": 5813,
-      "sessions": 7
-    },
-    {
       "name": "meeting-automation",
-      "events": 5228,
-      "sessions": 23
+      "events": 5829,
+      "sessions": 26
     },
     {
       "name": "qjc-webapp-특이점-리뷰",
@@ -152,91 +147,96 @@
       "sessions": 10
     },
     {
-      "name": "qjc-webapp-홈페이지",
-      "events": 5057,
-      "sessions": 10
+      "name": "content-automation",
+      "events": 5048,
+      "sessions": 3
+    },
+    {
+      "name": "qjc-webapp-홈페이지-개선-v2",
+      "events": 5028,
+      "sessions": 3
     }
   ],
   "toolUsage": [
     {
       "name": "Bash",
-      "count": 100722
-    },
-    {
-      "name": "Read",
-      "count": 46144
+      "count": 98329
     },
     {
       "name": "Edit",
-      "count": 40093
+      "count": 37974
+    },
+    {
+      "name": "Read",
+      "count": 37676
     },
     {
       "name": "Write",
-      "count": 11371
+      "count": 11091
     },
     {
       "name": "Grep",
-      "count": 9472
+      "count": 8680
     },
     {
       "name": "Agent",
-      "count": 7469
-    },
-    {
-      "name": "ToolSearch",
-      "count": 6111
-    },
-    {
-      "name": "SendMessage",
-      "count": 6064
+      "count": 6556
     },
     {
       "name": "TaskUpdate",
-      "count": 5786
+      "count": 5328
+    },
+    {
+      "name": "SendMessage",
+      "count": 5320
     },
     {
       "name": "Glob",
-      "count": 4960
+      "count": 3705
     },
     {
       "name": "TaskCreate",
-      "count": 4423
+      "count": 3532
+    },
+    {
+      "name": "ToolSearch",
+      "count": 3390
     },
     {
       "name": "WebSearch",
-      "count": 2804
+      "count": 1914
     },
     {
       "name": "TeamDelete",
-      "count": 1199
+      "count": 975
     },
     {
       "name": "TeamCreate",
-      "count": 1038
-    },
-    {
-      "name": "TaskOutput",
-      "count": 885
+      "count": 844
     },
     {
       "name": "mcp__plugin_supabase_supabase__execute_sql",
       "count": 777
     },
     {
-      "name": "TaskList",
+      "name": "TaskOutput",
       "count": 750
     },
     {
       "name": "mcp__supabase__execute_sql",
-      "count": 690
+      "count": 744
+    },
+    {
+      "name": "TaskList",
+      "count": 634
     },
     {
       "name": "Skill",
-      "count": 628
+      "count": 570
     },
     {
       "name": "mcp__context7__query-docs",
-      "count": 531
+      "count": 519
     }
   ],
   "agentSpawns": [
@@ -395,130 +395,105 @@
     {
       "event": "PreToolUse",
       "tool": "Bash",
-      "count": 135726
+      "count": 138392
     },
     {
       "event": "PostToolUse",
       "tool": "Bash",
-      "count": 100722
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "Read",
-      "count": 46144
+      "count": 98329
     },
     {
       "event": "PostToolUse",
       "tool": "Edit",
-      "count": 40093
+      "count": 37974
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "Read",
+      "count": 37676
     },
     {
       "event": "Stop",
       "tool": "Stop",
-      "count": 36117
+      "count": 30162
     },
     {
       "event": "PreToolUse",
       "tool": "Edit",
-      "count": 11974
+      "count": 13796
     },
     {
       "event": "PostToolUse",
       "tool": "Write",
-      "count": 11371
+      "count": 11091
     },
     {
       "event": "PostToolUse",
       "tool": "Grep",
-      "count": 9472
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "Agent",
-      "count": 7469
+      "count": 8680
     },
     {
       "event": "SessionStart",
       "tool": "startup",
-      "count": 6481
+      "count": 6757
     },
     {
       "event": "PostToolUse",
-      "tool": "ToolSearch",
-      "count": 6111
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "SendMessage",
-      "count": 6064
+      "tool": "Agent",
+      "count": 6556
     },
     {
       "event": "PostToolUse",
       "tool": "TaskUpdate",
-      "count": 5786
+      "count": 5328
     },
     {
       "event": "PostToolUse",
-      "tool": "Glob",
-      "count": 4960
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "TaskCreate",
-      "count": 4423
-    },
-    {
-      "event": "SessionStart",
-      "tool": "compact",
-      "count": 4097
+      "tool": "SendMessage",
+      "count": 5320
     },
     {
       "event": "PreToolUse",
       "tool": "Write",
-      "count": 3534
+      "count": 4015
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "Glob",
+      "count": 3705
+    },
+    {
+      "event": "SessionStart",
+      "tool": "compact",
+      "count": 3622
     },
     {
       "event": "PreToolUse",
       "tool": "Read",
-      "count": 2849
+      "count": 3572
     },
     {
       "event": "PostToolUse",
-      "tool": "WebSearch",
-      "count": 2804
+      "tool": "TaskCreate",
+      "count": 3532
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "ToolSearch",
+      "count": 3390
     },
     {
       "event": "SessionStart",
       "tool": "clear",
-      "count": 1750
+      "count": 2049
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "WebSearch",
+      "count": 1914
     }
   ],
   "dailyActivity": [
-    {
-      "date": "2026-03-03",
-      "events": 682,
-      "sessions": 1
-    },
-    {
-      "date": "2026-03-04",
-      "events": 1532,
-      "sessions": 1
-    },
-    {
-      "date": "2026-03-05",
-      "events": 9568,
-      "sessions": 13
-    },
-    {
-      "date": "2026-03-06",
-      "events": 76300,
-      "sessions": 89
-    },
-    {
-      "date": "2026-03-07",
-      "events": 55205,
-      "sessions": 50
-    },
     {
       "date": "2026-03-09",
       "events": 73937,
@@ -576,8 +551,18 @@
     },
     {
       "date": "2026-03-20",
-      "events": 39,
-      "sessions": 2
+      "events": 25348,
+      "sessions": 47
+    },
+    {
+      "date": "2026-03-21",
+      "events": 4436,
+      "sessions": 15
+    },
+    {
+      "date": "2026-03-22",
+      "events": 24998,
+      "sessions": 57
     }
   ]
 }
