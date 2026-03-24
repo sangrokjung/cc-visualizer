@@ -1,5 +1,82 @@
-import matter from 'gray-matter'
-import { AgentNodeSchema, AgentCategorySchema, type AgentNode, type AgentCategory } from '../types'
+import { AgentNodeSchema, type AgentNode, type AgentCategory } from '../types'
+
+// 경량 frontmatter 파서 (gray-matter 대체 — Vite renderer에서 eval/fs 의존 없이 동작)
+function parseFrontmatter(content: string): { data: Record<string, unknown> } {
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  if (!match) return { data: {} }
+
+  const yaml = match[1]
+  const data: Record<string, unknown> = {}
+  let currentKey = ''
+  let multilineValue = ''
+  let inMultiline = false
+  let arrayCollecting = false
+  let arrayKey = ''
+  let arrayValues: string[] = []
+
+  for (const line of yaml.split('\n')) {
+    const trimmed = line.trimEnd()
+
+    // 배열 항목 수집 중
+    if (arrayCollecting) {
+      const itemMatch = trimmed.match(/^\s+-\s+["']?(.+?)["']?\s*$/)
+      if (itemMatch) {
+        arrayValues.push(itemMatch[1])
+        continue
+      } else {
+        data[arrayKey] = arrayValues
+        arrayCollecting = false
+        arrayValues = []
+      }
+    }
+
+    // multiline 블록 수집 중
+    if (inMultiline) {
+      if (/^\S/.test(trimmed) && trimmed.includes(':')) {
+        data[currentKey] = multilineValue.trim()
+        inMultiline = false
+      } else {
+        multilineValue += trimmed.trim() + ' '
+        continue
+      }
+    }
+
+    const kv = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_-]*):\s*(.*)$/)
+    if (!kv) continue
+
+    const [, key, value] = kv
+
+    if (value === '|' || value === '>') {
+      currentKey = key
+      multilineValue = ''
+      inMultiline = true
+    } else if (value.startsWith('[')) {
+      // 인라인 배열: ["Read", "Write", "Bash"]
+      try {
+        data[key] = JSON.parse(value.replace(/'/g, '"'))
+      } catch {
+        data[key] = []
+      }
+    } else if (value === '') {
+      // 다음 줄부터 YAML 배열 (- item) 가능
+      arrayCollecting = true
+      arrayKey = key
+      arrayValues = []
+    } else {
+      // 스칼라 값
+      let v: string | number | boolean = value.replace(/^["']|["']$/g, '')
+      if (v === 'true') data[key] = true
+      else if (v === 'false') data[key] = false
+      else if (/^\d+$/.test(v)) data[key] = parseInt(v, 10)
+      else data[key] = v
+    }
+  }
+
+  if (inMultiline) data[currentKey] = multilineValue.trim()
+  if (arrayCollecting) data[arrayKey] = arrayValues
+
+  return { data }
+}
 
 // color -> category 추론 매핑
 const COLOR_TO_CATEGORY: Record<string, AgentCategory> = {
@@ -90,7 +167,7 @@ export function parseAgent(content: string, filename: string): AgentNode | null 
   if (!content.trim()) return null
 
   try {
-    const { data } = matter(content)
+    const { data } = parseFrontmatter(content)
     if (!data.name) return null
 
     const id = filename.replace(/\.md$/, '')
