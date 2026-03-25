@@ -23,7 +23,7 @@ const NODES = [
 
 const EDGES = [
   // 메인 체인 (세로)
-  { from: 'start', to: 'typo' },
+  { from: 'start', to: 'typo', label: undefined },
   { from: 'typo', to: 'bug', label: 'N' },
   { from: 'bug', to: 'feature', label: 'N' },
   { from: 'feature', to: 'build', label: 'N' },

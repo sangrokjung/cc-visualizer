@@ -69,7 +69,7 @@ export function ModelRadialBar() {
             fill="#ABB3BF"
             fontSize={10}
           >
-            Agents
+            에이전트
           </text>
         </RadialBarChart>
       </ResponsiveContainer>

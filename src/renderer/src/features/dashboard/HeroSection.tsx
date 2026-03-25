@@ -37,10 +37,10 @@ export function HeroSection() {
         {/* 좌측: 제목 + 타임스탬프 */}
         <div>
           <h1 className="text-xl font-bold" style={{ color: '#F6F7F9' }}>
-            Claude Code System Overview
+            클로드 코드 시스템 개요
           </h1>
           <p className="text-xs mt-1" style={{ color: '#738091' }}>
-            Last scan: {formatTimestamp(scanTimestamp)}
+            최종 스캔: {formatTimestamp(scanTimestamp)}
           </p>
         </div>
 
@@ -51,7 +51,7 @@ export function HeroSection() {
               {stats.agentCount}
             </span>
             <p className="text-xs" style={{ color: '#ABB3BF' }}>
-              Agents
+              에이전트
             </p>
           </div>
           <span style={{ color: '#404854' }}>|</span>
@@ -60,7 +60,7 @@ export function HeroSection() {
               {stats.skillCount}
             </span>
             <p className="text-xs" style={{ color: '#ABB3BF' }}>
-              Skills
+              스킬
             </p>
           </div>
           <span style={{ color: '#404854' }}>|</span>
@@ -69,7 +69,7 @@ export function HeroSection() {
               {stats.hookCount}
             </span>
             <p className="text-xs" style={{ color: '#ABB3BF' }}>
-              Hooks
+              훅
             </p>
           </div>
           <span style={{ color: '#404854' }}>|</span>
@@ -78,7 +78,7 @@ export function HeroSection() {
               {stats.ruleCount}
             </span>
             <p className="text-xs" style={{ color: '#ABB3BF' }}>
-              Rules
+              규칙
             </p>
           </div>
           <span style={{ color: '#404854' }}>|</span>
@@ -87,7 +87,7 @@ export function HeroSection() {
               {stats.pipelineCount}
             </span>
             <p className="text-xs" style={{ color: '#ABB3BF' }}>
-              Pipelines
+              파이프라인
             </p>
           </div>
           <span style={{ color: '#404854' }}>|</span>
@@ -105,7 +105,7 @@ export function HeroSection() {
               {totalEntities}
             </span>
             <p className="text-xs" style={{ color: '#738091' }}>
-              Total
+              총합
             </p>
           </div>
         </div>
@@ -124,7 +124,7 @@ export function HeroSection() {
           />
         </span>
         <span className="text-xs" style={{ color: '#29A634' }}>
-          System Active
+          시스템 활성
         </span>
       </div>
     </div>

@@ -59,7 +59,7 @@ export default function UsageView() {
         }}>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold" style={{ color: C.text }}>Usage Analytics</h1>
+              <h1 className="text-xl font-bold" style={{ color: C.text }}>사용 통계 분석</h1>
               <p className="text-xs mt-1" style={{ color: C.textSub }}>
                 Claude Code 전체 세션의 에이전트, 도구, 훅 사용 통계
               </p>

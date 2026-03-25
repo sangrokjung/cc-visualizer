@@ -56,4 +56,4 @@ scripts/
 
 ## 주요 데이터 (system-data.json)
 
-agents(33), skills(123), hooks(48), rules(28), pipelines(11), mcpServers(48), memory
+agents(46), skills(131), hooks(53), rules(34), pipelines(13), mcpServers(48), memory

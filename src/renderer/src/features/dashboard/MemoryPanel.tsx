@@ -23,7 +23,7 @@ export function MemoryPanel() {
           <div className="flex items-center gap-2 mb-2">
             <span style={{ color: '#2D72D2' }}>◉</span>
             <span className="text-xs font-medium" style={{ color: '#F6F7F9' }}>
-              Auto Memory
+              자동 메모리
             </span>
           </div>
           <p
@@ -50,7 +50,7 @@ export function MemoryPanel() {
           <div className="flex items-center gap-2 mb-2">
             <span style={{ color: '#7961DB' }}>◆</span>
             <span className="text-xs font-medium" style={{ color: '#F6F7F9' }}>
-              Agent Memory
+              에이전트 메모리
             </span>
           </div>
           <div className="space-y-1.5">
@@ -90,7 +90,7 @@ export function MemoryPanel() {
           <div className="flex items-center gap-2 mb-2">
             <span style={{ color: '#29A634' }}>●</span>
             <span className="text-xs font-medium" style={{ color: '#F6F7F9' }}>
-              Personal OS
+              퍼스널 OS
             </span>
           </div>
           <p

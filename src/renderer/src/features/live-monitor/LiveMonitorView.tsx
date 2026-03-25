@@ -91,7 +91,7 @@ export default function LiveMonitorView() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: hasSessionData ? '#29A634' : '#D1980B' }} />
             <span className="relative inline-flex rounded-full h-3 w-3" style={{ backgroundColor: hasSessionData ? '#29A634' : '#D1980B' }} />
           </span>
-          <h1 className="text-sm font-bold" style={{ color: C.text }}>Live Session Monitor</h1>
+          <h1 className="text-sm font-bold" style={{ color: C.text }}>실시간 세션 모니터</h1>
           {sessionId && (
             <span className="text-[10px] font-mono px-2 py-0.5 rounded" style={{ backgroundColor: C.cardSub, color: C.textWeak }}>
               {sessionId.slice(0, 8)}...

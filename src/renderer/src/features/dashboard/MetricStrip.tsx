@@ -57,7 +57,7 @@ export function MetricStrip() {
           className="text-[10px] font-bold tracking-wider"
           style={{ color: '#29A634' }}
         >
-          SYSTEM ONLINE
+          시스템 온라인
         </span>
       </div>
 

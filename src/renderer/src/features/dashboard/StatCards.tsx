@@ -56,7 +56,7 @@ function getSkillSubMetric(): string {
     const t = s.type || 'unknown'
     types[t] = (types[t] || 0) + 1
   }
-  return `Dir ${types['skill-dir'] || 0} · File ${types['skill-file'] || 0}`
+  return `디렉토리 ${types['skill-dir'] || 0} · 파일 ${types['skill-file'] || 0}`
 }
 
 function getHookSubMetric(): string {
@@ -66,7 +66,7 @@ function getHookSubMetric(): string {
     events.add(h.event)
     totalCommands += 1
   }
-  return `${events.size} Events · ${totalCommands} Commands`
+  return `${events.size}개 이벤트 · ${totalCommands}개 커맨드`
 }
 
 function getRuleSubMetric(): string {
@@ -75,7 +75,7 @@ function getRuleSubMetric(): string {
     const p = r.priority || 'normal'
     priorities[p] = (priorities[p] || 0) + 1
   }
-  return `Critical ${priorities.critical || 0} · Important ${priorities.important || 0} · Normal ${priorities.normal || 0}`
+  return `긴급 ${priorities.critical || 0} · 중요 ${priorities.important || 0} · 일반 ${priorities.normal || 0}`
 }
 
 function getPipelineSubMetric(): string {
@@ -83,11 +83,11 @@ function getPipelineSubMetric(): string {
     (sum, p) => sum + p.steps.length,
     0
   )
-  return `총 ${totalSteps} Steps`
+  return `총 ${totalSteps}단계`
 }
 
 function getMcpSubMetric(): string {
-  return `${systemData.mcpServers.length} Servers`
+  return `${systemData.mcpServers.length}개 서버`
 }
 
 // 카드 정의

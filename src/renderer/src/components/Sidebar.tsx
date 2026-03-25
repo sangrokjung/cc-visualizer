@@ -7,9 +7,10 @@ const views: { id: ViewType; label: string; icon: string }[] = [
   { id: 'architecture', label: '시스템 아키텍처', icon: '🏗' },
   { id: 'live-monitor', label: '실시간 모니터', icon: '📡' },
   { id: 'catalog', label: '카탈로그', icon: '📚' },
-  { id: 'systems', label: '시스템', icon: '⚙' },
-  { id: 'usage', label: '사용량', icon: '📈' },
-  { id: 'process', label: '프로세스', icon: '🔄' }
+  { id: 'systems', label: '자동화 생태계', icon: '⚙' },
+  { id: 'usage', label: '사용 통계', icon: '📈' },
+  { id: 'process', label: '개발 프로세스', icon: '🔄' },
+  { id: 'agent-office', label: '에이전트 오피스', icon: '🏢' }
 ]
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000
@@ -37,8 +38,8 @@ export default function Sidebar({ activeView, onViewChange }: Props) {
   return (
     <aside className="w-56 bg-gray-900 border-r border-gray-800 flex flex-col">
       <div className="p-4 border-b border-gray-800">
-        <h1 className="text-lg font-bold text-white">CC Visualizer</h1>
-        <p className="text-xs text-gray-500 mt-1">Claude Code System</p>
+        <h1 className="text-lg font-bold text-white">QJC OS Visualizer</h1>
+        <p className="text-xs text-gray-500 mt-1">온톨로지 시스템</p>
       </div>
       <nav className="flex-1 p-2">
         {views.map((v) => (

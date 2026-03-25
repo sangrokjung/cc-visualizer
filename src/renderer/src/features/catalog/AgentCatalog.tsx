@@ -25,7 +25,7 @@ const CATEGORIES: { id: AgentCategory; label: string }[] = [
   { id: 'marketing', label: '마케팅' },
   { id: 'creative', label: '크리에이티브' },
   { id: 'research', label: '리서치' },
-  { id: 'legal', label: '법률' },
+  { id: 'legal', label: '법무' },
   { id: 'operations', label: '운영' }
 ]
 

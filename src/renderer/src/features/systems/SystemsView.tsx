@@ -51,7 +51,7 @@ export default function SystemsView() {
             }}
           >
             <h1 className="text-xl font-bold" style={{ color: '#F6F7F9' }}>
-              QJC Automation Ecosystem
+              QJC 자동화 생태계
             </h1>
             <p className="text-xs mt-1" style={{ color: '#ABB3BF' }}>
               QJC가 운영하는 AI 자동화 시스템 전체 현황
@@ -60,24 +60,24 @@ export default function SystemsView() {
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#29A634' }} />
                 <span className="text-xs" style={{ color: '#ABB3BF' }}>
-                  Active {stats.active}
+                  운영중 {stats.active}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#D1980B' }} />
                 <span className="text-xs" style={{ color: '#ABB3BF' }}>
-                  WIP {stats.wip}
+                  개발중 {stats.wip}
                 </span>
               </div>
               <span style={{ color: '#404854' }}>|</span>
               <span className="text-xs" style={{ color: '#ABB3BF' }}>
-                ◆ {stats.totalAgents} Agents
+                ◆ 에이전트 {stats.totalAgents}
               </span>
               <span className="text-xs" style={{ color: '#ABB3BF' }}>
-                ⚙ {stats.totalSkills} Skills
+                ⚙ 스킬 {stats.totalSkills}
               </span>
               <span className="text-xs" style={{ color: '#ABB3BF' }}>
-                ⬡ {stats.totalMcp} MCP
+                ⬡ MCP {stats.totalMcp}
               </span>
             </div>
           </div>
