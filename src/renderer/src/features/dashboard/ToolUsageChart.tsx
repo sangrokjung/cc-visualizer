@@ -6,10 +6,11 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
-import systemData from '../../data/system-data.json'
+import { useSystemDataContext } from '../../lib/DataProvider'
 
 // 에이전트 도구 사용 빈도를 가로 바 차트로 시각화
 export function ToolUsageChart() {
+  const { systemData } = useSystemDataContext()
   // 도구별 사용 횟수 집계
   const toolCounts: Record<string, number> = {}
   for (const agent of systemData.agents) {

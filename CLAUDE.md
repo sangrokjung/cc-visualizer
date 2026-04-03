@@ -39,7 +39,9 @@ src/
       architecture/   # 시스템 아키텍처 뷰
       live-monitor/   # 실시간 모니터링 뷰
       catalog/        # 카탈로그 뷰
-      systems/        # 외부 시스템 생태계 뷰 (10개 프로젝트)
+      process/        # 개발 프로세스 가이드 + 파이프라인 플로우 (React Flow)
+      systems/        # 자동화 생태계 뷰 (10개 프로젝트)
+      usage/          # 사용 통계 분석 뷰
     lib/
       parsers/        # 데이터 파서
       types.ts        # 공용 타입 정의
@@ -56,4 +58,4 @@ scripts/
 
 ## 주요 데이터 (system-data.json)
 
-agents(46), skills(131), hooks(53), rules(34), pipelines(13), mcpServers(48), memory
+agents(50), skills(131), hooks(55), rules(39), pipelines(15), mcpServers(48), memory

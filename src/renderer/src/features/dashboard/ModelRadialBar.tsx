@@ -5,9 +5,10 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts'
-import systemData from '../../data/system-data.json'
+import { useSystemDataContext } from '../../lib/DataProvider'
 
 export function ModelRadialBar() {
+  const { systemData } = useSystemDataContext()
   const { chartData, totalAgents } = useMemo(() => {
     // 모델별 카운트
     const counts: Record<string, number> = {}
@@ -26,7 +27,7 @@ export function ModelRadialBar() {
       ],
       totalAgents: systemData.agents.length
     }
-  }, [])
+  }, [systemData.agents])
 
   return (
     <div style={{ backgroundColor: '#1C2127', borderColor: '#404854' }} className="rounded-xl border p-5">

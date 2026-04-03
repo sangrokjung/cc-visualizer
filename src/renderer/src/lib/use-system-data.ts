@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { AgentNode, HookEvent, McpServer, RuleFile, PipelineEdge } from './types'
-import { parseAgents } from './parsers/agent-parser'
-import { parseHooks } from './parsers/hook-parser'
-import { parseMcpServers } from './parsers/mcp-parser'
-import { parseRules } from './parsers/rule-parser'
-import { parsePipeline } from './parsers/pipeline-parser'
+import type { AgentNode, AgentCategory, HookEvent, McpServer, RuleFile, PipelineEdge } from './types'
+import { CATEGORY_COLORS } from './types'
+import staticSystemData from '../data/system-data.json'
 
 export type SystemData = {
   agents: AgentNode[]
@@ -16,104 +13,123 @@ export type SystemData = {
   error: string | null
 }
 
-const INITIAL: SystemData = {
-  agents: [],
+// 정적 JSON → 타입 변환 헬퍼
+function buildFallbackAgents(): AgentNode[] {
+  return staticSystemData.agents.map((a) => ({
+    id: a.id,
+    name: a.name,
+    description: a.description,
+    tools: a.tools,
+    model: a.model,
+    color: CATEGORY_COLORS[a.category as AgentCategory] ?? '#738091',
+    category: a.category as AgentCategory,
+    ...(a.maxTurns !== undefined && { maxTurns: a.maxTurns }),
+    ...(a.memory !== undefined && { memory: a.memory }),
+    ...(a.isolation !== undefined && { isolation: String(a.isolation) })
+  }))
+}
+
+function buildFallbackPipelines(): PipelineEdge[] {
+  return staticSystemData.pipelines.flatMap((p) =>
+    p.steps.map((s) => ({
+      from: s.from,
+      to: s.to,
+      condition: s.condition,
+      pipelineName: p.name
+    }))
+  )
+}
+
+// 정적 데이터로 초기값 설정 (Tauri 없어도 즉시 렌더 가능)
+const STATIC_DATA: SystemData = {
+  agents: buildFallbackAgents(),
   hooks: [],
   mcpServers: [],
   rules: [],
-  pipelines: [],
-  loading: true,
+  pipelines: buildFallbackPipelines(),
+  loading: false,
   error: null
 }
 
-async function readFile(path: string): Promise<string | null> {
-  const result = await window.electronAPI.readFile(path)
-  return result.ok ? (result.content ?? null) : null
-}
-
-async function listDir(path: string): Promise<string[]> {
-  const result = await window.electronAPI.listDir(path)
-  return result.ok ? (result.files ?? []) : []
-}
-
-async function loadAgents(agentsDir: string): Promise<AgentNode[]> {
-  const filenames = await listDir(agentsDir)
-  const mdFiles = filenames.filter((f) => f.endsWith('.md'))
-
-  const files = await Promise.all(
-    mdFiles.map(async (filename) => {
-      const content = await readFile(`${agentsDir}/${filename}`)
-      return { filename, content: content ?? '' }
-    })
-  )
-
-  return parseAgents(files)
-}
-
-async function loadHooksAndMcp(
-  settingsPath: string
-): Promise<{ hooks: HookEvent[]; mcpServers: McpServer[] }> {
-  const content = await readFile(settingsPath)
-  if (!content) return { hooks: [], mcpServers: [] }
-
-  try {
-    const json = JSON.parse(content) as Record<string, unknown>
-    return {
-      hooks: parseHooks(json),
-      mcpServers: parseMcpServers(json)
-    }
-  } catch {
-    return { hooks: [], mcpServers: [] }
-  }
-}
-
-async function loadRules(rulesDir: string): Promise<RuleFile[]> {
-  const filenames = await listDir(rulesDir)
-  const mdFiles = filenames.filter((f) => f.endsWith('.md'))
-
-  const files = await Promise.all(
-    mdFiles.map(async (filename) => {
-      const content = await readFile(`${rulesDir}/${filename}`)
-      return { filename, content: content ?? '' }
-    })
-  )
-
-  return parseRules(files, rulesDir)
-}
-
-async function loadPipelines(pipelinePath: string): Promise<PipelineEdge[]> {
-  const content = await readFile(pipelinePath)
-  return content ? parsePipeline(content) : []
-}
-
 /**
- * 시스템 데이터를 IPC로 읽고 파서로 파싱하는 훅.
- * 마운트 시 1회 로드, reload()로 수동 갱신 가능.
+ * 시스템 데이터 훅.
+ * Tauri IPC 사용 가능 시 → 파일시스템에서 직접 로드.
+ * Vite dev 모드 → 정적 JSON 폴백 (즉시).
  */
 export function useSystemData(): SystemData & { reload: () => void } {
-  const [data, setData] = useState<SystemData>(INITIAL)
+  const [data, setData] = useState<SystemData>(STATIC_DATA)
 
   const load = useCallback(async () => {
+    // Tauri IPC 사용 불가 → 정적 데이터 유지
+    if (!(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__) {
+      return
+    }
+
     setData((prev) => ({ ...prev, loading: true, error: null }))
 
     try {
-      const paths = await window.electronAPI.getSystemPaths()
+      // Tauri api를 dynamic import로 로드 (Vite dev에서 번들 실패 방지)
+      const { api } = await import('./api')
+      const { parseAgents } = await import('./parsers/agent-parser')
+      const { parseHooks } = await import('./parsers/hook-parser')
+      const { parseMcpServers } = await import('./parsers/mcp-parser')
+      const { parseRules } = await import('./parsers/rule-parser')
+      const { parsePipeline } = await import('./parsers/pipeline-parser')
 
-      const [agents, { hooks, mcpServers }, rules, pipelines] =
-        await Promise.all([
-          loadAgents(paths.agents),
-          loadHooksAndMcp(paths.settings),
-          loadRules(paths.rules),
-          loadPipelines(paths.pipeline)
-        ])
+      const paths = await api.getSystemPaths()
+
+      const readFile = async (path: string): Promise<string | null> => {
+        const result = await api.readFile(path)
+        return result.ok ? (result.content ?? null) : null
+      }
+
+      const listDir = async (path: string): Promise<string[]> => {
+        const result = await api.listDir(path)
+        return result.ok ? (result.files ?? []) : []
+      }
+
+      // 에이전트 로드
+      const agentFiles = await listDir(paths.agents)
+      const mdFiles = agentFiles.filter((f) => f.endsWith('.md'))
+      const agentContents = await Promise.all(
+        mdFiles.map(async (filename) => {
+          const content = await readFile(`${paths.agents}/${filename}`)
+          return { filename, content: content ?? '' }
+        })
+      )
+      const agents = parseAgents(agentContents)
+
+      // 훅 + MCP
+      const settingsContent = await readFile(paths.settings)
+      let hooks: HookEvent[] = []
+      let mcpServers: McpServer[] = []
+      if (settingsContent) {
+        try {
+          const json = JSON.parse(settingsContent) as Record<string, unknown>
+          hooks = parseHooks(json)
+          mcpServers = parseMcpServers(json)
+        } catch { /* ignore */ }
+      }
+
+      // 규칙
+      const ruleFiles = await listDir(paths.rules)
+      const ruleMdFiles = ruleFiles.filter((f) => f.endsWith('.md'))
+      const ruleContents = await Promise.all(
+        ruleMdFiles.map(async (filename) => {
+          const content = await readFile(`${paths.rules}/${filename}`)
+          return { filename, content: content ?? '' }
+        })
+      )
+      const rules = parseRules(ruleContents, paths.rules)
+
+      // 파이프라인
+      const pipelineContent = await readFile(paths.pipeline)
+      const pipelines = pipelineContent ? parsePipeline(pipelineContent) : []
 
       setData({ agents, hooks, mcpServers, rules, pipelines, loading: false, error: null })
-    } catch (err) {
-      setData((prev) => ({
-        ...prev,
-        loading: false,
-        error: err instanceof Error ? err.message : String(err)
-      }))
+    } catch {
+      // IPC 실패 → 정적 데이터 유지
+      setData(STATIC_DATA)
     }
   }, [])
 

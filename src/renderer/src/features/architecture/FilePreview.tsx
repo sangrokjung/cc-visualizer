@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { api } from '../../lib/api'
 
 type Props = {
   filePath: string
@@ -11,7 +12,7 @@ export default function FilePreview({ filePath, onClose }: Props) {
 
   useEffect(() => {
     let cancelled = false
-    window.electronAPI.readFile(filePath).then((result) => {
+    api.readFile(filePath).then((result) => {
       if (cancelled) return
       if (result.ok && result.content) {
         const lines = result.content.split('\n').slice(0, 50)

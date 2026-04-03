@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useSystemDataContext } from '../../lib/DataProvider'
 import { HeroSection } from './HeroSection'
 import { StatCards } from './StatCards'
 import { SystemRadar } from './SystemRadar'
@@ -11,16 +11,10 @@ import { MemoryPanel } from './MemoryPanel'
 
 // 팔란티어 온톨로지 대시보드 — 스크롤 가능한 풀 레이아웃
 export default function DashboardView() {
-  const [refreshing, setRefreshing] = useState(false)
+  const { refreshSystem, loading: refreshing } = useSystemDataContext()
 
   const handleRefresh = async () => {
-    setRefreshing(true)
-    try {
-      const result = await window.electronAPI?.rescanSystem()
-      if (result?.ok) window.location.reload()
-    } finally {
-      setRefreshing(false)
-    }
+    await refreshSystem()
   }
 
   return (

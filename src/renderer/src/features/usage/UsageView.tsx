@@ -3,7 +3,7 @@ import {
   BarChart, Bar, AreaChart, Area, XAxis, YAxis,
   Tooltip, ResponsiveContainer, Cell, CartesianGrid
 } from 'recharts'
-import usageData from '../../data/usage-stats.json'
+import { useSystemDataContext } from '../../lib/DataProvider'
 
 const C = {
   bg: '#111418', card: '#1C2127', cardSub: '#252A31',
@@ -27,17 +27,11 @@ function StatCard({ label, value, color }: { label: string; value: string; color
 }
 
 export default function UsageView() {
+  const { usageData, refreshUsage, loading: refreshing } = useSystemDataContext()
   const { summary, projects, toolUsage, agentSpawns, hookEvents, dailyActivity } = usageData
-  const [refreshing, setRefreshing] = useState(false)
 
   const handleRefreshUsage = async () => {
-    setRefreshing(true)
-    try {
-      const result = await window.electronAPI?.rescanUsage()
-      if (result?.ok) window.location.reload()
-    } finally {
-      setRefreshing(false)
-    }
+    await refreshUsage()
   }
 
   const toolChartData = useMemo(() => toolUsage.slice(0, 15), [])

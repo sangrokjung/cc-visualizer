@@ -1,17 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { FileChangeEvent } from '../../lib/types'
+import { api } from '../../lib/api'
+import type { UnlistenFn } from '@tauri-apps/api/event'
 
 const MAX_EVENTS = 100
 
 export function useFileWatcher() {
   const [events, setEvents] = useState<FileChangeEvent[]>([])
-  const listenerAttached = useRef(false)
+  const unlistenRef = useRef<UnlistenFn | null>(null)
 
-  const handleEvent = useCallback((data: { path: string; type: string }) => {
+  const handleEvent = useCallback((data: { path: string; type: string; timestamp: number }) => {
     const event: FileChangeEvent = {
       path: data.path,
       type: data.type as FileChangeEvent['type'],
-      timestamp: Date.now(),
+      timestamp: data.timestamp || Date.now(),
     }
     setEvents((prev) => {
       const next = [event, ...prev]
@@ -20,13 +22,12 @@ export function useFileWatcher() {
   }, [])
 
   useEffect(() => {
-    if (listenerAttached.current) return
-    listenerAttached.current = true
-    window.electronAPI.onFileChanged(handleEvent)
+    api.onFileChanged(handleEvent).then((unlisten) => {
+      unlistenRef.current = unlisten
+    })
 
     return () => {
-      window.electronAPI.removeFileChangedListener()
-      listenerAttached.current = false
+      unlistenRef.current?.()
     }
   }, [handleEvent])
 

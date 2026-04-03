@@ -3,7 +3,7 @@ import Sidebar from './components/Sidebar'
 import Layout from './components/Layout'
 import SearchBar from './components/SearchBar'
 
-export type ViewType = 'dashboard' | 'agent-map' | 'architecture' | 'live-monitor' | 'catalog' | 'systems' | 'usage' | 'process'
+export type ViewType = 'dashboard' | 'agent-map' | 'architecture' | 'live-monitor' | 'catalog' | 'systems' | 'usage' | 'process' | 'agent-office'
 
 export default function App() {
   const [activeView, setActiveView] = useState<ViewType>('dashboard')

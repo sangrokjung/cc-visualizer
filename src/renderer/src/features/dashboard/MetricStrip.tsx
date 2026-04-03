@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import systemData from '../../data/system-data.json'
+import { useSystemDataContext } from '../../lib/DataProvider'
 
 // 메트릭 정의 — 6개 핵심 오브젝트 타입 카운트
 const METRICS = [
@@ -27,9 +27,10 @@ function formatTimestamp(iso: string): string {
 
 // 상단 메트릭 바 — 시스템 상태 요약을 가로 한 줄로 표시
 export function MetricStrip() {
+  const { systemData } = useSystemDataContext()
   const timestamp = useMemo(
     () => formatTimestamp(systemData.scanTimestamp),
-    []
+    [systemData.scanTimestamp]
   )
 
   return (

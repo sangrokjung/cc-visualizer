@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts'
-import systemData from '../../data/system-data.json'
+import { useSystemDataContext } from '../../lib/DataProvider'
 
 // 팔란티어 10색 팔레트
 const PALETTE = [
@@ -48,6 +48,7 @@ function CustomContent(props: any) {
 }
 
 export function SkillTreemap() {
+  const { systemData } = useSystemDataContext()
   const treemapData = useMemo(() => {
     // skill.type 기준 그룹핑
     const groups: Record<string, number> = {}
@@ -62,7 +63,7 @@ export function SkillTreemap() {
         fill: PALETTE[i % PALETTE.length]
       }))
       .sort((a, b) => b.size - a.size)
-  }, [])
+  }, [systemData.skills])
 
   return (
     <div style={{ backgroundColor: '#1C2127', borderColor: '#404854' }} className="rounded-xl border p-5">

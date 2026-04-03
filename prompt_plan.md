@@ -3,6 +3,8 @@
 ## Phase 1: 5개 뷰 품질 완성
 - [x] Dashboard: 스크롤 가능한 풀 대시보드로 재설계 (9개 시각화 컴포넌트 통합, 팔란티어 테마)
 - [x] Agent Map: 카테고리 필터, 팔란티어 테마, smoothstep 엣지, 모델 뱃지, 디테일 패널 개선
+- [x] Process: 개발 프로세스 가이드 + 파이프라인 React Flow 인터랙티브 시각화
+- [x] UI 워딩 한국어 통일 (45개 라벨), 앱 타이틀 QJC OS Visualizer
 - [ ] Architecture: 인터랙티브 요소 추가 (클릭 -> 상세)
 - [ ] Live Monitor: 정적 데이터 기반 차트/메트릭 완성
 - [ ] Catalog: 정렬, 페이지네이션, 상세 뷰 연동

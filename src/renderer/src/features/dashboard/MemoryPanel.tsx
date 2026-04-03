@@ -1,7 +1,8 @@
-import systemData from '../../data/system-data.json'
+import { useSystemDataContext } from '../../lib/DataProvider'
 
 // 메모리 시스템 시각화: Auto Memory, Agent Memory, Personal OS
 export function MemoryPanel() {
+  const { systemData } = useSystemDataContext()
   const { autoMemory, agentMemory, personalOS } = systemData.memory
 
   // 메모리 있는 에이전트와 없는 에이전트 분리

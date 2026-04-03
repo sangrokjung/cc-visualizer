@@ -16,6 +16,6 @@
       "@/*": ["src/renderer/src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules", "out", "dist"]
+  "include": ["src/renderer/**/*.ts", "src/renderer/**/*.tsx"],
+  "exclude": ["node_modules", "out", "dist", "src/main", "src/preload", "src-tauri", "scripts"]
 }

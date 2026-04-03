@@ -9,6 +9,7 @@ const CatalogView = lazy(() => import('../features/catalog/CatalogView'))
 const SystemsView = lazy(() => import('../features/systems/SystemsView'))
 const UsageView = lazy(() => import('../features/usage/UsageView'))
 const ProcessView = lazy(() => import('../features/process/ProcessView'))
+const AgentOfficeView = lazy(() => import('../features/agent-office/AgentOfficeView'))
 
 type Props = {
   activeView: ViewType
@@ -34,6 +35,7 @@ export default function Layout({ activeView }: Props) {
         {activeView === 'systems' && <SystemsView />}
         {activeView === 'usage' && <UsageView />}
         {activeView === 'process' && <ProcessView />}
+        {activeView === 'agent-office' && <AgentOfficeView />}
       </Suspense>
     </main>
   )
