@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { SessionEvent } from '../../lib/types'
+import { api } from '../../lib/api'
+import type { UnlistenFn } from '@tauri-apps/api/event'
 
 const MAX_EVENTS = 200
 
@@ -24,31 +26,27 @@ interface SessionStats {
 export function useSessionEvents() {
   const [events, setEvents] = useState<SessionEvent[]>([])
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const attached = useRef(false)
+  const unlistenEventRef = useRef<UnlistenFn | null>(null)
+  const unlistenIdRef = useRef<UnlistenFn | null>(null)
 
-  const handleEvent = useCallback((ev: SessionEvent) => {
+  const handleEvent = useCallback((ev: unknown) => {
     setEvents((prev) => {
-      const next = [ev, ...prev]
+      const next = [ev as SessionEvent, ...prev]
       return next.length > MAX_EVENTS ? next.slice(0, MAX_EVENTS) : next
     })
   }, [])
 
   useEffect(() => {
-    if (attached.current) return
-    attached.current = true
-
-    if (window.electronAPI?.onSessionEvent) {
-      window.electronAPI.onSessionEvent(handleEvent)
-    }
-    if (window.electronAPI?.onSessionId) {
-      window.electronAPI.onSessionId((id: string) => setSessionId(id))
-    }
+    api.onSessionEvent(handleEvent).then((unlisten) => {
+      unlistenEventRef.current = unlisten
+    })
+    api.onSessionId((id: string) => setSessionId(id)).then((unlisten) => {
+      unlistenIdRef.current = unlisten
+    })
 
     return () => {
-      if (window.electronAPI?.removeSessionEventListener) {
-        window.electronAPI.removeSessionEventListener()
-      }
-      attached.current = false
+      unlistenEventRef.current?.()
+      unlistenIdRef.current?.()
     }
   }, [handleEvent])
 
@@ -108,7 +106,6 @@ export function useSessionEvents() {
       if (ev.data.toolName) {
         tools[ev.data.toolName] = (tools[ev.data.toolName] || 0) + 1
       }
-      // hook command도 도구처럼 표시
       if (ev.type === 'hook' && ev.data.hookName) {
         tools[`hook:${ev.data.hookName}`] = (tools[`hook:${ev.data.hookName}`] || 0) + 1
       }

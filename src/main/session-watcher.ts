@@ -10,6 +10,7 @@ let currentJsonlPath: string | null = null
 let currentWatcher: ReturnType<typeof watch> | null = null
 let currentPollInterval: ReturnType<typeof setInterval> | null = null
 let offset = 0
+let lastDirScanTime = 0
 
 interface SessionEvent {
   id: string
@@ -44,12 +45,31 @@ function findLatestJsonl(): string | null {
 
   try {
     const dirs = readdirSync(projectsDir)
+
+    // 1단계: 디렉토리 mtime으로 필터링 (30,000 파일 stat → ~50 디렉토리 stat)
+    const changedDirs: Array<{ path: string; mtime: number }> = []
     for (const dir of dirs) {
       const dirPath = join(projectsDir, dir)
       try {
-        const files = readdirSync(dirPath).filter((f) => f.endsWith('.jsonl'))
+        const st = statSync(dirPath)
+        if (!st.isDirectory()) continue
+        if (lastDirScanTime > 0 && st.mtimeMs <= lastDirScanTime) continue
+        changedDirs.push({ path: dirPath, mtime: st.mtimeMs })
+      } catch {
+        /* skip */
+      }
+    }
+
+    // 2단계: 최근 변경된 디렉토리만 스캔 (초기 스캔 시 상위 5개만)
+    changedDirs.sort((a, b) => b.mtime - a.mtime)
+    const limit = lastDirScanTime === 0 ? 5 : changedDirs.length
+    const toCheck = changedDirs.slice(0, limit)
+
+    for (const entry of toCheck) {
+      try {
+        const files = readdirSync(entry.path).filter((f) => f.endsWith('.jsonl'))
         for (const file of files) {
-          const filePath = join(dirPath, file)
+          const filePath = join(entry.path, file)
           const st = statSync(filePath)
           if (st.mtimeMs > latestMtime) {
             latestMtime = st.mtimeMs
@@ -64,6 +84,7 @@ function findLatestJsonl(): string | null {
     /* skip */
   }
 
+  lastDirScanTime = Date.now()
   return latestFile
 }
 

@@ -1,4 +1,4 @@
-import systemData from '../../data/system-data.json'
+import { useSystemDataContext } from '../../lib/DataProvider'
 
 // 스캔 타임스탬프를 로컬 시간으로 포맷
 function formatTimestamp(iso: string): string {
@@ -14,6 +14,7 @@ function formatTimestamp(iso: string): string {
 }
 
 export function HeroSection() {
+  const { systemData } = useSystemDataContext()
   const { stats, scanTimestamp } = systemData
 
   const totalEntities =

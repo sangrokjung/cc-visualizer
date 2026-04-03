@@ -1,4 +1,4 @@
-import systemData from '../../data/system-data.json'
+import { useSystemDataContext } from '../../lib/DataProvider'
 
 // 파이프라인 step의 타입에 따른 스타일
 function stepStyle(auto: boolean): React.CSSProperties {
@@ -17,6 +17,7 @@ function stepStyle(auto: boolean): React.CSSProperties {
 
 // 11개 파이프라인을 카드 형태로 표시
 export function PipelineCards() {
+  const { systemData } = useSystemDataContext()
   const pipelines = systemData.pipelines
 
   return (

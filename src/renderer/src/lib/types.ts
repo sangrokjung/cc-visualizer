@@ -9,7 +9,9 @@ export const AgentCategorySchema = z.enum([
   'creative',
   'research',
   'legal',
-  'operations'
+  'operations',
+  'investment',
+  'lifestyle'
 ])
 export type AgentCategory = z.infer<typeof AgentCategorySchema>
 
@@ -22,7 +24,9 @@ export const CATEGORY_COLORS: Record<AgentCategory, string> = {
   creative: '#ec4899',
   research: '#a855f7',
   legal: '#eab308',
-  operations: '#f97316'
+  operations: '#f97316',
+  investment: '#14b8a6',
+  lifestyle: '#f472b6'
 }
 
 // -- 에이전트 노드 --

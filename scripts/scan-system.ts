@@ -66,7 +66,7 @@ function countFiles(dirPath: string): number {
 // -- 에이전트 카테고리 명시 매핑 --
 
 const AGENT_CATEGORY_MAP: Record<string, string> = {
-  // development
+  // development (개발)
   'architect': 'development',
   'build-error-resolver': 'development',
   'planner': 'development',
@@ -74,14 +74,14 @@ const AGENT_CATEGORY_MAP: Record<string, string> = {
   'doc-updater': 'development',
   'e2e-runner': 'development',
   'verify-agent': 'development',
-  // review
+  // review (리뷰)
   'code-reviewer': 'review',
   'codex-reviewer': 'review',
   'gemini-reviewer': 'review',
   'database-reviewer': 'review',
   'security-reviewer': 'review',
   'tdd-guide': 'review',
-  // marketing
+  // marketing (마케팅)
   'ad-compass': 'marketing',
   'ad-optimizer-team': 'marketing',
   'ad-scout-google': 'marketing',
@@ -90,23 +90,42 @@ const AGENT_CATEGORY_MAP: Record<string, string> = {
   'seo-geo-aeo-strategist': 'marketing',
   'performance-growth-marketer': 'marketing',
   'qjc-content': 'marketing',
-  // business
+  'storyteller': 'marketing',
+  // business (비즈니스)
   'qjc-business': 'business',
   'quotation': 'business',
   'financial-accountant': 'business',
   'gov-support-strategist': 'business',
   'product-strategist': 'business',
-  // creative
+  'crm-manager': 'business',
+  'first-principles-thinker': 'business',
+  // creative (크리에이티브)
   'web-designer': 'creative',
   'remotion-creator': 'creative',
-  // research
+  // research (리서치)
   'researcher': 'research',
-  // legal
+  'ai-researcher': 'research',
+  'research-pi': 'research',
+  'auto-experimenter': 'research',
+  'data-analyst': 'research',
+  // legal (법무)
   'contract-legal': 'legal',
   'patent-attorney': 'legal',
-  // operations
+  'labor-consultant': 'legal',
+  // operations (운영)
   'qjc-operations': 'operations',
   'email-action-team': 'operations',
+  'hr-manager': 'operations',
+  'action-architect': 'operations',
+  'folder-hunter': 'operations',
+  'mail-scout': 'operations',
+  // investment (투자)
+  'real-estate-investor': 'investment',
+  'real-estate-property': 'investment',
+  'stock-investment-advisor': 'investment',
+  'loan-advisor': 'investment',
+  // lifestyle (라이프)
+  'saju-myeongri': 'lifestyle',
 }
 
 // -- 카테고리 추론 (매핑에 없는 새 에이전트용) --
@@ -131,10 +150,14 @@ function inferCategory(
   if (/\b(?:marketing|seo|growth|campaign)\b/.test(desc)) return 'marketing'
   if (/\b(?:ads?|advertisement)\b/.test(desc)) return 'marketing'
   if (/\b(?:copywriting|content\s+(?:creation|strategy|calendar))\b/.test(desc)) return 'marketing'
+  // investment
+  if (/\b(?:invest|부동산|주식|real.?estate|stock|loan|대출|투자)\b/.test(desc)) return 'investment'
+  // lifestyle
+  if (/\b(?:사주|명리|fortune|divination)\b/.test(desc)) return 'lifestyle'
   // research
-  if (/\b(?:research|analyze|financial|accounting)\b/.test(desc)) return 'research'
+  if (/\b(?:research|analyze|data.?analy|실험|논문)\b/.test(desc)) return 'research'
   // business
-  if (/\b(?:business|quotation|sales|proposal|operations)\b/.test(desc)) return 'business'
+  if (/\b(?:business|quotation|sales|proposal|operations|financial|accounting)\b/.test(desc)) return 'business'
   // development
   if (/\b(?:architect|build|refactor|debug|develop)\b/.test(desc)) return 'development'
   if (/\b(?:planner|planning)\b/.test(desc)) return 'development'

@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import systemData from '../../data/system-data.json'
+import { useSystemDataContext } from '../../lib/DataProvider'
 
 // 48개 MCP 서버를 compact 그리드로 표시
 export function McpGrid() {
+  const { systemData } = useSystemDataContext()
   const [query, setQuery] = useState('')
   const servers = systemData.mcpServers.filter((s) =>
     s.name.toLowerCase().includes(query.toLowerCase())

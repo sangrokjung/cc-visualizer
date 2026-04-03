@@ -15,7 +15,7 @@ const PRIORITY_LABEL: Record<string, string> = {
 }
 
 function resolveHomePath(p: string): string {
-  return p.replace(/^~/, process.env.HOME ?? '/Users/sangrok')
+  return p.replace(/^~/, '/Users/sangrok')
 }
 
 type Props = {

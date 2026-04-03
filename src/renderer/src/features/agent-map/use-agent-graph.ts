@@ -14,7 +14,9 @@ export const CATEGORY_LABELS: Record<AgentCategory, string> = {
   creative: '크리에이티브',
   research: '리서치',
   legal: '법무',
-  operations: '운영'
+  operations: '운영',
+  investment: '투자',
+  lifestyle: '라이프'
 }
 
 // --- dagre 레이아웃 계산 ---

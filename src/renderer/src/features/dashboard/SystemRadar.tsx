@@ -7,7 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts'
-import systemData from '../../data/system-data.json'
+import { useSystemDataContext } from '../../lib/DataProvider'
 
 // 카테고리 한글 라벨
 const CATEGORY_LABELS: Record<string, string> = {
@@ -18,13 +18,16 @@ const CATEGORY_LABELS: Record<string, string> = {
   research: '리서치',
   business: '비즈니스',
   legal: '법무',
-  operations: '운영'
+  operations: '운영',
+  investment: '투자',
+  lifestyle: '라이프'
 }
 
-// 레이더에 표시할 8개 카테고리
-const RADAR_CATEGORIES = ['marketing', 'review', 'development', 'creative', 'research', 'business', 'legal', 'operations']
+// 레이더에 표시할 10개 카테고리
+const RADAR_CATEGORIES = ['marketing', 'review', 'development', 'creative', 'research', 'business', 'legal', 'operations', 'investment', 'lifestyle']
 
 export function SystemRadar() {
+  const { systemData } = useSystemDataContext()
   const radarData = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const a of systemData.agents) {
@@ -34,7 +37,7 @@ export function SystemRadar() {
       category: CATEGORY_LABELS[cat] || cat,
       count: counts[cat] || 0
     }))
-  }, [])
+  }, [systemData.agents])
 
   return (
     <div style={{ backgroundColor: '#1C2127', borderColor: '#404854' }} className="rounded-xl border p-5">

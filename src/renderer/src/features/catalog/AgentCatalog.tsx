@@ -26,7 +26,9 @@ const CATEGORIES: { id: AgentCategory; label: string }[] = [
   { id: 'creative', label: '크리에이티브' },
   { id: 'research', label: '리서치' },
   { id: 'legal', label: '법무' },
-  { id: 'operations', label: '운영' }
+  { id: 'operations', label: '운영' },
+  { id: 'investment', label: '투자' },
+  { id: 'lifestyle', label: '라이프' }
 ]
 
 function getCatColor(category: string): string {
