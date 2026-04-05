@@ -1,5 +1,5 @@
 {
-  "scanTimestamp": "2026-04-03T02:53:12.000Z",
+  "scanTimestamp": "2026-04-04T14:55:31.257Z",
   "agents": [
     {
       "id": "action-architect",
@@ -153,7 +153,7 @@
         "Grep",
         "Glob"
       ],
-      "category": "development",
+      "category": "operations",
       "maxTurns": 30
     },
     {
@@ -259,7 +259,7 @@
         "WebSearch",
         "Edit"
       ],
-      "category": "development",
+      "category": "legal",
       "maxTurns": 30,
       "memory": "project"
     },
@@ -325,7 +325,7 @@
       "tools": [
         "Read, Grep, Glob, Write, Edit, Bash, WebSearch, AskUserQuestion"
       ],
-      "category": "development",
+      "category": "operations",
       "maxTurns": 30,
       "memory": "user"
     },
@@ -491,7 +491,7 @@
         "Edit",
         "Agent"
       ],
-      "category": "creative",
+      "category": "business",
       "maxTurns": 40,
       "memory": "project"
     },
@@ -623,7 +623,7 @@
       "tools": [
         "Read, Grep, Glob, Write, Edit, Bash, WebSearch, mcp__supabase__execute_sql, mcp__supabase__list_tables"
       ],
-      "category": "development",
+      "category": "business",
       "maxTurns": 25,
       "memory": "user"
     },
@@ -675,7 +675,7 @@
         "WebSearch",
         "AskUserQuestion"
       ],
-      "category": "development",
+      "category": "business",
       "maxTurns": 25,
       "memory": "user"
     },
@@ -703,7 +703,7 @@
         "WebSearch",
         "Edit"
       ],
-      "category": "development",
+      "category": "operations",
       "maxTurns": 30,
       "memory": "project"
     },
@@ -740,7 +740,7 @@
         "Glob",
         "WebSearch"
       ],
-      "category": "development",
+      "category": "operations",
       "maxTurns": 30,
       "memory": "project"
     },
@@ -1143,7 +1143,7 @@
         "mcp__notebooklm-mcp__research_import",
         "mcp__notebooklm-mcp__chat_configure"
       ],
-      "category": "creative",
+      "category": "operations",
       "maxTurns": 30,
       "memory": "project"
     },
@@ -2325,6 +2325,11 @@
           "command": "~/qjc-office/dotclaude/hooks/never-do-enforcer.sh",
           "timeout": 5000,
           "async": false
+        },
+        {
+          "command": "~/.claude/hooks/skill-inject-universal.sh",
+          "timeout": 3000,
+          "async": false
         }
       ]
     },
@@ -2334,7 +2339,7 @@
       "commands": [
         {
           "command": "~/.claude/hooks/tdl-session-start.sh",
-          "timeout": 5000,
+          "timeout": 8000,
           "async": false
         },
         {
@@ -2345,17 +2350,17 @@
         {
           "command": "~/.claude/hooks/dotclaude-sync-check.sh",
           "timeout": 10000,
-          "async": false
+          "async": true
         },
         {
           "command": "~/.claude/hooks/sound-notify.sh session-start",
           "timeout": 5000,
-          "async": false
+          "async": true
         },
         {
           "command": "~/.claude/hooks/network-touch-reminder.sh",
           "timeout": 10000,
-          "async": false
+          "async": true
         },
         {
           "command": "~/.claude/hooks/telegram-notify.sh start",
@@ -2369,73 +2374,73 @@
         },
         {
           "command": "~/.claude/hooks/session-guard.sh",
-          "timeout": 5000,
+          "timeout": 8000,
           "async": false
         },
         {
           "command": "~/.claude/hooks/env-guard.sh",
-          "timeout": 5000,
+          "timeout": 8000,
           "async": false
         },
         {
           "command": "~/.claude/hooks/company-ops-weekly.sh",
-          "timeout": 5000,
-          "async": false
+          "timeout": 10000,
+          "async": true
         },
         {
           "command": "~/.claude/hooks/company-ops-monthly.sh",
-          "timeout": 5000,
-          "async": false
+          "timeout": 10000,
+          "async": true
         },
         {
           "command": "~/.claude/hooks/first-principles-monthly-check.sh",
-          "timeout": 5000,
-          "async": false
+          "timeout": 10000,
+          "async": true
         },
         {
           "command": "~/.claude/hooks/gov-support-daily-check.sh",
-          "timeout": 5000,
-          "async": false
+          "timeout": 10000,
+          "async": true
         },
         {
           "command": "~/.claude/hooks/real-estate-daily-check.sh",
-          "timeout": 5000,
-          "async": false
+          "timeout": 10000,
+          "async": true
         },
         {
           "command": "~/.claude/hooks/stock-daily-check.sh",
-          "timeout": 5000,
-          "async": false
+          "timeout": 10000,
+          "async": true
         },
         {
           "command": "~/.claude/hooks/cl-v2-observer-start.sh",
           "timeout": 5000,
-          "async": false
+          "async": true
         },
         {
           "command": "~/.claude/hooks/daily-checks-reader.sh",
-          "timeout": 5000,
+          "timeout": 10000,
           "async": false
         },
         {
           "command": "~/.claude/hooks/cs-unread-check.sh",
-          "timeout": 5000,
-          "async": false
+          "timeout": 10000,
+          "async": true
         },
         {
           "command": "~/.claude/hooks/ci-bi-weekly-scan.sh",
-          "timeout": 5000,
-          "async": false
+          "timeout": 10000,
+          "async": true
         },
         {
           "command": "~/.claude/hooks/arch-health-check.sh",
-          "timeout": 5000,
-          "async": false
+          "timeout": 10000,
+          "async": true
         },
         {
           "command": "~/.claude/hooks/arch-daily-report.sh",
           "timeout": 30000,
-          "async": false
+          "async": true
         }
       ]
     },
@@ -2526,6 +2531,11 @@
           "command": "~/.claude/hooks/auto-verify-fix.sh",
           "timeout": 5000,
           "async": false
+        },
+        {
+          "command": "~/.claude/hooks/loop-detection.sh",
+          "timeout": 3000,
+          "async": false
         }
       ]
     },
@@ -2535,7 +2545,7 @@
       "commands": [
         {
           "command": "~/.claude/hooks/never-do-generator.sh",
-          "timeout": 5000,
+          "timeout": 10000,
           "async": false
         }
       ]
@@ -2569,10 +2579,16 @@
           "command": "~/.claude/hooks/sound-notify.sh stop-success",
           "timeout": 5000,
           "async": false
-        },
+        }
+      ]
+    },
+    {
+      "event": "StopFailure",
+      "matcher": "*",
+      "commands": [
         {
           "command": "~/.claude/hooks/stop-failure-notify.sh",
-          "timeout": 5000,
+          "timeout": 10000,
           "async": false
         }
       ]
@@ -2629,7 +2645,7 @@
       "matcher": "idle_prompt|permission_prompt",
       "commands": [
         {
-          "command": "~/.claude/hooks/notification-telegram.sh",
+          "command": "~/.claude/hooks/telegram-notify.sh notification",
           "timeout": 10000,
           "async": false
         }
@@ -2935,6 +2951,12 @@
       "priority": "critical"
     },
     {
+      "id": "reasoning-sandwich",
+      "name": "Reasoning Sandwich 패턴 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/reasoning-sandwich.md",
+      "priority": "important"
+    },
+    {
       "id": "receiving-review",
       "name": "코드 리뷰 수신 프로토콜",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/receiving-review.md",
@@ -2944,6 +2966,12 @@
       "id": "research",
       "name": "범용 연구 에이전트 (research-pi) 트리거",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/research.md",
+      "priority": "critical"
+    },
+    {
+      "id": "saju-file-management",
+      "name": "사주 문서 저장 규칙 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/saju-file-management.md",
       "priority": "critical"
     },
     {
@@ -4053,13 +4081,14 @@
   "memory": {
     "autoMemory": {
       "path": "/Users/sangrok/.claude/projects/-Users-sangrok/memory",
-      "fileCount": 6,
+      "fileCount": 7,
       "files": [
         "MEMORY.md",
         "experiences.jsonl",
         "feedback_cc_auth_setup.md",
         "feedback_hook_output.md",
         "project_customer_index.md",
+        "reference_karpathy_knowledge_wiki.md",
         "user_qjc_website.md"
       ]
     },
@@ -4112,6 +4141,10 @@
         },
         {
           "name": "crm-manager",
+          "fileCount": 0
+        },
+        {
+          "name": "cs-responder",
           "fileCount": 0
         },
         {
@@ -4204,7 +4237,7 @@
         },
         {
           "name": "researcher",
-          "fileCount": 33
+          "fileCount": 36
         },
         {
           "name": "saju-myeongri",
@@ -4244,8 +4277,8 @@
   "stats": {
     "agentCount": 67,
     "skillCount": 140,
-    "hookCount": 73,
-    "ruleCount": 51,
+    "hookCount": 75,
+    "ruleCount": 53,
     "pipelineCount": 18,
     "mcpServerCount": 48
   }

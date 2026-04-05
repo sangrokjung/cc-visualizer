@@ -1,4 +1,5 @@
 import { AgentNodeSchema, type AgentNode, type AgentCategory } from '../types'
+import { AGENT_CATEGORY_MAP } from '../agent-category-map'
 
 // 경량 frontmatter 파서 (gray-matter 대체 — Vite renderer에서 eval/fs 의존 없이 동작)
 function parseFrontmatter(content: string): { data: Record<string, unknown> } {
@@ -99,46 +100,10 @@ const DESCRIPTION_CATEGORY_HINTS: Array<{ keywords: string[]; category: AgentCat
   { keywords: ['creative', 'copywriting', 'content', 'designer', 'remotion'], category: 'creative' }
 ]
 
-// system-data.md에서 정의한 에이전트→카테고리 정적 매핑
-const KNOWN_AGENT_CATEGORIES: Record<string, AgentCategory> = {
-  architect: 'development',
-  'build-error-resolver': 'development',
-  'e2e-runner': 'development',
-  planner: 'development',
-  'refactor-cleaner': 'development',
-  'tdd-guide': 'development',
-  'verify-agent': 'development',
-  'code-reviewer': 'review',
-  'codex-reviewer': 'review',
-  'database-reviewer': 'review',
-  'gemini-reviewer': 'review',
-  'security-reviewer': 'review',
-  'financial-accountant': 'business',
-  'product-strategist': 'business',
-  'qjc-business': 'business',
-  quotation: 'business',
-  'ad-compass': 'marketing',
-  'ad-optimizer-team': 'marketing',
-  'ad-scout-google': 'marketing',
-  'ad-scout-meta': 'marketing',
-  'performance-growth-marketer': 'marketing',
-  'seo-geo-aeo-strategist': 'marketing',
-  copywriting: 'creative',
-  'qjc-content': 'creative',
-  'remotion-creator': 'creative',
-  'web-designer': 'creative',
-  researcher: 'research',
-  'contract-legal': 'legal',
-  'patent-attorney': 'legal',
-  'doc-updater': 'operations',
-  'email-action-team': 'operations',
-  'qjc-operations': 'operations'
-}
-
 function inferCategory(name: string, color: string, description: string): AgentCategory {
-  // 1순위: 정적 매핑
-  if (KNOWN_AGENT_CATEGORIES[name]) {
-    return KNOWN_AGENT_CATEGORIES[name]
+  // 1순위: 공유 카테고리 매핑 (단일 진실점)
+  if (AGENT_CATEGORY_MAP[name]) {
+    return AGENT_CATEGORY_MAP[name]
   }
 
   // 2순위: description 키워드

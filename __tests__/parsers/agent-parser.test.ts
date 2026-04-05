@@ -52,10 +52,10 @@ describe('parseAgent', () => {
     expect(result!.category).toBe('development')
   })
 
-  it('copywriting 에이전트의 카테고리를 creative로 추론한다', () => {
+  it('copywriting 에이전트의 카테고리를 marketing으로 분류한다', () => {
     const result = parseAgent(COPYWRITING_MD, 'copywriting.md')
     expect(result).not.toBeNull()
-    expect(result!.category).toBe('creative')
+    expect(result!.category).toBe('marketing')
     expect(result!.memory).toBe('user')
   })
 
