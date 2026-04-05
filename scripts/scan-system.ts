@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import matter from 'gray-matter'
+import { AGENT_CATEGORY_MAP } from '../src/renderer/src/lib/agent-category-map'
 
 const HOME = process.env.HOME || '/Users/sangrok'
 
@@ -63,70 +64,7 @@ function countFiles(dirPath: string): number {
   }
 }
 
-// -- 에이전트 카테고리 명시 매핑 --
-
-const AGENT_CATEGORY_MAP: Record<string, string> = {
-  // development (개발)
-  'architect': 'development',
-  'build-error-resolver': 'development',
-  'planner': 'development',
-  'refactor-cleaner': 'development',
-  'doc-updater': 'development',
-  'e2e-runner': 'development',
-  'verify-agent': 'development',
-  // review (리뷰)
-  'code-reviewer': 'review',
-  'codex-reviewer': 'review',
-  'gemini-reviewer': 'review',
-  'database-reviewer': 'review',
-  'security-reviewer': 'review',
-  'tdd-guide': 'review',
-  // marketing (마케팅)
-  'ad-compass': 'marketing',
-  'ad-optimizer-team': 'marketing',
-  'ad-scout-google': 'marketing',
-  'ad-scout-meta': 'marketing',
-  'copywriting': 'marketing',
-  'seo-geo-aeo-strategist': 'marketing',
-  'performance-growth-marketer': 'marketing',
-  'qjc-content': 'marketing',
-  'storyteller': 'marketing',
-  // business (비즈니스)
-  'qjc-business': 'business',
-  'quotation': 'business',
-  'financial-accountant': 'business',
-  'gov-support-strategist': 'business',
-  'product-strategist': 'business',
-  'crm-manager': 'business',
-  'first-principles-thinker': 'business',
-  // creative (크리에이티브)
-  'web-designer': 'creative',
-  'remotion-creator': 'creative',
-  // research (리서치)
-  'researcher': 'research',
-  'ai-researcher': 'research',
-  'research-pi': 'research',
-  'auto-experimenter': 'research',
-  'data-analyst': 'research',
-  // legal (법무)
-  'contract-legal': 'legal',
-  'patent-attorney': 'legal',
-  'labor-consultant': 'legal',
-  // operations (운영)
-  'qjc-operations': 'operations',
-  'email-action-team': 'operations',
-  'hr-manager': 'operations',
-  'action-architect': 'operations',
-  'folder-hunter': 'operations',
-  'mail-scout': 'operations',
-  // investment (투자)
-  'real-estate-investor': 'investment',
-  'real-estate-property': 'investment',
-  'stock-investment-advisor': 'investment',
-  'loan-advisor': 'investment',
-  // lifestyle (라이프)
-  'saju-myeongri': 'lifestyle',
-}
+// 에이전트 카테고리 매핑: agent-category-map.ts (단일 진실점)에서 import
 
 // -- 카테고리 추론 (매핑에 없는 새 에이전트용) --
 
