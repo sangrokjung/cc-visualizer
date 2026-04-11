@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts'
-import { useSessionEvents } from './use-session-events'
+import { useSessionEventsContext } from '../../lib/SessionEventsProvider'
 import { useFileWatcher } from './use-file-watcher'
 import { SESSION_EVENT_CONFIG } from '../../lib/types'
 import type { SessionEvent } from '../../lib/types'
@@ -65,7 +65,7 @@ function StatCard({ label, count, color }: { label: string; count: number; color
 const BAR_PALETTE = ['#2D72D2', '#7961DB', '#00A396', '#29A634', '#D1980B', '#DB2C6F', '#D33D17', '#147EB3', '#8ABBFF', '#62D96B']
 
 export default function LiveMonitorView() {
-  const { events: sessionEvents, sessionId, clearEvents, activeAgents, stats, recentTools } = useSessionEvents()
+  const { events: sessionEvents, sessionId, clearEvents, activeAgents, stats, recentTools } = useSessionEventsContext()
   const { events: fileEvents } = useFileWatcher()
   const timelineRef = useRef<HTMLDivElement>(null)
 
