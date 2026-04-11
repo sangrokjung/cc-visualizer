@@ -1,0 +1,22 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "CC Visualizer default capability",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "fs:default",
+    "fs:allow-read-text-file",
+    "fs:allow-exists",
+    "fs:allow-watch",
+    "fs:allow-unwatch",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$HOME/.claude/**" },
+        { "path": "$HOME/qjc-office/**" },
+        { "path": "$HOME/projects/cc-visualizer/**" }
+      ]
+    }
+  ]
+}

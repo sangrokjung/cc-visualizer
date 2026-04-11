@@ -1,5 +1,7 @@
 import type { ViewType } from '../App'
 import { Suspense, lazy } from 'react'
+import AgentOfficeErrorBoundary from '../features/agent-office/AgentOfficeErrorBoundary'
+import AgentOfficeSkeleton from '../features/agent-office/AgentOfficeSkeleton'
 
 const DashboardView = lazy(() => import('../features/dashboard/DashboardView'))
 const AgentMapView = lazy(() => import('../features/agent-map/AgentMapView'))
@@ -35,7 +37,13 @@ export default function Layout({ activeView }: Props) {
         {activeView === 'systems' && <SystemsView />}
         {activeView === 'usage' && <UsageView />}
         {activeView === 'process' && <ProcessView />}
-        {activeView === 'agent-office' && <AgentOfficeView />}
+        {activeView === 'agent-office' && (
+          <AgentOfficeErrorBoundary>
+            <Suspense fallback={<AgentOfficeSkeleton />}>
+              <AgentOfficeView />
+            </Suspense>
+          </AgentOfficeErrorBoundary>
+        )}
       </Suspense>
     </main>
   )

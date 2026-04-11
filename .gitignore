@@ -3,6 +3,10 @@ out/
 dist/
 .DS_Store
 
+# tsc 자동 생성 (Vite가 .tsx 대신 resolve하는 문제 방지)
+src/**/*.js
+src/**/*.d.ts
+
 # Claude Code (v6 Post-Dev Workflow)
 .claude/handoff.md
 .claude/checkpoints/

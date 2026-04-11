@@ -1,0 +1,121 @@
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+use std::process::Command;
+
+fn home_dir() -> PathBuf {
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"))
+}
+
+fn project_dir() -> PathBuf {
+    home_dir().join("projects/cc-visualizer")
+}
+
+#[tauri::command]
+pub fn load_system_data() -> Result<serde_json::Value, String> {
+    let path = project_dir().join("src/renderer/src/data/system-data.json");
+    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    serde_json::from_str(&content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn load_usage_data() -> Result<serde_json::Value, String> {
+    let path = project_dir().join("src/renderer/src/data/usage-stats.json");
+    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    serde_json::from_str(&content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn load_external_systems() -> Result<serde_json::Value, String> {
+    let path = project_dir().join("src/renderer/src/data/external-systems.json");
+    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    serde_json::from_str(&content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn read_file(file_path: String) -> Result<String, String> {
+    let path = if file_path.starts_with('~') {
+        home_dir().join(&file_path[2..])
+    } else {
+        PathBuf::from(&file_path)
+    };
+
+    if !path.exists() {
+        return Err("File not found".into());
+    }
+    fs::read_to_string(&path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn list_dir(dir_path: String) -> Result<Vec<String>, String> {
+    let path = if dir_path.starts_with('~') {
+        home_dir().join(&dir_path[2..])
+    } else {
+        PathBuf::from(&dir_path)
+    };
+
+    if !path.exists() {
+        return Err("Dir not found".into());
+    }
+    let entries = fs::read_dir(&path).map_err(|e| e.to_string())?;
+    let files: Vec<String> = entries
+        .filter_map(|e| e.ok())
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .collect();
+    Ok(files)
+}
+
+#[tauri::command]
+pub fn get_system_paths() -> HashMap<String, String> {
+    let home = home_dir();
+    let cwd = std::env::current_dir()
+        .unwrap_or_else(|_| PathBuf::from("/"))
+        .to_string_lossy()
+        .replace('/', "-");
+
+    let mut paths = HashMap::new();
+    paths.insert("agents".into(), home.join(".claude/agents").to_string_lossy().to_string());
+    paths.insert("settings".into(), home.join(".claude/settings.json").to_string_lossy().to_string());
+    paths.insert("rules".into(), home.join("qjc-office/dotclaude/rules").to_string_lossy().to_string());
+    paths.insert("memory".into(), home.join(format!(".claude/projects/{}/memory", cwd)).to_string_lossy().to_string());
+    paths.insert("agentMemory".into(), home.join(".claude/agent-memory").to_string_lossy().to_string());
+    paths.insert("workLog".into(), home.join(".claude/work-log").to_string_lossy().to_string());
+    paths.insert("pipeline".into(), home.join("qjc-office/dotclaude/reference/agent-pipeline.md").to_string_lossy().to_string());
+    paths
+}
+
+#[tauri::command]
+pub async fn rescan_system() -> Result<serde_json::Value, String> {
+    let project_dir = home_dir().join("projects/cc-visualizer");
+    let output = Command::new("npm")
+        .args(["run", "scan"])
+        .current_dir(&project_dir)
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+
+    let data_path = project_dir.join("src/renderer/src/data/system-data.json");
+    let content = fs::read_to_string(data_path).map_err(|e| e.to_string())?;
+    serde_json::from_str(&content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn rescan_usage() -> Result<serde_json::Value, String> {
+    let project_dir = home_dir().join("projects/cc-visualizer");
+    let output = Command::new("npm")
+        .args(["run", "scan:usage"])
+        .current_dir(&project_dir)
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+
+    let data_path = project_dir.join("src/renderer/src/data/usage-stats.json");
+    let content = fs::read_to_string(data_path).map_err(|e| e.to_string())?;
+    serde_json::from_str(&content).map_err(|e| e.to_string())
+}
