@@ -28,7 +28,7 @@ function AgentProfilePanel({ agent, pipelines, onClose }: Props) {
   }, [pipelines, agent.id])
 
   return (
-    <div className="w-80 bg-[#1C2127] border-l border-gray-800 h-full overflow-y-auto flex flex-col">
+    <div className="bg-[#1C2127] h-full overflow-y-auto flex flex-col">
       {/* 헤더 */}
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center justify-between mb-4">
