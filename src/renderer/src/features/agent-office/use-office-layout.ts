@@ -6,12 +6,10 @@ import {
   AVATAR_CELL, ROOM_PADDING, ROOM_COLS, DEPT_LABELS, DEPT_EMOJI,
   MODEL_CONFIG, ROOM_FURNITURE, CORRIDOR_FURNITURE,
   CORRIDOR_WIDTH, ROOM_GAP, FLOOR_COLORS,
-  type AgentStatus
 } from './office-config'
 
 type LayoutInput = {
   agents: AgentNode[]
-  statuses: Map<string, AgentStatus>
   activeCategories: Set<AgentCategory>
   pipelines: PipelineEdge[]
 }
@@ -24,7 +22,7 @@ function calcRoomSize(agentCount: number, cols: number) {
   return { w, h }
 }
 
-export function useOfficeLayout({ agents, statuses, activeCategories, pipelines }: LayoutInput): Node[] {
+export function useOfficeLayout({ agents, activeCategories, pipelines }: LayoutInput): Node[] {
   return useMemo(() => {
     // 카테고리별 그룹화
     const grouped = new Map<AgentCategory, AgentNode[]>()
@@ -138,7 +136,6 @@ export function useOfficeLayout({ agents, statuses, activeCategories, pipelines 
         const x = ROOM_PADDING.left + col * AVATAR_CELL.w
         const y = ROOM_PADDING.top + row * AVATAR_CELL.h
 
-        const status = statuses.get(agent.id) ?? 'idle'
         const modelCfg = MODEL_CONFIG[agent.model] ?? MODEL_CONFIG.sonnet
 
         // 에이전트가 관련된 파이프라인 수
@@ -154,7 +151,7 @@ export function useOfficeLayout({ agents, statuses, activeCategories, pipelines 
           extent: 'parent',
           data: {
             agent,
-            status,
+            status: 'idle' as const,
             modelConfig: modelCfg,
             color: CATEGORY_COLORS[cat],
             pipelineCount,
@@ -212,5 +209,5 @@ export function useOfficeLayout({ agents, statuses, activeCategories, pipelines 
     })
 
     return nodes
-  }, [agents, statuses, activeCategories, pipelines])
+  }, [agents, activeCategories, pipelines])
 }

@@ -11,3 +11,8 @@ src/**/*.d.ts
 .claude/handoff.md
 .claude/checkpoints/
 .claude/web-checklist-state.json
+.claude/qa-*
+
+# QA 산출물
+*.png
+.playwright-mcp/
