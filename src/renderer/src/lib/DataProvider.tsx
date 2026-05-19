@@ -25,12 +25,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [externalSystems, setExternalSystems] = useState(staticExternalSystems)
   const [loading, setLoading] = useState(false)
 
-  // 앱 시작 시 Rust에서 최신 데이터 로드
+  // 앱 시작/새로고침 시 2-Phase 로드:
+  //   Phase 1 — 즉시 캐시 표시 (load_system_data: 기존 JSON 읽기)
+  //   Phase 2 — 백그라운드 rescan (npm run scan → 최신 데이터로 자동 갱신)
+  // Tauri 환경에서만 Phase 2 동작. Vite dev/브라우저는 staticSystemData 폴백.
   useEffect(() => {
     loadAll()
   }, [])
 
   async function loadAll() {
+    // Phase 1: 즉시 캐시 로드
     try {
       const [sys, usage, ext] = await Promise.all([
         api.loadSystemData().catch(() => null),
@@ -43,6 +47,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } catch {
       // 폴백: 정적 데이터 유지
     }
+
+    // Phase 2: 백그라운드 rescan (Tauri 환경에서만, 비차단)
+    api
+      .rescanSystem()
+      .then((res) => {
+        if (res.ok && res.data) {
+          setSystemData(res.data as typeof staticSystemData)
+        }
+      })
+      .catch(() => {
+        // 폴백: Phase 1 데이터 유지 (Vite dev 등 비-Tauri 환경)
+      })
   }
 
   const refreshSystem = useCallback(async () => {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { AgentStatus } from './office-config'
 
 // 접근성: 상태 변경 요약을 3초 디바운스로 라이브 리전에 알림.
-// 67명 동시 변경 시 개별 알림 금지 (스크린 리더 폭탄 방지).
+// 99명 동시 변경 시 개별 알림 금지 (스크린 리더 폭탄 방지).
 export function useLiveRegion(statuses: Map<string, AgentStatus>): string {
   const [announcement, setAnnouncement] = useState('')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)

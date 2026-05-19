@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { ViewType } from '../App'
+import { useSystemDataContext } from '../lib/DataProvider'
 
 const views: { id: ViewType; label: string; icon: string }[] = [
   { id: 'dashboard', label: '시스템 개요', icon: '📊' },
@@ -23,11 +24,14 @@ type Props = {
 export default function Sidebar({ activeView, onViewChange }: Props) {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [autoRefresh, setAutoRefresh] = useState(true)
+  const { refreshSystem, loading } = useSystemDataContext()
 
-  const handleRefresh = useCallback(() => {
+  // 실제 rescan_system IPC 호출 (npm run scan → 최신 ~/.claude 반영).
+  // 페이지 리로드 대신 React 상태 갱신만 — 사용자 컨텍스트(activeView 등) 보존.
+  const handleRefresh = useCallback(async () => {
+    await refreshSystem()
     setLastRefresh(new Date())
-    window.location.reload()
-  }, [])
+  }, [refreshSystem])
 
   useEffect(() => {
     if (!autoRefresh) return
@@ -60,9 +64,11 @@ export default function Sidebar({ activeView, onViewChange }: Props) {
       <div className="p-3 border-t border-gray-800 space-y-2">
         <button
           onClick={handleRefresh}
-          className="w-full text-xs text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors"
+          disabled={loading}
+          aria-busy={loading}
+          className="w-full text-xs text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          데이터 새로고침
+          {loading ? '스캔 중...' : '⟳ 데이터 새로고침'}
         </button>
         <div className="flex items-center justify-between px-1">
           <span className="text-[10px] text-gray-600">자동 갱신 (5분)</span>
