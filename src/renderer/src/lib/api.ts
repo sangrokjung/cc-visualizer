@@ -62,4 +62,9 @@ export const api = {
   onSessionId: (callback: (id: string) => void): Promise<UnlistenFn> => {
     return listen('session-id', (e) => callback(e.payload as string))
   },
+
+  // claude-system-changed 이벤트 리스너 — ~/.claude 디렉토리 변경 시 발생
+  onClaudeSystemChanged: (callback: () => void): Promise<UnlistenFn> => {
+    return listen('claude-system-changed', () => callback())
+  },
 }

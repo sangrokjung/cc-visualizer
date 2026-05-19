@@ -83,6 +83,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // ~/.claude 디렉토리 변경 감지 시 자동 rescan (file_watcher → claude-system-changed 이벤트)
+  // Phase 2 백그라운드 rescan과 보완 관계 — 마운트 시 1회 + 이후 변경 시마다.
+  useEffect(() => {
+    let unlisten: (() => void) | null = null
+
+    api
+      .onClaudeSystemChanged(() => {
+        refreshSystem()
+      })
+      .then((fn) => {
+        unlisten = fn
+      })
+
+    return () => {
+      if (unlisten) unlisten()
+    }
+  }, [refreshSystem])
+
   return (
     <DataContext.Provider value={{ systemData, usageData, externalSystems, refreshSystem, refreshUsage, loading }}>
       {children}
