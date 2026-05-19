@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { ViewType } from '../App'
+import { useSystemDataContext } from '../lib/DataProvider'
+import { formatScanTimestamp } from '../lib/format-scan-timestamp'
 
 const views: { id: ViewType; label: string; icon: string }[] = [
   { id: 'dashboard', label: '시스템 개요', icon: '📊' },
@@ -13,27 +15,36 @@ const views: { id: ViewType; label: string; icon: string }[] = [
   { id: 'agent-office', label: '에이전트 오피스', icon: '🏢' }
 ]
 
-const AUTO_REFRESH_MS = 5 * 60 * 1000
-
 type Props = {
   activeView: ViewType
   onViewChange: (view: ViewType) => void
 }
 
 export default function Sidebar({ activeView, onViewChange }: Props) {
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+  const { systemData, refreshSystem, loading } = useSystemDataContext()
   const [autoRefresh, setAutoRefresh] = useState(true)
+  // 1분마다 갱신 — 상대 시각 자동 업데이트용
+  const [currentTime, setCurrentTime] = useState<Date>(new Date())
 
-  const handleRefresh = useCallback(() => {
-    setLastRefresh(new Date())
-    window.location.reload()
-  }, [])
+  const handleRefresh = useCallback(async () => {
+    await refreshSystem()
+  }, [refreshSystem])
 
+  // 자동 새로고침 (5분 간격)
   useEffect(() => {
     if (!autoRefresh) return
+    const AUTO_REFRESH_MS = 5 * 60 * 1000
     const timer = setInterval(handleRefresh, AUTO_REFRESH_MS)
     return () => clearInterval(timer)
   }, [autoRefresh, handleRefresh])
+
+  // currentTime 1분 tick — 상대 시각 갱신
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60_000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const scanTimestamp = (systemData as Record<string, unknown>).scanTimestamp as string | undefined
 
   return (
     <aside className="w-56 bg-gray-900 border-r border-gray-800 flex flex-col">
@@ -60,9 +71,11 @@ export default function Sidebar({ activeView, onViewChange }: Props) {
       <div className="p-3 border-t border-gray-800 space-y-2">
         <button
           onClick={handleRefresh}
-          className="w-full text-xs text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors"
+          disabled={loading}
+          aria-busy={loading}
+          className="w-full text-xs text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          데이터 새로고침
+          {loading ? '⟳ 스캔 중...' : '⟳ 데이터 새로고침'}
         </button>
         <div className="flex items-center justify-between px-1">
           <span className="text-[10px] text-gray-600">자동 갱신 (5분)</span>
@@ -78,7 +91,7 @@ export default function Sidebar({ activeView, onViewChange }: Props) {
           </button>
         </div>
         <p className="text-[10px] text-gray-600 px-1">
-          {lastRefresh.toLocaleTimeString('ko-KR', { hour12: false })}
+          {formatScanTimestamp(scanTimestamp, currentTime)}
         </p>
       </div>
     </aside>
