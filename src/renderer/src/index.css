@@ -149,6 +149,12 @@ body {
 }
 .animate-jarvis-fade-in { animation: jarvis-fade-in 0.3s ease-out; }
 
+/* 외곽 와이드 펄스 — working 노드 강조 */
+@keyframes jarvis-pulse-wide {
+  0% { r: 8; opacity: 0.4; }
+  100% { r: 28; opacity: 0; }
+}
+
 /* reduced motion 준수 */
 @media (prefers-reduced-motion: reduce) {
   .animate-jarvis-scan,

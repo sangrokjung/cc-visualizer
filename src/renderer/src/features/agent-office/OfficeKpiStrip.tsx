@@ -1,8 +1,16 @@
 import { useMemo, memo, useEffect, useState, useRef } from 'react'
 import { useCountUp } from '../../lib/hooks/use-count-up'
 import { useSessionEventsContext } from '../../lib/SessionEventsProvider'
+import { useGlobalTokenStats } from '../../lib/hooks/use-global-token-stats'
 import type { AgentStatus } from './office-config'
 import { JARVIS } from './office-config'
+
+function formatUsd(n: number): string {
+  if (n < 1) return `$${n.toFixed(2)}`
+  if (n < 100) return `$${n.toFixed(0)}`
+  if (n < 10_000) return `$${n.toFixed(0)}`
+  return `$${(n / 1000).toFixed(1)}K`
+}
 
 interface KpiCardProps {
   label: string
@@ -101,6 +109,71 @@ function ActivityMeter({ active, total }: { active: number; total: number }) {
               boxShadow: `0 0 6px ${color}`,
             }}
           />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// TODAY 메가 비용 카드 — HUD에 첫 눈에 들어오게
+function TodayCostCard() {
+  const { today, todayVsYesterday, loading } = useGlobalTokenStats()
+  const cost = today?.cost ?? 0
+  const animatedCostMilli = useCountUp(Math.round(cost * 1000), 1000)
+  const animatedCost = animatedCostMilli / 1000
+  const isUp = todayVsYesterday !== null && todayVsYesterday >= 0
+  const deltaColor = isUp ? JARVIS.accent : JARVIS.emerald
+
+  return (
+    <div
+      className="relative flex items-center gap-3 px-3 py-2 font-mono"
+      style={{
+        backgroundColor: `${JARVIS.emerald}10`,
+        border: `1px solid ${JARVIS.emerald}60`,
+        boxShadow: `0 0 14px ${JARVIS.emerald}30, inset 0 0 8px ${JARVIS.emerald}10`,
+        minWidth: 180,
+      }}
+    >
+      {/* 코너 마커 */}
+      <span aria-hidden className="absolute -top-px -left-px w-2 h-2 border-t-2 border-l-2" style={{ borderColor: JARVIS.emerald }} />
+      <span aria-hidden className="absolute -top-px -right-px w-2 h-2 border-t-2 border-r-2" style={{ borderColor: JARVIS.emerald }} />
+      <span aria-hidden className="absolute -bottom-px -left-px w-2 h-2 border-b-2 border-l-2" style={{ borderColor: JARVIS.emerald }} />
+      <span aria-hidden className="absolute -bottom-px -right-px w-2 h-2 border-b-2 border-r-2" style={{ borderColor: JARVIS.emerald }} />
+
+      {/* 코인/달러 아이콘 */}
+      <span
+        className="text-2xl"
+        style={{
+          color: JARVIS.emerald,
+          filter: `drop-shadow(0 0 4px ${JARVIS.emerald})`,
+        }}
+        aria-hidden
+      >
+        ◈
+      </span>
+
+      <div className="flex flex-col">
+        <span className="text-[10px] uppercase tracking-[0.18em] font-bold" style={{ color: JARVIS.textDim }}>
+          {loading ? 'SYNCING TODAY…' : "TODAY'S COST"}
+        </span>
+        <div className="flex items-baseline gap-2">
+          <span
+            className="text-2xl font-bold tabular-nums leading-none"
+            style={{
+              color: JARVIS.emerald,
+              textShadow: `0 0 10px ${JARVIS.emerald}80`,
+            }}
+          >
+            {formatUsd(animatedCost)}
+          </span>
+          {todayVsYesterday !== null && (
+            <span
+              className="text-[11px] font-bold tabular-nums"
+              style={{ color: deltaColor }}
+            >
+              {isUp ? '▲' : '▼'} {Math.abs(todayVsYesterday).toFixed(0)}%
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -241,7 +314,7 @@ export default memo(function OfficeKpiStrip({
 
   return (
     <div
-      className="relative flex items-center gap-3 px-5 py-3 flex-wrap"
+      className="relative flex flex-col gap-2 px-5 py-3"
       style={{
         backgroundColor: JARVIS.bgPanel,
         borderBottom: `2px solid ${JARVIS.borderActive}50`,
@@ -259,35 +332,34 @@ export default memo(function OfficeKpiStrip({
         }}
       />
 
-      <div className="relative">
+      {/* ROW 1 — 시스템 ID + TODAY COST 메가 + LiveTicker */}
+      <div className="relative flex items-center gap-3 flex-wrap">
         <SystemStatusLine demoMode={demoMode} />
+
+        <span className="text-base" style={{ color: JARVIS.borderActive, opacity: 0.6 }}>│</span>
+
+        <TodayCostCard />
+
+        <span className="text-base" style={{ color: JARVIS.borderActive, opacity: 0.6 }}>│</span>
+
+        <div className="flex-1 min-w-0 max-w-md">
+          <LiveTicker />
+        </div>
       </div>
 
-      <span className="text-base mx-1" style={{ color: JARVIS.borderActive, opacity: 0.6 }}>│</span>
-
-      {/* 라이브 이벤트 티커 — 실시간 활성화 시각 강화 */}
-      <div className="relative flex-1 min-w-0 max-w-md">
-        <LiveTicker />
-      </div>
-
-      <span className="text-base mx-1" style={{ color: JARVIS.borderActive, opacity: 0.6 }}>│</span>
-
-      <div className="relative">
+      {/* ROW 2 — 활성 메트릭 (UTILIZATION + 상태 + 인프라) */}
+      <div className="relative flex items-center gap-2.5 flex-wrap">
         <ActivityMeter active={activeCount} total={totalAgents} />
-      </div>
 
-      <span className="text-base mx-1" style={{ color: JARVIS.borderActive, opacity: 0.6 }}>│</span>
+        <span className="text-base" style={{ color: JARVIS.borderActive, opacity: 0.6 }}>│</span>
 
-      <div className="relative flex items-center gap-2">
         <KpiCard label="ACTIVE" value={counts.working} color={JARVIS.emerald} icon="◉" active={counts.working > 0} />
         <KpiCard label="STANDBY" value={counts.recent} color={JARVIS.primary} icon="◐" />
         <KpiCard label="IDLE" value={counts.idle} color={JARVIS.primaryDim} icon="◯" />
         <KpiCard label="OFFLINE" value={counts.offline} color={JARVIS.scarlet} icon="◌" />
-      </div>
 
-      <span className="text-base mx-1" style={{ color: JARVIS.borderActive, opacity: 0.6 }}>│</span>
+        <span className="text-base" style={{ color: JARVIS.borderActive, opacity: 0.6 }}>│</span>
 
-      <div className="relative flex items-center gap-2">
         <KpiCard label="LINKS" value={pipelineCount} color={JARVIS.accent} icon="⇉" />
         <KpiCard label="TOOLS" value={toolCount} color={JARVIS.gold} icon="⚙" />
       </div>

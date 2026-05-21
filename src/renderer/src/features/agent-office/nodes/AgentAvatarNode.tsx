@@ -103,9 +103,20 @@ function JarvisCore({ size, status, model, glow }: {
         </radialGradient>
       </defs>
 
-      {/* working — 중앙 펄스 링 */}
+      {/* working — 다중 펄스 링 (강화) */}
       {status === 'working' && (
         <>
+          {/* 외곽 큰 펄스 — 2초 주기 */}
+          <circle
+            cx="50" cy="50"
+            r="8"
+            fill="none"
+            stroke={colors.core}
+            strokeWidth="0.8"
+            opacity={0.4}
+            style={{ animation: 'jarvis-pulse-wide 2s ease-out infinite' }}
+          />
+          {/* 중간 펄스 */}
           <circle
             cx="50" cy="50"
             r="6"
@@ -114,6 +125,7 @@ function JarvisCore({ size, status, model, glow }: {
             strokeWidth="1.5"
             style={{ animation: 'jarvis-pulse 1.4s ease-out infinite' }}
           />
+          {/* 중앙 코어 호흡 */}
           <circle
             cx="50" cy="50"
             r="3"
