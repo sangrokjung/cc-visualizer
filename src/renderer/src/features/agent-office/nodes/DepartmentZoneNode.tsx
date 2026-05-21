@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import type { NodeProps } from '@xyflow/react'
+import { JARVIS } from '../office-config'
 
 type DepartmentZoneData = {
   category: string
@@ -10,77 +11,98 @@ type DepartmentZoneData = {
   floorColors?: [string, string]
 }
 
-// 픽셀아트 부서 방 노드
+// JARVIS 사이버틱 부서 zone — 픽셀 룸 → 홀로그램 셀
 function DepartmentZoneNode({ data }: NodeProps) {
-  const { label, emoji, color, agentCount, floorColors } = data as unknown as DepartmentZoneData
-  const [floor1, floor2] = floorColors ?? ['#191d28', '#1c2130']
+  const { label, emoji, color, agentCount, category } = data as unknown as DepartmentZoneData
 
   return (
-    <div className="w-full h-full relative" style={{ imageRendering: 'pixelated' }}>
-      {/* 바닥 타일 (SVG 패턴) */}
-      <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-        <defs>
-          <pattern id={`floor-${data.category}`} width="16" height="16" patternUnits="userSpaceOnUse">
-            <rect width="16" height="16" fill={floor1} />
-            <rect x="0" y="0" width="8" height="8" fill={floor2} opacity="0.5" />
-            <rect x="8" y="8" width="8" height="8" fill={floor2} opacity="0.5" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill={`url(#floor-${data.category})`} rx="2" />
-      </svg>
-
-      {/* 벽 (두꺼운 픽셀 테두리) */}
+    <div className="w-full h-full relative" style={{ pointerEvents: 'none' }}>
+      {/* 배경 — 어두운 패널 + 부서 색상 약한 틴트 */}
       <div
-        className="absolute inset-0 rounded-sm pointer-events-none"
+        className="absolute inset-0"
         style={{
-          border: `4px solid ${color}40`,
-          borderTopWidth: 6,
-          boxShadow: `
-            inset 0 2px 0 ${color}20,
-            inset 0 -1px 0 rgba(0,0,0,0.3),
-            0 2px 8px rgba(0,0,0,0.4)
+          backgroundColor: JARVIS.bgPanel,
+          backgroundImage: `
+            linear-gradient(135deg, ${color}08 0%, transparent 60%),
+            linear-gradient(180deg, ${color}06 0%, transparent 50%)
           `,
         }}
       />
 
-      {/* 벽 상단 두께감 (3D 효과) */}
+      {/* 그리드 패턴 (서브틀) */}
       <div
-        className="absolute top-0 left-0 right-0 h-2 rounded-t-sm"
-        style={{ backgroundColor: color + '25' }}
-      />
-
-      {/* 문 (하단 중앙) */}
-      <div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2"
+        className="absolute inset-0 opacity-25"
         style={{
-          width: 24,
-          height: 8,
-          background: `linear-gradient(180deg, #4a3a2a, #3a2a1a)`,
-          borderTop: `2px solid #6a5a4a`,
-          borderRadius: '2px 2px 0 0',
+          backgroundImage: `linear-gradient(${color}15 1px, transparent 1px), linear-gradient(90deg, ${color}15 1px, transparent 1px)`,
+          backgroundSize: '32px 32px',
         }}
       />
 
-      {/* 간판 (상단 왼쪽) */}
+      {/* 외곽 보더 + 글로우 */}
       <div
-        className="absolute top-1.5 left-2 flex items-center gap-1 px-2 py-0.5 rounded-sm"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundColor: '#0a0a12e0',
-          border: `1px solid ${color}50`,
-          boxShadow: `0 1px 3px rgba(0,0,0,0.5)`,
-          zIndex: 2,
+          border: `1px solid ${color}40`,
+          boxShadow: `0 0 24px ${color}15, inset 0 0 32px ${color}08`,
+        }}
+      />
+
+      {/* HUD 코너 마커 (4개) — 자비스 시그니처 */}
+      {([
+        { pos: 'top-0 left-0', borders: 'border-t border-l' },
+        { pos: 'top-0 right-0', borders: 'border-t border-r' },
+        { pos: 'bottom-0 left-0', borders: 'border-b border-l' },
+        { pos: 'bottom-0 right-0', borders: 'border-b border-r' },
+      ] as const).map((m, i) => (
+        <span
+          key={i}
+          aria-hidden
+          className={`absolute ${m.pos} w-3 h-3 ${m.borders}`}
+          style={{ borderColor: color, borderWidth: '2px' }}
+        />
+      ))}
+
+      {/* 상단 헤더 바 — 데이터 라인 */}
+      <div
+        className="absolute top-2 left-3 right-3 h-px"
+        style={{ background: `linear-gradient(90deg, ${color}80, transparent)` }}
+      />
+
+      {/* 헤더 라벨 (HUD 스타일) */}
+      <div
+        className="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1"
+        style={{
+          backgroundColor: `${JARVIS.bg}cc`,
+          border: `1px solid ${color}80`,
+          fontFamily: 'monospace',
+          backdropFilter: 'blur(2px)',
         }}
       >
         <span style={{ fontSize: 11 }}>{emoji}</span>
-        <span className="text-[10px] font-bold tracking-wide" style={{ color, fontFamily: 'monospace' }}>
+        <span
+          className="text-[10px] font-bold uppercase tracking-widest"
+          style={{ color }}
+        >
           {label}
         </span>
+        <span className="text-[9px]" style={{ color: JARVIS.textDim }}>·</span>
         <span
-          className="text-[8px] px-1 py-px rounded-sm font-mono font-bold ml-0.5"
-          style={{ backgroundColor: color + '30', color }}
+          className="text-[10px] font-mono font-bold tabular-nums"
+          style={{ color: JARVIS.text }}
         >
-          {agentCount}
+          {agentCount.toString().padStart(2, '0')}
         </span>
+        <span className="text-[8px] uppercase tracking-wider" style={{ color: JARVIS.textDim }}>
+          units
+        </span>
+      </div>
+
+      {/* 부서 코드 라벨 (우상단) */}
+      <div
+        className="absolute top-3 right-3 text-[8px] font-mono uppercase tracking-widest opacity-50"
+        style={{ color }}
+      >
+        ZONE-{category.slice(0, 3).toUpperCase()}
       </div>
     </div>
   )
