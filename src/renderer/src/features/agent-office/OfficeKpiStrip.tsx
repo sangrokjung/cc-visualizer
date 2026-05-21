@@ -66,6 +66,10 @@ interface OfficeKpiStripProps {
   pipelineCount: number
   toolCount: number
   demoMode: boolean
+  /** agent id → category 매핑. TopDeptCard 부서 집계용 */
+  agentCategory?: Map<string, string>
+  /** category → label 매핑 (ex: 'development' → '개발') */
+  categoryLabels?: Record<string, string>
 }
 
 // 게이미피케이션: 활동 콤보 메가 카운터 (전체 활성 비율)
@@ -109,6 +113,54 @@ function ActivityMeter({ active, total }: { active: number; total: number }) {
               boxShadow: `0 0 6px ${color}`,
             }}
           />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// TOP DEPT 카드 — 활성 에이전트가 가장 많은 부서를 메가로 강조 (게이미피케이션)
+// 부모(OfficeKpiStrip)가 이미 계산한 statuses Map을 받음 → 별도 polling 없음
+function TopDeptCard({
+  topDept,
+  topCount,
+}: {
+  topDept: string | null
+  topCount: number
+}) {
+  if (!topDept || topCount === 0) return null
+  return (
+    <div
+      className="relative flex items-center gap-2 px-3 py-1.5 font-mono"
+      style={{
+        backgroundColor: `${JARVIS.accent}10`,
+        border: `1px solid ${JARVIS.accent}60`,
+        boxShadow: `0 0 8px ${JARVIS.accent}25`,
+        minWidth: 140,
+      }}
+    >
+      <span aria-hidden className="absolute -top-px -left-px w-1.5 h-1.5 border-t-2 border-l-2" style={{ borderColor: JARVIS.accent }} />
+      <span aria-hidden className="absolute -top-px -right-px w-1.5 h-1.5 border-t-2 border-r-2" style={{ borderColor: JARVIS.accent }} />
+      <span aria-hidden className="absolute -bottom-px -left-px w-1.5 h-1.5 border-b-2 border-l-2" style={{ borderColor: JARVIS.accent }} />
+      <span aria-hidden className="absolute -bottom-px -right-px w-1.5 h-1.5 border-b-2 border-r-2" style={{ borderColor: JARVIS.accent }} />
+      <span className="text-base" aria-hidden style={{ color: JARVIS.accent }}>★</span>
+      <div className="flex flex-col leading-tight">
+        <span className="text-[9px] uppercase tracking-[0.18em] font-bold" style={{ color: JARVIS.textDim }}>
+          TOP DEPT
+        </span>
+        <div className="flex items-baseline gap-1.5">
+          <span
+            className="text-base font-bold uppercase tracking-wider"
+            style={{ color: JARVIS.accent, textShadow: `0 0 6px ${JARVIS.accent}60` }}
+          >
+            {topDept}
+          </span>
+          <span
+            className="text-[11px] font-bold tabular-nums"
+            style={{ color: JARVIS.text }}
+          >
+            ×{topCount}
+          </span>
         </div>
       </div>
     </div>
@@ -175,6 +227,53 @@ function TodayCostCard() {
             </span>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// 활동 트레일 — 최근 5개 tool_use 이벤트를 dot으로 표시 (게임 콤보 트레일)
+// 리소스: DOM 5개, push 기반 (polling 0회)
+function ActivityTrail() {
+  const { events } = useSessionEventsContext()
+  // 최근 5개 tool_use만 추출 (다른 이벤트 무시 → DOM 안정)
+  const tools = events
+    .filter((e) => e.type === 'tool_use')
+    .slice(0, 5)
+
+  return (
+    <div className="flex items-center gap-1 font-mono">
+      <span
+        className="text-[9px] uppercase tracking-widest"
+        style={{ color: JARVIS.textDim }}
+      >
+        TRAIL
+      </span>
+      <div className="flex items-center gap-0.5">
+        {tools.length === 0 ? (
+          <span className="text-[9px]" style={{ color: JARVIS.textDim }}>—</span>
+        ) : (
+          tools.map((ev, idx) => {
+            // 가장 최근일수록 밝고 큼, 오래된 건 작고 흐림
+            const opacity = 1 - idx * 0.18
+            const size = 8 - idx * 0.8
+            return (
+              <span
+                key={ev.id}
+                className="inline-block rounded-full"
+                style={{
+                  width: size,
+                  height: size,
+                  backgroundColor: JARVIS.gold,
+                  opacity,
+                  boxShadow: idx === 0 ? `0 0 6px ${JARVIS.gold}` : undefined,
+                  transition: 'all 300ms ease',
+                }}
+                title={ev.data.toolName ?? ev.type}
+              />
+            )
+          })
+        )}
       </div>
     </div>
   )
@@ -299,6 +398,8 @@ export default memo(function OfficeKpiStrip({
   pipelineCount,
   toolCount,
   demoMode,
+  agentCategory,
+  categoryLabels,
 }: OfficeKpiStripProps) {
   const counts = useMemo(() => {
     const c = { working: 0, recent: 0, idle: 0, offline: 0 }
@@ -309,8 +410,29 @@ export default memo(function OfficeKpiStrip({
   }, [statuses])
 
   const totalAgents = counts.working + counts.recent + counts.idle + counts.offline
-  // 게이미피케이션: 활성 비율 = (working + recent) / total
   const activeCount = counts.working + counts.recent
+
+  // TOP DEPT 계산 — working 상태 에이전트가 가장 많은 부서
+  const { topDept, topCount } = useMemo(() => {
+    if (!agentCategory || statuses.size === 0) return { topDept: null as string | null, topCount: 0 }
+    const deptWorking: Record<string, number> = {}
+    for (const [agentId, status] of statuses) {
+      if (status !== 'working') continue
+      const cat = agentCategory.get(agentId)
+      if (!cat) continue
+      deptWorking[cat] = (deptWorking[cat] ?? 0) + 1
+    }
+    let bestDept: string | null = null
+    let bestCount = 0
+    for (const [dept, n] of Object.entries(deptWorking)) {
+      if (n > bestCount) {
+        bestCount = n
+        bestDept = dept
+      }
+    }
+    const displayLabel = bestDept ? (categoryLabels?.[bestDept]?.replace('부서', '') ?? bestDept) : null
+    return { topDept: displayLabel, topCount: bestCount }
+  }, [statuses, agentCategory, categoryLabels])
 
   return (
     <div
@@ -347,9 +469,11 @@ export default memo(function OfficeKpiStrip({
         </div>
       </div>
 
-      {/* ROW 2 — 활성 메트릭 (UTILIZATION + 상태 + 인프라) */}
+      {/* ROW 2 — 활성 메트릭 + TOP DEPT + 트레일 */}
       <div className="relative flex items-center gap-2.5 flex-wrap">
         <ActivityMeter active={activeCount} total={totalAgents} />
+
+        <TopDeptCard topDept={topDept} topCount={topCount} />
 
         <span className="text-base" style={{ color: JARVIS.borderActive, opacity: 0.6 }}>│</span>
 
@@ -362,6 +486,10 @@ export default memo(function OfficeKpiStrip({
 
         <KpiCard label="LINKS" value={pipelineCount} color={JARVIS.accent} icon="⇉" />
         <KpiCard label="TOOLS" value={toolCount} color={JARVIS.gold} icon="⚙" />
+
+        {/* 활동 트레일 — 최근 5개 tool_use dot (게임 콤보 느낌) */}
+        <span className="text-base" style={{ color: JARVIS.borderActive, opacity: 0.6 }}>│</span>
+        <ActivityTrail />
       </div>
     </div>
   )

@@ -15,7 +15,7 @@ import { CATEGORY_COLORS } from '../../lib/types'
 import { useSystemData } from '../../lib/use-system-data'
 import { useSessionEventsContext } from '../../lib/SessionEventsProvider'
 import { useAgentStatuses } from './use-agent-status'
-import { JARVIS } from './office-config'
+import { JARVIS, DEPT_LABELS } from './office-config'
 import { useOfficeLayout } from './use-office-layout'
 import { useAgentNodeData } from './use-agent-node-data'
 import { usePipelineEdges } from './use-pipeline-edges'
@@ -74,6 +74,13 @@ export default function AgentOfficeView() {
   const onPaneClick = useCallback(() => { setSelectedAgent(null) }, [])
   const liveAnnouncement = useLiveRegion(statuses)
 
+  // OfficeKpiStrip TopDeptCard용 — agentId → category 매핑
+  const agentCategory = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const a of agents) m.set(a.id, a.category)
+    return m
+  }, [agents])
+
   if (loading && agents.length === 0) {
     return <div className="h-full flex items-center justify-center text-sm" style={{ color: '#ABB3BF' }}>데이터 로딩 중...</div>
   }
@@ -94,7 +101,14 @@ export default function AgentOfficeView() {
       <div aria-live="polite" className="sr-only" data-testid="office-live-region">{liveAnnouncement}</div>
 
       {/* KPI 스트립 */}
-      <OfficeKpiStrip statuses={statuses} pipelineCount={pipelines.length} toolCount={uniqueToolCount} demoMode={demoMode} />
+      <OfficeKpiStrip
+        statuses={statuses}
+        pipelineCount={pipelines.length}
+        toolCount={uniqueToolCount}
+        demoMode={demoMode}
+        agentCategory={agentCategory}
+        categoryLabels={DEPT_LABELS}
+      />
 
       {/* 3컬럼 레이아웃 — 좌측 패널 폭 280px (TOKEN ECONOMY 깔끔 렌더) */}
       <div className="flex-1 grid grid-cols-[280px_1fr_320px] overflow-hidden">
