@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useSystemDataContext } from '../../lib/DataProvider'
 import { HeroSection } from './HeroSection'
 import { LiveActivityPulse } from './LiveActivityPulse'
+import { TokenFlowMini } from './TokenFlowMini'
 import { SystemPulse } from './SystemPulse'
 import { StatCards } from './StatCards'
 import { SystemRadar } from './SystemRadar'
@@ -106,8 +107,11 @@ export default function DashboardView() {
         {/* 1. 히어로 섹션 (메가 카운트 + 도메인 칩) */}
         <HeroSection />
 
-        {/* 2. 라이브 활동 펄스 (현재 작동 중인 Claude Code 시각화 — 신규) */}
-        <LiveActivityPulse />
+        {/* 2. 라이브 활동 (현재 작동 중인 Claude Code) + 토큰/비용 흐름 — 신규 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <LiveActivityPulse />
+          <TokenFlowMini />
+        </div>
 
         {/* 3. 시스템 펄스 (별자리 버블 차트) */}
         <SystemPulse />

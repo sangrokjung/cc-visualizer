@@ -106,6 +106,10 @@ export const LiveActivityPulse = memo(function LiveActivityPulse() {
   // 최근 5개 이벤트만 (DOM 노드 제한)
   const recentEvents = useMemo(() => events.slice(0, 5), [events])
 
+  // flash 키 — 새 이벤트 도착 시 변경되어 CSS 애니메이션 재트리거
+  // Yuyz0112(2366★) flash 패턴 영감 (yellow → transparent 1초)
+  const flashKey = events[0]?.id ?? 'empty'
+
   // active 판정: 마지막 이벤트가 30초 이내
   const isActive = useMemo(() => {
     if (events.length === 0) return false
@@ -236,7 +240,7 @@ export const LiveActivityPulse = memo(function LiveActivityPulse() {
             최근 이벤트
           </p>
           <ul className="space-y-1">
-            {recentEvents.map((ev) => {
+            {recentEvents.map((ev, idx) => {
               const meta = EVENT_META[ev.type] ?? EVENT_META.system
               const label =
                 ev.data.toolName ??
@@ -244,10 +248,14 @@ export const LiveActivityPulse = memo(function LiveActivityPulse() {
                 ev.data.agentName ??
                 ev.data.text?.slice(0, 60) ??
                 meta.label
+              // 최신 이벤트(idx=0)만 flash 애니메이션 — Yuyz0112 패턴
+              const isLatest = idx === 0
               return (
                 <li
-                  key={ev.id}
-                  className="flex items-center gap-2 text-[11px]"
+                  key={`${flashKey}-${ev.id}`}
+                  className={`flex items-center gap-2 text-[11px] px-1.5 py-0.5 rounded ${
+                    isLatest ? 'animate-flash-once' : ''
+                  }`}
                   style={{ color: '#ABB3BF' }}
                 >
                   <span style={{ color: meta.color }}>{meta.icon}</span>
@@ -263,6 +271,17 @@ export const LiveActivityPulse = memo(function LiveActivityPulse() {
           </ul>
         </div>
       )}
+
+      {/* Yuyz0112 영감 flash 애니메이션 — 새 이벤트 도착 시 1초 노란 깜박 → fade */}
+      <style>{`
+        @keyframes flash-once {
+          0% { background-color: rgba(255, 217, 102, 0.45); }
+          100% { background-color: transparent; }
+        }
+        .animate-flash-once {
+          animation: flash-once 1s ease-out;
+        }
+      `}</style>
     </div>
   )
 })

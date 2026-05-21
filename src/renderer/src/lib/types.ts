@@ -157,6 +157,8 @@ export const SessionEventSchema = z.object({
     hookEvent: z.string().optional(),
     hookName: z.string().optional(),
     command: z.string().optional(),
+    // 메시지 텍스트 글자 수 (전체 텍스트 대신 정수만 — 리소스 절약 + 토큰 추정용)
+    charCount: z.number().optional(),
   })
 })
 export type SessionEvent = z.infer<typeof SessionEventSchema>

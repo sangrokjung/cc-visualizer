@@ -33,6 +33,32 @@ pub struct SessionEventData {
     pub hook_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
+    // 메시지 텍스트 글자 수 — 전체 텍스트 대신 정수만 emit (메모리 절약 + 토큰 추정용)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub char_count: Option<u32>,
+}
+
+/// message.content[] 의 모든 text 블록 글자 수 합산.
+/// content가 문자열이면 그대로 길이, 배열이면 text 블록만 합산.
+fn count_message_chars(raw: &serde_json::Value) -> u32 {
+    let content = match raw.get("message").and_then(|m| m.get("content")) {
+        Some(c) => c,
+        None => return 0,
+    };
+    if let Some(s) = content.as_str() {
+        return s.chars().count() as u32;
+    }
+    let mut total: usize = 0;
+    if let Some(arr) = content.as_array() {
+        for block in arr {
+            if block.get("type").and_then(|t| t.as_str()) == Some("text") {
+                if let Some(s) = block.get("text").and_then(|t| t.as_str()) {
+                    total += s.chars().count();
+                }
+            }
+        }
+    }
+    total as u32
 }
 
 #[derive(Deserialize)]
@@ -208,6 +234,10 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
                             });
                         } else if !tool_name.is_empty() {
                             // 일반 도구 사용 이벤트
+                            // 토큰 추정용 input 전체 글자 수 (잘리기 전)
+                            let input_chars = input
+                                .map(|i| i.to_string().chars().count() as u32)
+                                .unwrap_or(0);
                             let tool_input = input.map(|i| {
                                 let s = i.to_string();
                                 if s.len() > 100 { s[..100].to_string() } else { s }
@@ -220,6 +250,7 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
                                 data: SessionEventData {
                                     tool_name: Some(tool_name.to_string()),
                                     tool_input,
+                                    char_count: Some(input_chars),
                                     ..Default::default()
                                 },
                             });
@@ -234,7 +265,10 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
                     id,
                     timestamp: ts,
                     r#type: "assistant".into(),
-                    data: Default::default(),
+                    data: SessionEventData {
+                        char_count: Some(count_message_chars(&raw)),
+                        ..Default::default()
+                    },
                 });
             }
         }
@@ -268,7 +302,10 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
                     id,
                     timestamp: ts,
                     r#type: "user".into(),
-                    data: Default::default(),
+                    data: SessionEventData {
+                        char_count: Some(count_message_chars(&raw)),
+                        ..Default::default()
+                    },
                 });
             }
         }
