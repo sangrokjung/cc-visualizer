@@ -65,6 +65,15 @@ export function SessionEventsProvider({ children }: { children: ReactNode }) {
   const unlistenIdRef = useRef<UnlistenFn | null>(null)
 
   const handleEvent = useCallback((ev: unknown) => {
+    // 디버그: 이벤트 수신 로그 (DevTools 콘솔에서 stream 확인용)
+    // 활성화: window.__CC_DEBUG_SESSION = true
+    if (
+      typeof window !== 'undefined' &&
+      (window as unknown as Record<string, unknown>).__CC_DEBUG_SESSION
+    ) {
+      // eslint-disable-next-line no-console
+      console.log('[SessionEvent]', ev)
+    }
     setEvents((prev) => {
       const next = [ev as SessionEvent, ...prev]
       return next.length > MAX_EVENTS ? next.slice(0, MAX_EVENTS) : next
