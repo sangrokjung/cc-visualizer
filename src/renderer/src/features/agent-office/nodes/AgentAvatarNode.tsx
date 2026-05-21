@@ -224,41 +224,77 @@ function AgentAvatarNode({ data }: NodeProps) {
   const coreSize = modelConfig.headSize + 8 // 코어가 픽셀 머리보다 약간 큼
   const ariaLabel = `${agent.name}, ${modelConfig.rank}, ${statusLabel}, 도구 ${agent.tools.length}개${pipelineCount > 0 ? `, 파이프라인 ${pipelineCount}개` : ''}`
 
+  // 게이미피케이션: 레벨 별 등급
+  const tierStars = agent.model === 'opus' ? '★★★' : agent.model === 'sonnet' ? '★★' : '★'
+  const tierLabel = agent.model === 'opus' ? 'CMD' : agent.model === 'sonnet' ? 'OPS' : 'JR'
+
   return (
     <div
       ref={nodeRef}
       role="button"
       tabIndex={0}
       aria-label={ariaLabel}
-      className="flex flex-col items-center cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded"
-      style={{ width: 80, height: 100 }}
+      className="flex flex-col items-center cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+      style={{
+        width: 120, height: 140,
+        padding: '6px 4px',
+      }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onKeyDown={handleKeyDown}
       onFocus={handleMouseEnter}
       onBlur={handleMouseLeave}
     >
-      {/* JARVIS 코어 (헥사곤 + 회전 + 펄스) */}
-      <JarvisCore size={coreSize} status={status} model={agent.model} glow={modelConfig.glow} />
+      {/* 상단 티어 마커 — 레벨 별 (게이미피케이션) */}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-1.5 pt-0.5">
+        <span
+          className="text-[8px] font-mono font-bold uppercase tracking-wider"
+          style={{ color: colors.label, opacity: status === 'offline' ? 0.3 : 0.9 }}
+        >
+          {tierLabel}
+        </span>
+        <span
+          className="text-[10px] font-bold"
+          style={{
+            color: status === 'offline' ? '#3a4866' : agent.model === 'opus' ? JARVIS.gold : colors.ring,
+            letterSpacing: '-1px',
+          }}
+        >
+          {tierStars}
+        </span>
+      </div>
 
-      {/* 활동 스트림 (working 시 데이터 dot 흐름) */}
-      <ActivityStream width={coreSize} status={status} />
+      {/* JARVIS 코어 */}
+      <div className="mt-3">
+        <JarvisCore size={coreSize} status={status} model={agent.model} glow={modelConfig.glow} />
+      </div>
 
-      {/* 상태 라벨 — 모노스페이스 + 적은 글자 */}
+      {/* 활동 스트림 */}
+      <ActivityStream width={coreSize + 8} status={status} />
+
+      {/* 상태 라벨 — 키운 사이즈 + 강조 */}
       <span
-        className="text-[7px] font-mono uppercase tracking-wider mt-0.5"
-        style={{ color: colors.label, letterSpacing: '0.1em' }}
+        className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] mt-1 px-1.5 py-px"
+        style={{
+          color: colors.label,
+          backgroundColor: status !== 'offline' ? `${colors.core}15` : 'transparent',
+          border: status === 'working' ? `1px solid ${colors.core}` : '1px solid transparent',
+          boxShadow: status === 'working' ? `0 0 6px ${colors.glow}` : undefined,
+        }}
       >
         {statusLabel}
       </span>
 
-      {/* 에이전트 이름 */}
+      {/* 에이전트 이름 — 키움 + 잘림 표시 개선 */}
       <span
-        className="text-[8px] truncate text-center w-full leading-tight mt-px font-mono"
-        style={{ color: status === 'offline' ? '#3a4866' : JARVIS.text }}
+        className="text-[10px] truncate text-center w-full leading-tight mt-1 font-mono font-semibold"
+        style={{
+          color: status === 'offline' ? '#3a4866' : JARVIS.text,
+          maxWidth: '110px',
+        }}
         title={agent.name}
       >
-        {agent.name.length > 10 ? agent.name.slice(0, 9) + '…' : agent.name}
+        {agent.name.length > 13 ? agent.name.slice(0, 12) + '…' : agent.name}
       </span>
 
       {/* 툴팁 — HUD 스타일 */}

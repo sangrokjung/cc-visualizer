@@ -38,11 +38,11 @@ export const JARVIS = {
 // 벽 두께
 export const WALL_THICKNESS = 6
 
-// 에이전트 1인 공간
-export const AVATAR_CELL = { w: 80, h: 100 }
+// 에이전트 1인 공간 — 텍스트 가독성을 위해 키움 (2026-05-21)
+export const AVATAR_CELL = { w: 120, h: 140 }
 
-// 방 패딩 (벽 두께 포함)
-export const ROOM_PADDING = { top: 56, right: 28, bottom: 28, left: 28 }
+// 방 패딩 (벽 두께 포함) — 헤더 영역 충분히 확보
+export const ROOM_PADDING = { top: 72, right: 32, bottom: 32, left: 32 }
 
 // 부서별 그리드 열 수
 export const ROOM_COLS: Record<AgentCategory, number> = {
@@ -80,14 +80,14 @@ export const FLOOR_COLORS: Record<AgentCategory, [string, string]> = {
   lifestyle: ['#231a24', '#2a1e2c'],
 }
 
-// 모델별 아바타 설정
+// 모델별 아바타 설정 — 코어 크기 확대 (2026-05-21)
 export const MODEL_CONFIG: Record<string, {
   badge: string; headSize: number; rank: string; glow: boolean
   headColor: string; bodyScale: number
 }> = {
-  opus: { badge: '👑', headSize: 40, rank: '부장', glow: true, headColor: '#7961DB', bodyScale: 1.2 },
-  sonnet: { badge: '🎯', headSize: 34, rank: '대리', glow: false, headColor: '#2D72D2', bodyScale: 1.0 },
-  haiku: { badge: '🌱', headSize: 28, rank: '인턴', glow: false, headColor: '#29A634', bodyScale: 0.85 }
+  opus: { badge: '👑', headSize: 56, rank: '부장', glow: true, headColor: '#7961DB', bodyScale: 1.2 },
+  sonnet: { badge: '🎯', headSize: 48, rank: '대리', glow: false, headColor: '#2D72D2', bodyScale: 1.0 },
+  haiku: { badge: '🌱', headSize: 40, rank: '인턴', glow: false, headColor: '#29A634', bodyScale: 0.85 }
 }
 
 // 상태별 설정
