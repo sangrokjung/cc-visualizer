@@ -1,5 +1,5 @@
 {
-  "scanTimestamp": "2026-05-21T01:49:17.332Z",
+  "scanTimestamp": "2026-05-21T02:16:21.853Z",
   "agents": [
     {
       "id": "a11y-reviewer",
@@ -227,7 +227,7 @@
     {
       "id": "bizmodel-architect",
       "name": "bizmodel-architect",
-      "description": "자율 BM(Business Model) 설계 기획 전담 에이전트. BMC 9블록·Lean Canvas·JTBD·Wardley Map·Blue Ocean 5모드 통합 설계 + 16구루 프레임워크 적용 + 정량 평가(score_engine.py threshold 85%) + Mermaid 다이어그램·DOCX·PDF 산출. Use proactively when 사업 모델 설계/BMC/Lean Canvas/JTBD/Wardley/Blue Ocean/수익 모델/BM 피벗/사업 아이디어 검증 요청 시.",
+      "description": "자율 BM 설계 전담. BMC/Lean Canvas/JTBD/Wardley Map/Blue Ocean 5모드 + 16구루 + 정량평가(score 85%) + Mermaid·DOCX·PDF 산출. Use proactively when 사업 모델 설계/BMC/Lean Canvas/JTBD/Wardley/Build vs Buy/Blue Ocean/ERRC/수익 모델/BM 피벗 요청 시. QJC 자체 브랜드/포트폴리오는 qjc-business, 일반 PM PRD/OST는 product-strategist 분기.",
       "model": "opus",
       "tools": [
         "Read",
@@ -460,7 +460,7 @@
     {
       "id": "context-sync-lead",
       "name": "context-sync-lead",
-      "description": "프로젝트 맥락(CLAUDE.md/spec/PRD/회의록/rules) 동기화 단일 책임자.",
+      "description": "프로젝트 맥락(CLAUDE.md/spec/PRD/회의록/rules) 동기화 단일 책임자. /sync-docs, /sync-all, /context-sync, /harness-sync, /project-status-snapshot, doc-updater, gws drive를 hub-and-spoke 오케스트레이션. dry-run default + 사용자 승인 게이트 + 매 단계 structured result 검증. Use proactively when \"맥락 동기화\", \"팀 공유 문서 갱신\", \"GitHub + Drive에 올려\", \"프로젝트 메타 정합성\", \"산출물 동기화\" 등 2개+ 스킬 체이닝 또는 GDrive 통합 필요 시. 단일 스킬(/sync-docs만)이면 직접 호출.",
       "model": "opus",
       "tools": [
         "Read",
@@ -1531,7 +1531,7 @@
     {
       "id": "nda-generator",
       "name": "nda-generator",
-      "description": "NDA/계약서 초안 자동 생성 전문 에이전트. 비밀유지계약(NDA), 용역계약, 강의계약, 파트너십 계약의 초안을 자동 생성하고 조항별 맞춤화를 수행한다. Ken Adams MSCD 5판 언어 표준, Tina Stark 6 Building Blocks + 5대 비즈니스 이슈, WorldCC Contracting Principles, Siedel/Haapio Proactive Law를 적용한다.",
+      "description": "NDA/용역계약/강의계약(출강)/파트너십 계약 초안 자동 생성. Ken Adams MSCD 5판 + Tina Stark 6 Building Blocks + WorldCC + Proactive Law 적용. Use when \"NDA 만들어줘\", \"비밀유지계약\", \"용역계약 초안\", \"강의계약\", \"출강계약\", \"파트너십 계약\" 요청 시. 계약 검토/리스크 분석은 contract-legal, 분쟁/조정은 mediation-negotiator.",
       "model": "opus",
       "tools": [
         "Read",
@@ -2032,7 +2032,7 @@
     {
       "id": "research-pi",
       "name": "research-pi",
-      "description": "시장분석·기술동향·정책연구·비즈니스 리서치 체계적 수행. researcher + auto-experimenter 오케스트레이션. PRISMA·TAM/SAM/SOM·경쟁 매핑 프레임워크. Use proactively when \"시장 조사\", \"산업 분석\", \"동향 분석\", \"정책 연구\", \"비즈니스 리서치\" 요청 시. 단순 팩트체크는 researcher, 공식문서 교차검증은 super-research, AI 논문은 ai-researcher 사용.",
+      "description": "시장분석·기술동향·정책연구·비즈니스 리서치 체계적 수행. researcher + auto-experimenter 오케스트레이션. PRISMA·TAM/SAM/SOM·경쟁 매핑·Kitchenham SLR 프레임워크. Use proactively when \"시장 조사\", \"산업 분석\", \"동향 분석\", \"정책 연구\", \"비즈니스 리서치\", \"TAM/SAM/SOM 산정\" 요청 시. 단순 팩트체크는 researcher, 공식문서 교차검증은 super-research, AI 논문은 ai-researcher 분기.",
       "model": "opus",
       "tools": [
         "Read",
@@ -2235,7 +2235,7 @@
     {
       "id": "slides-web-builder",
       "name": "slides-web-builder",
-      "description": "웹 슬라이드(React + Tailwind + GSAP + Lucide) 단일 HTML 빌더. /slides-web 스킬의 메인 오케스트레이터. data.json + assets → templates/index.html.template 치환 → 1920×1080 16:9 letterbox + 9 layout 컴포넌트 + 10종 인터랙티브 액션. Chrome headless 검증까지 수행.",
+      "description": "웹 슬라이드(React + Tailwind + GSAP + Lucide) 단일 HTML 빌더. /slides-web 스킬 메인 오케스트레이터. data.json + assets → 1920×1080 16:9 letterbox + 9 layout + 10종 인터랙티브 액션 + Chrome headless 검증. Use proactively when \"웹 슬라이드 만들어\", \"react 슬라이드 생성\", \"강의 슬라이드덱 HTML로\", \"발표 슬라이드 빌드\" 요청 또는 /slides-web 진입 시. PPTX 빌드는 /lecture, 단일 랜딩은 /landing-build로 분기.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -2332,7 +2332,7 @@
     {
       "id": "super-research",
       "name": "super-research",
-      "description": "Tier 0-4 도메인 신뢰도 등급·출처 교차검증·할루시네이션 방지 내장 고신뢰도 리서치. yt-dlp 자막 추출, GitHub reactions 임계값 검증, 격리 작업 공간(git worktree 또는 /tmp 폴백) 자동 확보. Use proactively when 공신력·법규·제품 공식 사양·팩트체크·유튜브 영상 분석·정책·EU AI Act 등 정확성이 결정적인 조사 요청 시. 단순 웹 검색은 researcher, 시장분석은 research-pi 사용. 호출 시 isolation 파라미터 절대 명시 금지.",
+      "description": "Tier 0-4 도메인 신뢰도 등급 + 출처 교차검증 + 할루시네이션 방지 내장 고신뢰도 리서치. yt-dlp 자막 추출, GitHub reactions 임계값 검증, 격리 워크스페이스(git worktree/tmp 폴백) 자동 확보. Use proactively when 공신력·법규·제품 공식 사양·팩트체크·유튜브 영상 분석·정책·EU AI Act 등 정확성 결정적 조사 요청 시. 단순 웹 검색은 researcher, 시장분석은 research-pi. 호출 시 isolation 파라미터 절대 명시 금지.",
       "model": "opus",
       "tools": [
         "Read, Write, Edit, Bash, Grep, Glob, WebSearch, Agent, mcp__exa__web_search_exa, mcp__jina-reader__jina_reader, mcp__fetch__fetch, mcp__plugin_context7_context7__resolve-library-id, mcp__plugin_context7_context7__query-docs, mcp__plugin_playwright_playwright__browser_navigate, mcp__plugin_playwright_playwright__browser_snapshot, mcp__plugin_playwright_playwright__browser_wait_for, mcp__plugin_playwright_playwright__browser_evaluate, mcp__plugin_playwright_playwright__browser_close"

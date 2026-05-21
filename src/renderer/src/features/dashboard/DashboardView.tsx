@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useSystemDataContext } from '../../lib/DataProvider'
 import { HeroSection } from './HeroSection'
+import { LiveActivityPulse } from './LiveActivityPulse'
 import { SystemPulse } from './SystemPulse'
 import { StatCards } from './StatCards'
 import { SystemRadar } from './SystemRadar'
@@ -105,7 +106,10 @@ export default function DashboardView() {
         {/* 1. 히어로 섹션 (메가 카운트 + 도메인 칩) */}
         <HeroSection />
 
-        {/* 2. 시스템 펄스 (별자리 버블 차트 — 신규) */}
+        {/* 2. 라이브 활동 펄스 (현재 작동 중인 Claude Code 시각화 — 신규) */}
+        <LiveActivityPulse />
+
+        {/* 3. 시스템 펄스 (별자리 버블 차트) */}
         <SystemPulse />
 
         {/* 3. 통계 카드 6개 (3x2 그리드) */}
