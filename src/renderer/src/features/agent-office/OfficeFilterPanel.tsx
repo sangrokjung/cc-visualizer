@@ -3,6 +3,7 @@ import type { AgentNode, AgentCategory } from '../../lib/types'
 import { CATEGORY_COLORS } from '../../lib/types'
 import { DEPT_LABELS, MODEL_CONFIG, JARVIS } from './office-config'
 import type { AgentStatus } from './office-config'
+import TokenCostPanel from './TokenCostPanel'
 
 const ALL_CATEGORIES = Object.keys(CATEGORY_COLORS) as AgentCategory[]
 
@@ -70,6 +71,11 @@ export default memo(function OfficeFilterPanel({
       }}
       data-testid="office-filter-panel"
     >
+      {/* TOKEN/COST 메가 패널 — Claude Code stats 스타일 (사용자 요청 2026-05-21) */}
+      <div className="p-3 border-b" style={{ borderColor: JARVIS.border + '50' }}>
+        <TokenCostPanel />
+      </div>
+
       {/* 부서 필터 */}
       <div className="p-3 border-b" style={{ borderColor: JARVIS.border + '50' }}>
         <HudHeader label="DEPT FILTER" />

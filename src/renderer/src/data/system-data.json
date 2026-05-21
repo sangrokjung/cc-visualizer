@@ -1,5 +1,5 @@
 {
-  "scanTimestamp": "2026-05-21T07:14:00.169Z",
+  "scanTimestamp": "2026-05-21T07:17:05.371Z",
   "agents": [
     {
       "id": "a11y-reviewer",
@@ -2772,6 +2772,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "civil-dispute",
+      "name": "/civil-dispute — 민사 분쟁 해결 도우미",
+      "description": "민사 분쟁 해결 도우미 — 내용증명/소장/지급명령 초안, 손해배상 분석, 비용 계산",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "code-review",
       "name": "Code Review",
       "description": "방금 작성한 코드를 보안+품질 검사합니다.",
@@ -2842,6 +2849,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "contract-law-daily",
+      "name": "계약법 일일 리포트 (Contract Law Daily)",
+      "description": "계약법 일일 자동 수집 → 입법동향/판례/계약기한 분석 → QJC 맞춤 리포트 생성 전자동 파이프라인",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "contract-review",
       "name": "/contract-review — 계약서 검토 및 리스크 분석",
       "description": "계약서 검토 및 리스크 분석. 계약서 파일을 입력하면 불리한 조항, 누락 조항, 법적 리스크를 분석한다.",
@@ -2895,6 +2909,13 @@
       "name": "dependency-upgrade",
       "description": "Manage major dependency version upgrades with compatibility analysis, staged rollout, and comprehensive testing. Use when upgrading framework versions, updating major dependencies, or managing breaking changes in libraries.",
       "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "detail-page",
+      "name": "/detail-page — 상세페이지 자동 생성",
+      "description": "상품/강의 이미지 1장으로 상세페이지 10~15장 자동 생성 (gpt-image-2, 13개 언어, 비율 자동 매핑)",
+      "type": "skill-file",
       "hasSubcommands": false
     },
     {
@@ -3038,6 +3059,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "hometax-sync",
+      "name": "hometax-sync",
+      "description": "홈택스 발급 알림 이메일(from hometaxadmin@hometax.go.kr) 자동 감지 + 보안메일 복호화(사업자번호 자동 입력) + 라인 아이템 분해 + 재무폴더/고객폴더 PDF·HTML 저장 + revenue-processor 위임으로 Supabase/Notion 3종 원장 동시 기록.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "incremental-implementation",
       "name": "/incremental-implementation - 점진적 구현",
       "description": "한 번에 한 가지만 변경. 원자적 커밋과 ~5파일/태스크 원칙으로 점진적 구현. Use when implementing features incrementally.",
@@ -3062,6 +3090,13 @@
       "id": "karpathy-check",
       "name": "karpathy-check",
       "description": "최근 코드 변경을 Karpathy 4원칙 기준으로 감사. 과잉 엔지니어링, 불필요한 변경, 모호한 가정을 탐지. 트리거: \"카파시 체크\", \"코드 과잉 점검\", \"simplicity check\", \"수술적 변경 점검\", \"karpathy check\"",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "labor-consultant",
+      "name": "노무/고용법 전문 자문",
+      "description": "노무/고용법 전문 자문 — 법령 모니터링, 컴플라이언스 진단, 근로계약/해고/산재/근로자성 자문",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -3133,6 +3168,13 @@
       "name": "market-sizing-analysis",
       "description": "This skill should be used when the user asks to \"calculate TAM\", \"determine SAM\", \"estimate SOM\", \"size the market\", \"calculate market opportunity\", \"what's the total addressable market\", or requests market sizing analysis for a startup or business opportunity.",
       "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "marketing-content",
+      "name": "marketing-content",
+      "description": "통합 마케팅 콘텐츠 팀 호출. 한 주제로 블로그+카드뉴스+릴스+리서치를 동시 제작.",
+      "type": "skill-file",
       "hasSubcommands": false
     },
     {
@@ -3363,6 +3405,20 @@
       "id": "project-status-snapshot",
       "name": "/project-status-snapshot — 프로젝트 상태 자동 삽입",
       "description": "프로젝트 상태 스냅샷을 README auto-status 블록에 삽입 (os_projects + os_tasks + os_prds Supabase 조회)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "project-update",
+      "name": "/project-update — 프로젝트 진행 업데이트 (3대 원툴)",
+      "description": "프로젝트 진행 업데이트 — os_project_updates INSERT + notifyTeam + 조건부 advance-stage",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "project-upload",
+      "name": "/project-upload — `/project-launch`로 통합됨",
+      "description": "[DEPRECATED] /project-launch로 통합됨. 자동 위임.",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -3731,6 +3787,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "wiki-lint",
+      "name": "/wiki-lint - 위키 위생 점검 (Phase 1)",
+      "description": "rules/ 위키 위생 점검 — 스테일·고아·토픽후보 자동 감지. Karpathy LLM Wiki 채택 Phase 1. 자동 수정 없음, 사용자 검토 후 수동 정리.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "worktree-cleanup",
       "name": "워크트리 제거",
       "description": "PR 완료 후 Git Worktree 정리 (v6)",
@@ -3770,6 +3833,13 @@
       "name": "zdog",
       "description": "Zdog pseudo-3D 엔진 가이드 - 도형, 애니메이션, 인터랙션, Remotion 연동",
       "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "팀-업데이트",
+      "name": "/팀-업데이트 — 팀 상태 브로드캐스트",
+      "description": "팀 상태/마일스톤/결정사항을 대시보드 + Discord로 브로드캐스트",
+      "type": "skill-file",
       "hasSubcommands": false
     }
   ],
@@ -6079,7 +6149,7 @@
   },
   "stats": {
     "agentCount": 201,
-    "skillCount": 166,
+    "skillCount": 176,
     "hookCount": 97,
     "ruleCount": 68,
     "pipelineCount": 18,
