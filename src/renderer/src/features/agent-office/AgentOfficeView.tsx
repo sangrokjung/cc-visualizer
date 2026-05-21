@@ -96,8 +96,8 @@ export default function AgentOfficeView() {
       {/* KPI 스트립 */}
       <OfficeKpiStrip statuses={statuses} pipelineCount={pipelines.length} toolCount={uniqueToolCount} demoMode={demoMode} />
 
-      {/* 3컬럼 레이아웃 — 패널 폭 확대로 가독성 개선 */}
-      <div className="flex-1 grid grid-cols-[240px_1fr_320px] overflow-hidden">
+      {/* 3컬럼 레이아웃 — 좌측 패널 폭 280px (TOKEN ECONOMY 깔끔 렌더) */}
+      <div className="flex-1 grid grid-cols-[280px_1fr_320px] overflow-hidden">
         <OfficeFilterPanel
           agents={agents}
           activeCategories={activeCategories}

@@ -16,8 +16,9 @@ const RECENT_THRESHOLD_MS = 5 * 60_000
 const TICK_INTERVAL_MS = 5_000
 
 // DEMO MODE: 세션 이벤트 0건일 때 Math.random 기반 fallback
-const DEMO_MIN_DELAY_MS = 8_000
-const DEMO_MAX_DELAY_MS = 15_000
+// 실시간 활성화 강화 (2026-05-21) — 갱신 주기 단축 4-9초로 시각적 활기 증대
+const DEMO_MIN_DELAY_MS = 4_000
+const DEMO_MAX_DELAY_MS = 9_000
 
 interface UseAgentStatusesResult {
   statuses: Map<string, AgentStatus>

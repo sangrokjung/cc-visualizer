@@ -1,5 +1,6 @@
-import { useMemo, memo, useEffect, useState } from 'react'
+import { useMemo, memo, useEffect, useState, useRef } from 'react'
 import { useCountUp } from '../../lib/hooks/use-count-up'
+import { useSessionEventsContext } from '../../lib/SessionEventsProvider'
 import type { AgentStatus } from './office-config'
 import { JARVIS } from './office-config'
 
@@ -106,6 +107,66 @@ function ActivityMeter({ active, total }: { active: number; total: number }) {
   )
 }
 
+// 라이브 이벤트 티커 — 최근 이벤트 1개를 흘러가는 텍스트로 표시
+// 리소스 안전: 이벤트 push 기반 (polling 0회), 변화 시에만 리렌더
+function LiveTicker() {
+  const { events } = useSessionEventsContext()
+  // 최근 이벤트의 type + tool/agent 추출
+  const latest = events[0]
+  const prevIdRef = useRef<string | null>(null)
+  const [flashKey, setFlashKey] = useState(0)
+
+  useEffect(() => {
+    if (latest && latest.id !== prevIdRef.current) {
+      prevIdRef.current = latest.id
+      setFlashKey((k) => k + 1)
+    }
+  }, [latest])
+
+  if (!latest) {
+    return (
+      <span
+        className="text-[10px] uppercase tracking-widest font-mono"
+        style={{ color: JARVIS.textDim }}
+      >
+        ⌛ AWAITING TELEMETRY
+      </span>
+    )
+  }
+
+  const label =
+    latest.data.toolName ??
+    latest.data.hookName ??
+    latest.data.agentName ??
+    latest.type
+  const eventColor =
+    latest.type === 'tool_use' ? JARVIS.gold :
+    latest.type === 'agent_spawn' ? JARVIS.emerald :
+    latest.type === 'user' ? JARVIS.primary :
+    latest.type === 'assistant' ? JARVIS.primary :
+    JARVIS.textDim
+
+  return (
+    <span
+      key={flashKey}
+      className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-mono animate-jarvis-fade-in"
+      style={{ color: JARVIS.text }}
+    >
+      <span
+        className="inline-block w-1.5 h-1.5 rounded-full"
+        style={{ backgroundColor: eventColor, boxShadow: `0 0 4px ${eventColor}` }}
+      />
+      <span className="font-bold" style={{ color: eventColor }}>
+        {latest.type}
+      </span>
+      <span style={{ color: JARVIS.textDim }}>·</span>
+      <span className="truncate" style={{ maxWidth: 240 }}>
+        {label}
+      </span>
+    </span>
+  )
+}
+
 // JARVIS 시스템 상태 라인 — 더 크고 강조
 function SystemStatusLine({ demoMode }: { demoMode: boolean }) {
   const [now, setNow] = useState(() => new Date())
@@ -200,6 +261,13 @@ export default memo(function OfficeKpiStrip({
 
       <div className="relative">
         <SystemStatusLine demoMode={demoMode} />
+      </div>
+
+      <span className="text-base mx-1" style={{ color: JARVIS.borderActive, opacity: 0.6 }}>│</span>
+
+      {/* 라이브 이벤트 티커 — 실시간 활성화 시각 강화 */}
+      <div className="relative flex-1 min-w-0 max-w-md">
+        <LiveTicker />
       </div>
 
       <span className="text-base mx-1" style={{ color: JARVIS.borderActive, opacity: 0.6 }}>│</span>

@@ -8,6 +8,19 @@ vi.mock('../../src/renderer/src/lib/hooks/use-count-up', () => ({
   useCountUp: (target: number) => target,
 }))
 
+// LiveTicker가 useSessionEventsContext를 사용 — 빈 events mock
+vi.mock('../../src/renderer/src/lib/SessionEventsProvider', () => ({
+  useSessionEventsContext: () => ({
+    events: [],
+    sessionId: null,
+    clearEvents: () => {},
+    activeAgents: [],
+    stats: { user: 0, assistant: 0, tool_use: 0, hook: 0, agent_spawn: 0, agent_progress: 0, system: 0 },
+    recentTools: [],
+    agentActivityMap: new Map(),
+  }),
+}))
+
 function makeStatuses(counts: Record<AgentStatus, number>): Map<string, AgentStatus> {
   const map = new Map<string, AgentStatus>()
   let i = 0
