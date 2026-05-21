@@ -139,6 +139,20 @@ fn find_latest_jsonl(last_scan: &mut u64) -> Option<PathBuf> {
     latest_file
 }
 
+/// UTF-8 safe truncation — multi-byte 문자(한글 등) 중간 절단 panic 방어.
+/// byte length max_bytes 이하 + char boundary에 맞춰 자릅니다.
+fn truncate_utf8_safe(s: &str, max_bytes: usize) -> String {
+    if s.len() <= max_bytes {
+        return s.to_string();
+    }
+    // max_bytes 이하의 가장 큰 char boundary 찾기
+    let mut idx = max_bytes;
+    while idx > 0 && !s.is_char_boundary(idx) {
+        idx -= 1;
+    }
+    s[..idx].to_string()
+}
+
 fn extract_tool_uses(data: &serde_json::Value) -> Vec<(String, Option<String>)> {
     let mut results = Vec::new();
     let message = data.get("message").unwrap_or(data);
@@ -146,12 +160,7 @@ fn extract_tool_uses(data: &serde_json::Value) -> Vec<(String, Option<String>)> 
         for block in content {
             if block.get("type").and_then(|t| t.as_str()) == Some("tool_use") {
                 if let Some(name) = block.get("name").and_then(|n| n.as_str()) {
-                    let input = block
-                        .get("input")
-                        .map(|i| {
-                            let s = i.to_string();
-                            if s.len() > 100 { s[..100].to_string() } else { s }
-                        });
+                    let input = block.get("input").map(|i| truncate_utf8_safe(&i.to_string(), 100));
                     results.push((name.to_string(), input));
                 }
             }
@@ -238,10 +247,8 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
                             let input_chars = input
                                 .map(|i| i.to_string().chars().count() as u32)
                                 .unwrap_or(0);
-                            let tool_input = input.map(|i| {
-                                let s = i.to_string();
-                                if s.len() > 100 { s[..100].to_string() } else { s }
-                            });
+                            // UTF-8 안전 truncate — 100 bytes 근처에서 char boundary 찾기
+                            let tool_input = input.map(|i| truncate_utf8_safe(&i.to_string(), 100));
 
                             events.push(SessionEvent {
                                 id: format!("{}-tool-{}", id, i),
@@ -395,6 +402,26 @@ mod tests {
         let line = r#"{"type":"attachment","data":"..."}"#;
         let events = parse_line(line);
         assert_eq!(events.len(), 0, "attachment 같은 알 수 없는 타입은 emit 안 함");
+    }
+
+    #[test]
+    fn truncate_utf8_safe_does_not_panic_on_multibyte() {
+        // 한글 한 글자 = 3 bytes. 33자 × 3 = 99 bytes, +1 → 100 byte index가 char 중간
+        let korean = "가".repeat(34); // 34 chars × 3 bytes = 102 bytes
+        let result = truncate_utf8_safe(&korean, 100);
+        // panic 없이 동작 + 결과는 100 bytes 이하 + 유효한 UTF-8
+        assert!(result.len() <= 100);
+        assert!(result.is_char_boundary(result.len()));
+    }
+
+    #[test]
+    fn tool_use_with_korean_input_does_not_panic() {
+        // 실제 사고 케이스: AskUserQuestion 한글 input이 100 byte 경계에서 잘려 panic
+        let line = r#"{"type":"assistant","uuid":"a3","timestamp":"2026-05-21T10:00:00Z","message":{"role":"assistant","content":[{"type":"tool_use","id":"t2","name":"AskUserQuestion","input":{"questions":[{"header":"동기화 방향","multiSelect":false,"options":[{"description":"지금 PC를 정답으로 사용해서 반영"}]}]}}]}}"#;
+        let events = parse_line(line);
+        // panic 없이 동작해야 함
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].r#type, "tool_use");
     }
 
     #[test]
