@@ -35,14 +35,14 @@ describe('OfficeKpiStrip', () => {
       />
     )
 
-    // KPI 값 확인 (useCountUp mock이 즉시 target 반환)
+    // JARVIS HUD — 카운트는 3자리 padStart('003')
     expect(screen.getByTestId('office-kpi-strip')).toBeTruthy()
-    expect(screen.getByText('3')).toBeTruthy()
-    expect(screen.getByText('2')).toBeTruthy()
-    expect(screen.getByText('4')).toBeTruthy()
-    expect(screen.getByText('1')).toBeTruthy()
-    expect(screen.getByText('18')).toBeTruthy()
-    expect(screen.getByText('42')).toBeTruthy()
+    expect(screen.getByText('003')).toBeTruthy() // working
+    expect(screen.getByText('002')).toBeTruthy() // recent
+    expect(screen.getByText('004')).toBeTruthy() // idle
+    expect(screen.getByText('001')).toBeTruthy() // offline
+    expect(screen.getByText('018')).toBeTruthy() // pipelines
+    expect(screen.getByText('042')).toBeTruthy() // tools
   })
 
   it('에이전트 0명이면 모든 카운트 0', () => {
@@ -57,8 +57,8 @@ describe('OfficeKpiStrip', () => {
       />
     )
 
-    // 모든 KPI가 0
-    const zeros = screen.getAllByText('0')
+    // 모든 KPI가 000 (3자리 padStart)
+    const zeros = screen.getAllByText('000')
     expect(zeros.length).toBeGreaterThanOrEqual(6)
   })
 
@@ -74,8 +74,8 @@ describe('OfficeKpiStrip', () => {
       />
     )
 
+    // JARVIS HUD 텍스트는 "◢ DEMO ◣"
     expect(screen.getByTestId('demo-mode-badge')).toBeTruthy()
-    expect(screen.getByText('DEMO MODE')).toBeTruthy()
   })
 
   it('DEMO MODE가 false면 뱃지 미표시', () => {

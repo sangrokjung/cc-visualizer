@@ -102,6 +102,56 @@ body {
 .animate-bubble { animation: bubble-pop 0.25s ease-out forwards; }
 .animate-led { animation: led-blink 2s ease-in-out infinite; }
 
+/* ── JARVIS HUD 애니메이션 ── */
+@keyframes jarvis-spin-cw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes jarvis-spin-ccw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+@keyframes jarvis-pulse {
+  0% { r: 6; opacity: 1; }
+  100% { r: 18; opacity: 0; }
+}
+@keyframes jarvis-pulse-fill {
+  0%, 100% { r: 3; opacity: 1; }
+  50% { r: 4; opacity: 0.7; }
+}
+@keyframes jarvis-breath {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+@keyframes jarvis-scan {
+  0% { transform: translateY(-100%); opacity: 0; }
+  20%, 80% { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+@keyframes jarvis-grid-flow {
+  0% { background-position: 0 0; }
+  100% { background-position: 24px 24px; }
+}
+@keyframes jarvis-boot-flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 0.7; }
+  94% { opacity: 1; }
+  96% { opacity: 0.8; }
+}
+
+.animate-jarvis-scan { animation: jarvis-scan 4s linear infinite; }
+.animate-jarvis-grid { animation: jarvis-grid-flow 18s linear infinite; }
+.animate-jarvis-boot { animation: jarvis-boot-flicker 6s ease-in-out infinite; }
+
+/* reduced motion 준수 */
+@media (prefers-reduced-motion: reduce) {
+  .animate-jarvis-scan,
+  .animate-jarvis-grid,
+  .animate-jarvis-boot {
+    animation: none;
+  }
+}
+
 /* 픽셀아트 전역 설정 */
 .pixel-art { image-rendering: pixelated; }
 .pixel-font { font-family: 'Courier New', monospace; }

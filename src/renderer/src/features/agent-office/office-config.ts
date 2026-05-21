@@ -1,6 +1,6 @@
 import type { AgentCategory } from '../../lib/types'
 
-// ── 픽셀아트 팔레트 ──
+// ── 픽셀아트 팔레트 ── (legacy, 일부 호환용)
 export const PIXEL_PALETTE = {
   wall: '#2a2a3a',
   wallHighlight: '#3a3a4e',
@@ -15,6 +15,24 @@ export const PIXEL_PALETTE = {
   monitor: '#1a2a1a',
   monitorScreen: '#2a4a3a',
   chair: '#2a2a3a',
+}
+
+// ── 자비스(JARVIS) HUD 팔레트 ──
+// 토니 스타크 AI 비서 시각 언어 — 청록 시그니처 + 위험 시 주황
+export const JARVIS = {
+  primary: '#00d4ff',      // 메인 청록 (작동 중 코어)
+  primaryDim: '#0099cc',   // 어두운 청록 (idle)
+  accent: '#ff8c00',       // 주황 액센트 (경고/위험)
+  gold: '#ffb84d',         // 골드 (opus 부장)
+  emerald: '#10e88c',      // 에메랄드 (작업 활성)
+  scarlet: '#ff3860',      // 적색 (offline)
+  bg: '#020817',           // 거의 검정 배경
+  bgPanel: '#0a1628',      // 패널 배경
+  bgGrid: '#0e1a30',       // 그리드 라인
+  text: '#e0f0ff',         // 메인 텍스트
+  textDim: '#5a7ba8',      // 보조 텍스트
+  border: '#1c3458',       // 일반 보더
+  borderActive: '#00d4ff', // 활성 보더 (글로우 적용)
 }
 
 // 벽 두께

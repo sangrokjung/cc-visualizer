@@ -15,6 +15,7 @@ import { CATEGORY_COLORS } from '../../lib/types'
 import { useSystemData } from '../../lib/use-system-data'
 import { useSessionEventsContext } from '../../lib/SessionEventsProvider'
 import { useAgentStatuses } from './use-agent-status'
+import { JARVIS } from './office-config'
 import { useOfficeLayout } from './use-office-layout'
 import { useAgentNodeData } from './use-agent-node-data'
 import { usePipelineEdges } from './use-pipeline-edges'
@@ -126,7 +127,17 @@ export default function AgentOfficeView() {
               }}
               maskColor="rgba(17,20,24,0.8)"
               style={{ backgroundColor: '#1C2127', borderColor: '#404854' }} />
-            <Background variant={BackgroundVariant.Cross} color="#1a1e28" gap={16} size={1} style={{ backgroundColor: '#0d0f14' }} />
+            <Background variant={BackgroundVariant.Dots} color={JARVIS.borderActive} gap={28} size={1.2} style={{ backgroundColor: JARVIS.bg, opacity: 0.6 }} />
+            {/* JARVIS 스캔 라인 오버레이 */}
+            <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: 1 }}>
+              <div
+                className="absolute left-0 right-0 h-px animate-jarvis-scan"
+                style={{
+                  background: `linear-gradient(90deg, transparent 0%, ${JARVIS.primary}aa 50%, transparent 100%)`,
+                  boxShadow: `0 0 8px ${JARVIS.primary}`,
+                }}
+              />
+            </div>
           </ReactFlow>
         </div>
 
