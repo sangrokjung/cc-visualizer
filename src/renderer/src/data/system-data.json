@@ -1,5 +1,5 @@
 {
-  "scanTimestamp": "2026-05-21T07:17:05.371Z",
+  "scanTimestamp": "2026-05-21T07:26:36.207Z",
   "agents": [
     {
       "id": "a11y-reviewer",
@@ -5969,12 +5969,13 @@
   "memory": {
     "autoMemory": {
       "path": "/Users/sangrok/.claude/projects/-Users-sangrok/memory",
-      "fileCount": 29,
+      "fileCount": 30,
       "files": [
         "MEMORY.md",
         "experiences.jsonl",
         "feedback_auto_classifier_self_modify_block.md",
         "feedback_cc_auth_setup.md",
+        "feedback_harness_resync_20260521.md",
         "feedback_hook_output.md",
         "feedback_image_immediate_execution.md",
         "feedback_image_single_default_policy.md",

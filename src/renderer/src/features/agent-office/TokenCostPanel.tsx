@@ -1,12 +1,14 @@
 import { memo } from 'react'
 import { useTokenFlow } from '../../lib/hooks/use-token-flow'
+import { useGlobalTokenStats } from '../../lib/hooks/use-global-token-stats'
 import { useCountUp } from '../../lib/hooks/use-count-up'
 import { JARVIS } from './office-config'
 
 // Claude Code stats처럼 토큰/비용을 HUD 패널로 표시
-// agor(1210★) per-prompt accounting + Claude Code /cost 스타일
+// 현재 세션 + 오늘/어제/주간 글로벌 stats (ccusage 위임)
 
 function formatTokens(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return String(n)
@@ -16,10 +18,11 @@ function formatUsd(n: number): string {
   if (n < 0.001) return '$0.00'
   if (n < 1) return `$${n.toFixed(3)}`
   if (n < 100) return `$${n.toFixed(2)}`
-  return `$${n.toFixed(0)}`
+  if (n < 10_000) return `$${n.toFixed(0)}`
+  return `$${(n / 1000).toFixed(1)}K`
 }
 
-// 미니 SVG sparkline — 최근 20개 토큰 흐름 (Input 파랑 / Output 보라)
+// 미니 SVG sparkline — 현재 세션 토큰 흐름
 const TokenSparkline = memo(function TokenSparkline({
   samples,
   maxTokens,
@@ -30,10 +33,10 @@ const TokenSparkline = memo(function TokenSparkline({
   if (samples.length === 0) {
     return (
       <div
-        className="flex items-center justify-center h-10 rounded text-[10px] uppercase tracking-widest font-mono"
+        className="flex items-center justify-center h-8 text-[10px] uppercase tracking-widest font-mono"
         style={{ color: JARVIS.textDim, backgroundColor: `${JARVIS.bg}80` }}
       >
-        ⌛ AWAITING DATA
+        ⌛ NO SESSION DATA
       </div>
     )
   }
@@ -42,7 +45,7 @@ const TokenSparkline = memo(function TokenSparkline({
   const max = maxTokens > 0 ? maxTokens : 1
 
   return (
-    <svg viewBox="0 0 100 40" className="w-full h-10" preserveAspectRatio="none">
+    <svg viewBox="0 0 100 32" className="w-full h-8" preserveAspectRatio="none">
       {samples.map((s, i) => {
         const heightPct = (s.tokens / max) * 100
         const color = s.isInput ? JARVIS.primary : JARVIS.gold
@@ -50,34 +53,101 @@ const TokenSparkline = memo(function TokenSparkline({
           <rect
             key={i}
             x={i * barWidth + 0.4}
-            y={40 - (heightPct * 40) / 100}
+            y={32 - (heightPct * 32) / 100}
             width={barWidth - 0.8}
-            height={(heightPct * 40) / 100}
+            height={(heightPct * 32) / 100}
             fill={color}
             opacity={0.85}
           />
         )
       })}
-      {/* baseline */}
-      <line x1="0" y1="40" x2="100" y2="40" stroke={JARVIS.border} strokeWidth="0.3" />
     </svg>
   )
 })
 
-// 토큰 통계 — Claude Code stats처럼 input/output/cost 분해
-export default memo(function TokenCostPanel() {
-  const { totalInputTokens, totalOutputTokens, totalCostUsd, recentSamples, maxTokens, samples } =
-    useTokenFlow()
-  const totalTokens = totalInputTokens + totalOutputTokens
-  // 메가 카운트는 1000배 곱해서 정수로 — useCountUp이 정수만 받으니까 ($1.234 → 1234)
-  const animatedCostMilli = useCountUp(Math.round(totalCostUsd * 1000), 1200)
+// 비교 뱃지 — 어제 대비 +N% / -N%
+function DeltaBadge({ pct }: { pct: number | null }) {
+  if (pct === null) return null
+  const isUp = pct >= 0
+  const color = isUp ? JARVIS.accent : JARVIS.emerald
+  const arrow = isUp ? '▲' : '▼'
+  return (
+    <span
+      className="inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums px-1.5 py-0.5"
+      style={{
+        color,
+        border: `1px solid ${color}80`,
+        backgroundColor: `${color}15`,
+      }}
+    >
+      <span>{arrow}</span>
+      <span>{Math.abs(pct).toFixed(0)}%</span>
+    </span>
+  )
+}
+
+// 일자별 stats 미니 행
+function StatsRow({
+  label,
+  cost,
+  tokens,
+  color,
+  delta,
+  large,
+}: {
+  label: string
+  cost: number
+  tokens: number
+  color: string
+  delta?: number | null
+  large?: boolean
+}) {
+  const animatedCostMilli = useCountUp(Math.round(cost * 1000), 800)
   const animatedCost = animatedCostMilli / 1000
-  const animatedTotalTokens = useCountUp(Math.round(totalTokens / 100), 1000) * 100
+  return (
+    <div
+      className="flex items-center justify-between px-2 py-1.5"
+      style={{
+        backgroundColor: `${color}10`,
+        border: `1px solid ${color}40`,
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className="text-[10px] uppercase tracking-widest font-bold"
+          style={{ color: JARVIS.textDim, minWidth: 48 }}
+        >
+          {label}
+        </span>
+        {delta !== undefined && <DeltaBadge pct={delta ?? null} />}
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <span
+          className={`tabular-nums font-bold ${large ? 'text-lg' : 'text-sm'} leading-none`}
+          style={{ color, textShadow: large ? `0 0 6px ${color}60` : undefined }}
+        >
+          {formatUsd(animatedCost)}
+        </span>
+        <span className="text-[9px] tabular-nums" style={{ color: JARVIS.textDim }}>
+          {formatTokens(tokens)}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// 토큰 통계 — 현재 세션 + 오늘/어제/주간
+export default memo(function TokenCostPanel() {
+  // 현재 세션 (session_watcher 기반)
+  const { totalCostUsd, recentSamples, maxTokens, samples } = useTokenFlow()
+  // 글로벌 일자별 (ccusage 위임)
+  const { today, yesterday, weekly, allTime, todayVsYesterday, loading } = useGlobalTokenStats()
+
   const sessionEvents = samples.length
 
   return (
     <div
-      className="relative p-4 font-mono"
+      className="relative p-3 font-mono"
       style={{
         backgroundColor: `${JARVIS.bg}80`,
         border: `1px solid ${JARVIS.borderActive}50`,
@@ -93,107 +163,83 @@ export default memo(function TokenCostPanel() {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-3">
         <h3
-          className="text-[11px] font-bold uppercase tracking-[0.3em]"
+          className="text-[11px] font-bold uppercase tracking-[0.25em]"
           style={{ color: JARVIS.primary, textShadow: `0 0 6px ${JARVIS.primary}60` }}
         >
-          ▸ TOKEN FLOW · SONNET 4
+          ▸ TOKEN ECONOMY
         </h3>
-        <span
-          className="text-[10px] uppercase tracking-widest px-1.5 py-0.5"
-          style={{
-            color: JARVIS.gold,
-            border: `1px solid ${JARVIS.gold}50`,
-            backgroundColor: `${JARVIS.gold}10`,
-          }}
-        >
-          {sessionEvents.toString().padStart(3, '0')} EVT
-        </span>
+        {loading ? (
+          <span className="text-[9px] uppercase tracking-widest animate-pulse" style={{ color: JARVIS.primary }}>
+            ◌ SYNC...
+          </span>
+        ) : (
+          <span className="text-[9px] uppercase tracking-widest" style={{ color: JARVIS.emerald }}>
+            ● LIVE
+          </span>
+        )}
       </div>
 
-      {/* 메가 비용 카운터 */}
-      <div className="flex items-baseline gap-2 mb-1">
-        <span
-          className="text-3xl font-bold tabular-nums leading-none"
-          style={{
-            color: JARVIS.emerald,
-            textShadow: `0 0 10px ${JARVIS.emerald}60`,
-          }}
-        >
-          {formatUsd(animatedCost)}
-        </span>
-        <span className="text-[10px] uppercase tracking-widest" style={{ color: JARVIS.textDim }}>
-          USD · est
-        </span>
+      {/* 오늘 — 메가 카운트 */}
+      <StatsRow
+        label="TODAY"
+        cost={today?.cost ?? 0}
+        tokens={today?.tokens ?? 0}
+        color={JARVIS.emerald}
+        delta={todayVsYesterday}
+        large
+      />
+
+      <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+        <StatsRow
+          label="YDAY"
+          cost={yesterday?.cost ?? 0}
+          tokens={yesterday?.tokens ?? 0}
+          color={JARVIS.primaryDim}
+        />
+        <StatsRow
+          label="7D"
+          cost={weekly.cost}
+          tokens={weekly.tokens}
+          color={JARVIS.gold}
+        />
       </div>
 
-      {/* 총 토큰 */}
-      <div className="flex items-baseline gap-2 mb-3">
-        <span className="text-base font-bold tabular-nums" style={{ color: JARVIS.text }}>
-          {formatTokens(animatedTotalTokens)}
-        </span>
-        <span className="text-[9px] uppercase tracking-widest" style={{ color: JARVIS.textDim }}>
-          total tokens
-        </span>
+      {/* 전체 — 작게 */}
+      <div className="mt-1.5">
+        <StatsRow
+          label="ALL"
+          cost={allTime.cost}
+          tokens={allTime.tokens}
+          color={JARVIS.accent}
+        />
       </div>
 
-      {/* Sparkline */}
-      <TokenSparkline samples={recentSamples} maxTokens={maxTokens} />
-
-      {/* Input/Output 분해 */}
-      <div className="grid grid-cols-2 gap-2 mt-3">
-        <div
-          className="px-2 py-1.5"
-          style={{
-            backgroundColor: `${JARVIS.primary}10`,
-            border: `1px solid ${JARVIS.primary}40`,
-          }}
-        >
-          <div className="flex items-center gap-1">
-            <span style={{ color: JARVIS.primary }} className="text-xs">↓</span>
+      {/* 현재 세션 — 구분선 + sparkline */}
+      <div className="mt-3 pt-2" style={{ borderTop: `1px solid ${JARVIS.border}` }}>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: JARVIS.primary }}>
+            ▸ SESSION
+          </span>
+          <div className="flex items-center gap-1.5">
             <span className="text-[9px] uppercase tracking-widest" style={{ color: JARVIS.textDim }}>
-              IN
+              EVT
             </span>
-          </div>
-          <div className="flex items-baseline justify-between mt-0.5">
-            <span className="text-sm font-bold tabular-nums" style={{ color: JARVIS.text }}>
-              {formatTokens(totalInputTokens)}
+            <span
+              className="text-[10px] font-bold tabular-nums"
+              style={{ color: sessionEvents > 0 ? JARVIS.emerald : JARVIS.textDim }}
+            >
+              {sessionEvents.toString().padStart(3, '0')}
             </span>
-            <span className="text-[9px] tabular-nums" style={{ color: JARVIS.textDim }}>
-              {formatUsd((totalInputTokens / 1_000_000) * 3.0)}
+            <span className="text-[10px]" style={{ color: JARVIS.textDim }}>·</span>
+            <span
+              className="text-[11px] font-bold tabular-nums"
+              style={{ color: JARVIS.emerald, textShadow: `0 0 4px ${JARVIS.emerald}40` }}
+            >
+              {formatUsd(totalCostUsd)}
             </span>
           </div>
         </div>
-        <div
-          className="px-2 py-1.5"
-          style={{
-            backgroundColor: `${JARVIS.gold}10`,
-            border: `1px solid ${JARVIS.gold}40`,
-          }}
-        >
-          <div className="flex items-center gap-1">
-            <span style={{ color: JARVIS.gold }} className="text-xs">↑</span>
-            <span className="text-[9px] uppercase tracking-widest" style={{ color: JARVIS.textDim }}>
-              OUT
-            </span>
-          </div>
-          <div className="flex items-baseline justify-between mt-0.5">
-            <span className="text-sm font-bold tabular-nums" style={{ color: JARVIS.text }}>
-              {formatTokens(totalOutputTokens)}
-            </span>
-            <span className="text-[9px] tabular-nums" style={{ color: JARVIS.textDim }}>
-              {formatUsd((totalOutputTokens / 1_000_000) * 15.0)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 단가 정보 (Claude Code stats 느낌) */}
-      <div
-        className="mt-3 pt-2 text-[9px] flex items-center justify-between uppercase tracking-widest"
-        style={{ borderTop: `1px solid ${JARVIS.border}`, color: JARVIS.textDim }}
-      >
-        <span>$3/M in · $15/M out</span>
-        <span style={{ color: JARVIS.primary }}>● LIVE</span>
+        <TokenSparkline samples={recentSamples} maxTokens={maxTokens} />
       </div>
     </div>
   )

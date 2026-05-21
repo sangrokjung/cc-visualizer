@@ -2,7 +2,7 @@ mod commands;
 mod file_watcher;
 mod session_watcher;
 
-use commands::{backfill_session, get_system_paths, list_dir, load_external_systems, load_system_data, load_usage_data, read_file, rescan_system, rescan_usage};
+use commands::{backfill_session, fetch_ccusage_daily, get_system_paths, list_dir, load_external_systems, load_system_data, load_usage_data, read_file, rescan_system, rescan_usage};
 use file_watcher::start_file_watcher;
 use session_watcher::start_session_watcher;
 
@@ -20,6 +20,7 @@ pub fn run() {
             load_usage_data,
             load_external_systems,
             backfill_session,
+            fetch_ccusage_daily,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

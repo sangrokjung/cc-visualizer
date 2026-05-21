@@ -109,6 +109,25 @@ pub fn backfill_session(app: tauri::AppHandle) -> Result<usize, String> {
     crate::session_watcher::backfill_latest_session(&app)
 }
 
+/// ccusage CLI를 호출하여 Claude Code 일자별 토큰/비용 통계 조회.
+/// 26K+ JSONL 파일 직접 스캔 대신 검증된 도구(npx ccusage) 위임 → 정확성 + 캐싱.
+/// 결과: { daily: [{period, totalTokens, totalCost, inputTokens, outputTokens, modelsUsed}, ...] }
+#[tauri::command]
+pub async fn fetch_ccusage_daily() -> Result<serde_json::Value, String> {
+    let output = Command::new("npx")
+        .args(["ccusage", "daily", "--json"])
+        .output()
+        .map_err(|e| format!("npx ccusage 실행 실패: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ccusage 종료 코드 ≠ 0: {}", stderr));
+    }
+
+    let stdout = String::from_utf8(output.stdout).map_err(|e| e.to_string())?;
+    serde_json::from_str(&stdout).map_err(|e| format!("ccusage JSON 파싱 실패: {}", e))
+}
+
 #[tauri::command]
 pub async fn rescan_usage() -> Result<serde_json::Value, String> {
     let project_dir = home_dir().join("projects/cc-visualizer");

@@ -45,6 +45,15 @@ export const api = {
     }
   },
 
+  // ccusage 일자별 통계 — Claude Code stats 데이터
+  fetchCcusageDaily: async (): Promise<unknown> => {
+    try {
+      return await invoke<unknown>('fetch_ccusage_daily')
+    } catch (error) {
+      return { error: String(error), daily: [] }
+    }
+  },
+
   rescanUsage: async (): Promise<{ ok: boolean; data?: unknown; error?: string }> => {
     try {
       const data = await invoke<unknown>('rescan_usage')
