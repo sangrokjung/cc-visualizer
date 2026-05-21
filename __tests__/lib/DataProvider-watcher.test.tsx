@@ -47,6 +47,8 @@ describe('DataProvider — claude-system-changed 이벤트 자동 rescan', () =>
     systemChangedCallback = null
     unlistenCalled = false
     vi.clearAllMocks()
+    // DataProvider가 Tauri 환경에서만 listen 등록 — 테스트는 Tauri 환경 흉내
+    ;(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {}
     // 기본 mock 재설정
     vi.mocked(api.loadSystemData).mockResolvedValue(null)
     vi.mocked(api.loadUsageData).mockResolvedValue(null)

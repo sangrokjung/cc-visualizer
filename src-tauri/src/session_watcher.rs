@@ -439,7 +439,8 @@ pub fn backfill_latest_session(app: &AppHandle) -> Result<usize, String> {
     let file_size = path.metadata().map_err(|e| e.to_string())?.len();
     let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
 
-    const BACKFILL_BYTES: u64 = 256 * 1024;
+    // 백필 영역 — 1MB (메모리 부담 작고 수십-수백 이벤트 확보)
+    const BACKFILL_BYTES: u64 = 1024 * 1024;
     let backfill_start = file_size.saturating_sub(BACKFILL_BYTES);
     let backfill_content: &str = if backfill_start == 0 {
         content.as_str()
@@ -498,10 +499,10 @@ pub fn start_session_watcher(app: AppHandle) {
                     let _ = app.emit("session-id", &session_id);
                     eprintln!("[session-watcher] 감시 시작: {}", path.display());
 
-                    // 백필 — 마지막 ~256KB 라인을 즉시 emit해서 UI가 빈 상태로 안 보이게.
-                    // 파일이 작으면 전체, 크면 끝에서 256KB만.
+                    // 백필 — 마지막 ~1MB 라인을 즉시 emit해서 UI가 빈 상태로 안 보이게.
+                    // 파일이 작으면 전체, 크면 끝에서 1MB만.
                     let file_size = path.metadata().map(|m| m.len()).unwrap_or(0);
-                    const BACKFILL_BYTES: u64 = 256 * 1024;
+                    const BACKFILL_BYTES: u64 = 1024 * 1024;
                     let backfill_start = file_size.saturating_sub(BACKFILL_BYTES);
                     if let Ok(content) = fs::read_to_string(path) {
                         let backfill_content = if backfill_start == 0 {

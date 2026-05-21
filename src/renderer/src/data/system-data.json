@@ -1,5 +1,5 @@
 {
-  "scanTimestamp": "2026-05-21T06:36:35.743Z",
+  "scanTimestamp": "2026-05-21T06:51:12.201Z",
   "agents": [
     {
       "id": "a11y-reviewer",
@@ -4472,9 +4472,21 @@
       "priority": "critical"
     },
     {
+      "id": "cert-pipeline",
+      "name": "/cert-pipeline 자동화 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/cert-pipeline.md",
+      "priority": "critical"
+    },
+    {
       "id": "chrome-devtools",
       "name": "Chrome DevTools MCP 라우팅·거버넌스 규칙",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/chrome-devtools.md",
+      "priority": "critical"
+    },
+    {
+      "id": "civil-law",
+      "name": "Civil Law (민사) 에이전트 트리거 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/civil-law.md",
       "priority": "critical"
     },
     {
@@ -4482,6 +4494,12 @@
       "name": "CLI-Anything 사용 규칙",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/cli-anything.md",
       "priority": "critical"
+    },
+    {
+      "id": "cli-tools",
+      "name": "CLI Tools 활용 규칙 (Phase 1: jc / hyperfine / gitleaks / atuin)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/cli-tools.md",
+      "priority": "normal"
     },
     {
       "id": "coding-style",
@@ -4526,16 +4544,28 @@
       "priority": "normal"
     },
     {
+      "id": "design-extract",
+      "name": "design-extract 스킬 트리거 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/design-extract.md",
+      "priority": "critical"
+    },
+    {
       "id": "detail-page",
       "name": "상세페이지 자동 제작 (detail-page-creator) 라우팅 규칙",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/detail-page.md",
       "priority": "critical"
     },
     {
+      "id": "dev-team",
+      "name": "Dev Team Routing Rules",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/dev-team.md",
+      "priority": "normal"
+    },
+    {
       "id": "discord-notify",
       "name": "Discord 팀 알림 규칙",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/discord-notify.md",
-      "priority": "normal"
+      "priority": "critical"
     },
     {
       "id": "doc-sync",
@@ -4553,6 +4583,12 @@
       "id": "email",
       "name": "이메일 규칙 (Email Rules)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/email.md",
+      "priority": "critical"
+    },
+    {
+      "id": "fastcampus-qa-bot",
+      "name": "패스트캠퍼스 수강생 Q&A 봇 운영 규칙 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/fastcampus-qa-bot.md",
       "priority": "critical"
     },
     {
@@ -4586,6 +4622,12 @@
       "priority": "critical"
     },
     {
+      "id": "hermes-pm-instance",
+      "name": "QJC PM 전용 Hermes Profile (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/hermes-pm-instance.md",
+      "priority": "critical"
+    },
+    {
       "id": "hometax-sync",
       "name": "홈택스 매출 동기화 규칙 (`/hometax-sync` + hometax-processor)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/hometax-sync.md",
@@ -4595,6 +4637,12 @@
       "id": "image-generation",
       "name": "이미지 생성 규칙 (IMPORTANT)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/image-generation.md",
+      "priority": "critical"
+    },
+    {
+      "id": "image-provider-routing",
+      "name": "이미지 프로바이더 자동 라우팅",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/image-provider-routing.md",
       "priority": "critical"
     },
     {
@@ -4640,9 +4688,27 @@
       "priority": "critical"
     },
     {
+      "id": "mediation",
+      "name": "Mediation/Negotiation 에이전트 트리거 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/mediation.md",
+      "priority": "critical"
+    },
+    {
+      "id": "memory-aware-hub",
+      "name": "Memory-Aware Hub 운영 표준 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/memory-aware-hub.md",
+      "priority": "critical"
+    },
+    {
       "id": "memory-policy",
       "name": "메모리 정책 (Memory Policy, IMPORTANT)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/memory-policy.md",
+      "priority": "critical"
+    },
+    {
+      "id": "meta-improvement",
+      "name": "Meta Improvement Loop",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/meta-improvement.md",
       "priority": "critical"
     },
     {
@@ -4734,6 +4800,18 @@
       "name": "Session Lifecycle",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/session.md",
       "priority": "important"
+    },
+    {
+      "id": "skill-routing-daily-report",
+      "name": "daily-report Skill 즉시 호출 규칙 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/skill-routing-daily-report.md",
+      "priority": "critical"
+    },
+    {
+      "id": "slides-web",
+      "name": "slides-web 디자인 거버넌스 룰",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/slides-web.md",
+      "priority": "normal"
     },
     {
       "id": "supabase-mcp",
@@ -6003,7 +6081,7 @@
     "agentCount": 201,
     "skillCount": 166,
     "hookCount": 97,
-    "ruleCount": 55,
+    "ruleCount": 68,
     "pipelineCount": 18,
     "mcpServerCount": 46
   }
