@@ -354,6 +354,56 @@ fn uuid_simple() -> String {
     format!("{:x}-{:x}", d.as_secs(), d.subsec_nanos())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn user_event_has_char_count() {
+        // 실제 Claude Code JSONL 형식의 user 메시지
+        let line = r#"{"type":"user","uuid":"u1","timestamp":"2026-05-21T10:00:00Z","message":{"role":"user","content":[{"type":"text","text":"안녕하세요 테스트"}]}}"#;
+        let events = parse_line(line);
+        assert_eq!(events.len(), 1, "user line should emit 1 event");
+        assert_eq!(events[0].r#type, "user");
+        // "안녕하세요 테스트" = 5(안녕하세요) + 1(공백) + 3(테스트) = 9자
+        assert_eq!(events[0].data.char_count, Some(9));
+    }
+
+    #[test]
+    fn assistant_text_event_has_char_count() {
+        let line = r#"{"type":"assistant","uuid":"a1","timestamp":"2026-05-21T10:00:00Z","message":{"role":"assistant","content":[{"type":"text","text":"Hello world this is a response"}]}}"#;
+        let events = parse_line(line);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].r#type, "assistant");
+        assert_eq!(events[0].data.char_count, Some(30), "영문 30자");
+    }
+
+    #[test]
+    fn assistant_with_tool_use_emits_tool_event_with_char_count() {
+        // tool_use 블록을 포함한 assistant 메시지
+        let line = r#"{"type":"assistant","uuid":"a2","timestamp":"2026-05-21T10:00:00Z","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"ls -la"}}]}}"#;
+        let events = parse_line(line);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].r#type, "tool_use");
+        assert_eq!(events[0].data.tool_name.as_deref(), Some("Bash"));
+        // input JSON 직렬화 길이
+        assert!(events[0].data.char_count.is_some_and(|c| c > 0));
+    }
+
+    #[test]
+    fn unknown_line_emits_no_event() {
+        let line = r#"{"type":"attachment","data":"..."}"#;
+        let events = parse_line(line);
+        assert_eq!(events.len(), 0, "attachment 같은 알 수 없는 타입은 emit 안 함");
+    }
+
+    #[test]
+    fn malformed_json_returns_empty() {
+        let events = parse_line("not json");
+        assert!(events.is_empty());
+    }
+}
+
 pub fn start_session_watcher(app: AppHandle) {
     std::thread::spawn(move || {
         let mut last_scan: u64 = 0;
@@ -366,7 +416,6 @@ pub fn start_session_watcher(app: AppHandle) {
             if let Some(ref path) = latest {
                 if current_path.as_ref() != Some(path) {
                     current_path = Some(path.clone());
-                    offset = path.metadata().map(|m| m.len()).unwrap_or(0);
 
                     let session_id = path
                         .file_stem()
@@ -376,6 +425,37 @@ pub fn start_session_watcher(app: AppHandle) {
 
                     let _ = app.emit("session-id", &session_id);
                     eprintln!("[session-watcher] 감시 시작: {}", path.display());
+
+                    // 백필 — 마지막 ~256KB 라인을 즉시 emit해서 UI가 빈 상태로 안 보이게.
+                    // 파일이 작으면 전체, 크면 끝에서 256KB만.
+                    let file_size = path.metadata().map(|m| m.len()).unwrap_or(0);
+                    const BACKFILL_BYTES: u64 = 256 * 1024;
+                    let backfill_start = file_size.saturating_sub(BACKFILL_BYTES);
+                    if let Ok(content) = fs::read_to_string(path) {
+                        let backfill_content = if backfill_start == 0 {
+                            content.as_str()
+                        } else {
+                            // 중간에서 자르면 깨진 라인 — 첫 newline 이후부터
+                            let byte_idx = backfill_start as usize;
+                            let safe_idx = content[byte_idx..]
+                                .find('\n')
+                                .map(|i| byte_idx + i + 1)
+                                .unwrap_or(content.len());
+                            &content[safe_idx..]
+                        };
+                        let mut count = 0;
+                        for line in backfill_content.lines() {
+                            if line.trim().is_empty() {
+                                continue;
+                            }
+                            for event in parse_line(line) {
+                                let _ = app.emit("session-event", &event);
+                                count += 1;
+                            }
+                        }
+                        eprintln!("[session-watcher] 백필 {} events", count);
+                    }
+                    offset = file_size;
                 }
             }
 
