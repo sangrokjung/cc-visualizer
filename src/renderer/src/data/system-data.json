@@ -1,5 +1,5 @@
 {
-  "scanTimestamp": "2026-05-13T14:08:27.725Z",
+  "scanTimestamp": "2026-05-21T01:49:17.332Z",
   "agents": [
     {
       "id": "a11y-reviewer",
@@ -23,6 +23,46 @@
       "category": "review",
       "maxTurns": 20,
       "memory": "project"
+    },
+    {
+      "id": "academic-anthropologist",
+      "name": "Anthropologist",
+      "description": "Expert in cultural systems, rituals, kinship, belief systems, and ethnographic method — builds culturally coherent societies that feel lived-in rather than invented",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "academic-geographer",
+      "name": "Geographer",
+      "description": "Expert in physical and human geography, climate systems, cartography, and spatial analysis — builds geographically coherent worlds where terrain, climate, resources, and settlement patterns make scientific sense",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "academic-historian",
+      "name": "Historian",
+      "description": "Expert in historical analysis, periodization, material culture, and historiography — validates historical coherence and enriches settings with authentic period detail grounded in primary and secondary sources",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "academic-narratologist",
+      "name": "Narratologist",
+      "description": "Expert in narrative theory, story structure, character arcs, and literary analysis — grounds advice in established frameworks from Propp to Campbell to modern narratology",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "academic-psychologist",
+      "name": "Psychologist",
+      "description": "Expert in human behavior, personality theory, motivation, and cognitive patterns — builds psychologically credible characters and interactions grounded in clinical and research frameworks",
+      "model": "default",
+      "tools": [],
+      "category": "research"
     },
     {
       "id": "action-architect",
@@ -109,6 +149,14 @@
       "memory": "project"
     },
     {
+      "id": "agentic-identity-trust",
+      "name": "Agentic Identity & Trust Architect",
+      "description": "Designs identity, authentication, and trust verification systems for autonomous AI agents operating in multi-agent environments. Ensures agents can prove who they are, what they're authorized to do, and what they actually did.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
       "id": "ai-researcher",
       "name": "ai-researcher",
       "description": "자율 AI 연구 에이전트. 논문 탐색→가설 생성→실험 설계→결과 분석→보고서 작성.",
@@ -169,6 +217,14 @@
       "isolation": true
     },
     {
+      "id": "automation-governance-architect",
+      "name": "Automation Governance Architect",
+      "description": "Governance-first architect for business automations (n8n-first) who audits value, risk, and maintainability before implementation.",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
       "id": "bizmodel-architect",
       "name": "bizmodel-architect",
       "description": "자율 BM(Business Model) 설계 기획 전담 에이전트. BMC 9블록·Lean Canvas·JTBD·Wardley Map·Blue Ocean 5모드 통합 설계 + 16구루 프레임워크 적용 + 정량 평가(score_engine.py threshold 85%) + Mermaid 다이어그램·DOCX·PDF 산출. Use proactively when 사업 모델 설계/BMC/Lean Canvas/JTBD/Wardley/Blue Ocean/수익 모델/BM 피벗/사업 아이디어 검증 요청 시.",
@@ -188,6 +244,22 @@
       "category": "business",
       "maxTurns": 35,
       "memory": "project"
+    },
+    {
+      "id": "blender-addon-engineer",
+      "name": "Blender Add-on Engineer",
+      "description": "Blender tooling specialist - Builds Python add-ons, asset validators, exporters, and pipeline automations that turn repetitive DCC work into reliable one-click workflows",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "blockchain-security-auditor",
+      "name": "Blockchain Security Auditor",
+      "description": "Expert smart contract security auditor specializing in vulnerability detection, formal verification, exploit analysis, and comprehensive audit report writing for DeFi protocols and blockchain applications.",
+      "model": "default",
+      "tools": [],
+      "category": "legal"
     },
     {
       "id": "browser-automation-agent",
@@ -497,6 +569,14 @@
       "memory": "project"
     },
     {
+      "id": "data-consolidation-agent",
+      "name": "Data Consolidation Agent",
+      "description": "AI agent that consolidates extracted sales data into live reporting dashboards with territory, rep, and pipeline summaries",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
       "id": "database-reviewer",
       "name": "database-reviewer",
       "description": "Use when writing SQL queries, creating migrations, or troubleshooting database performance in Supabase/PostgreSQL projects. Reviews indexes, RLS policies, schema types, N+1 patterns. Read-only reviewer with EXPLAIN ANALYZE capability.",
@@ -510,6 +590,14 @@
       "category": "review",
       "maxTurns": 15,
       "memory": "project"
+    },
+    {
+      "id": "design-brand-guardian",
+      "name": "Brand Guardian",
+      "description": "Expert brand strategist and guardian specializing in brand identity development, consistency maintenance, and strategic brand positioning",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
     },
     {
       "id": "design-creator",
@@ -532,6 +620,61 @@
       "category": "creative",
       "maxTurns": 30,
       "memory": "project"
+    },
+    {
+      "id": "design-image-prompt-engineer",
+      "name": "Image Prompt Engineer",
+      "description": "Expert photography prompt engineer specializing in crafting detailed, evocative prompts for AI image generation. Masters the art of translating visual concepts into precise language that produces stunning, professional-quality photography through generative AI tools.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "design-inclusive-visuals-specialist",
+      "name": "Inclusive Visuals Specialist",
+      "description": "Representation expert who defeats systemic AI biases to generate culturally accurate, affirming, and non-stereotypical images and video.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "design-ux-researcher",
+      "name": "UX Researcher",
+      "description": "Expert user experience researcher specializing in user behavior analysis, usability testing, and data-driven design insights. Provides actionable research findings that improve product usability and user satisfaction",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
+      "id": "design-visual-storyteller",
+      "name": "Visual Storyteller",
+      "description": "Expert visual communication specialist focused on creating compelling visual narratives, multimedia content, and brand storytelling through design. Specializes in transforming complex information into engaging visual stories that connect with audiences and drive emotional engagement.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "design-whimsy-injector",
+      "name": "Whimsy Injector",
+      "description": "Expert creative specialist focused on adding personality, delight, and playful elements to brand experiences. Creates memorable, joyful interactions that differentiate brands through unexpected moments of whimsy",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "detail-page-creator",
+      "name": "detail-page-creator",
+      "description": "상세페이지 자동 제작 오케스트레이터. 사용자가 제공한 상품/강의 이미지 1장과 텍스트 정보(상품명·가격·핵심특징)에서 product_info JSON을 합성하고, OpenAI gpt-image-2 (image-to-image edits)로 헤더부터 CTA까지 10~15장을 다국어·정확한 비율·패키지 보존 보장하에 일괄 생성한다. PROACTIVELY 사용: \"상세페이지 만들어줘\", \"디테일페이지\", \"detail page 자동\", \"상세페이지 자동화\", \"쇼핑몰 상세 이미지 15장\", \"강의 상세페이지\", \"다국어 상세페이지\", \"헤더부터 CTA까지\", \"상세페이지 일괄 생성\" 키워드 감지 시. NOT 사용: 단일 컷 포스터(openai-image-creator), 카드뉴스/광고 세트(design-creator), 유튜브 썸네일(youtube-thumbnail-maker), 풍경/배경(generate-image), 마켓플레이스 리스팅 카드(higgsfield-marketplace-cards).",
+      "model": "sonnet",
+      "tools": [
+        "Bash",
+        "Read",
+        "Write",
+        "Glob",
+        "AskUserQuestion"
+      ],
+      "category": "creative",
+      "maxTurns": 20
     },
     {
       "id": "dev-brainstormer",
@@ -621,6 +764,174 @@
       "category": "operations",
       "maxTurns": 30,
       "memory": "project"
+    },
+    {
+      "id": "engineering-ai-data-remediation-engineer",
+      "name": "AI Data Remediation Engineer",
+      "description": "Specialist in self-healing data pipelines — uses air-gapped local SLMs and semantic clustering to automatically detect, classify, and fix data anomalies at scale. Focuses exclusively on the remediation layer: intercepting bad data, generating deterministic fix logic via Ollama, and guaranteeing zero data loss. Not a general data engineer — a surgical specialist for when your data is broken and the pipeline can't stop.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-ai-engineer",
+      "name": "AI Engineer",
+      "description": "Expert AI/ML engineer specializing in machine learning model development, deployment, and integration into production systems. Focused on building intelligent features, data pipelines, and AI-powered applications with emphasis on practical, scalable solutions.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-autonomous-optimization-architect",
+      "name": "Autonomous Optimization Architect",
+      "description": "Intelligent system governor that continuously shadow-tests APIs for performance while enforcing strict financial and security guardrails against runaway costs.",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
+      "id": "engineering-cms-developer",
+      "name": "CMS Developer",
+      "description": "Drupal and WordPress specialist for theme development, custom plugins/modules, content architecture, and code-first CMS implementation",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-codebase-onboarding-engineer",
+      "name": "Codebase Onboarding Engineer",
+      "description": "Expert developer onboarding specialist who helps new engineers understand unfamiliar codebases fast by reading source code, tracing code paths, and stating only facts grounded in the code.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-data-engineer",
+      "name": "Data Engineer",
+      "description": "Expert data engineer specializing in building reliable data pipelines, lakehouse architectures, and scalable data infrastructure. Masters ETL/ELT, Apache Spark, dbt, streaming systems, and cloud data platforms to turn raw data into trusted, analytics-ready assets.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-devops-automator",
+      "name": "DevOps Automator",
+      "description": "Expert DevOps engineer specializing in infrastructure automation, CI/CD pipeline development, and cloud operations",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
+      "id": "engineering-embedded-firmware-engineer",
+      "name": "Embedded Firmware Engineer",
+      "description": "Specialist in bare-metal and RTOS firmware - ESP32/ESP-IDF, PlatformIO, Arduino, ARM Cortex-M, STM32 HAL/LL, Nordic nRF5/nRF Connect SDK, FreeRTOS, Zephyr",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-filament-optimization-specialist",
+      "name": "Filament Optimization Specialist",
+      "description": "Expert in restructuring and optimizing Filament PHP admin interfaces for maximum usability and efficiency. Focuses on impactful structural changes — not just cosmetic tweaks.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-frontend-developer",
+      "name": "Frontend Developer",
+      "description": "Expert frontend developer specializing in modern web technologies, React/Vue/Angular frameworks, UI implementation, and performance optimization",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "engineering-git-workflow-master",
+      "name": "Git Workflow Master",
+      "description": "Expert in Git workflows, branching strategies, and version control best practices including conventional commits, rebasing, worktrees, and CI-friendly branch management.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-incident-response-commander",
+      "name": "Incident Response Commander",
+      "description": "Expert incident commander specializing in production incident management, structured response coordination, post-mortem facilitation, SLO/SLI tracking, and on-call process design for reliable engineering organizations.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "engineering-minimal-change-engineer",
+      "name": "Minimal Change Engineer",
+      "description": "Engineering specialist focused on minimum-viable diffs — fixes only what was asked, refuses scope creep, prefers three similar lines over a premature abstraction. The discipline that prevents bug-fix PRs from becoming refactor avalanches.",
+      "model": "default",
+      "tools": [],
+      "category": "development"
+    },
+    {
+      "id": "engineering-mobile-app-builder",
+      "name": "Mobile App Builder",
+      "description": "Specialized mobile application developer with expertise in native iOS/Android development and cross-platform frameworks",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-rapid-prototyper",
+      "name": "Rapid Prototyper",
+      "description": "Specialized in ultra-fast proof-of-concept development and MVP creation using efficient tools and frameworks",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-senior-developer",
+      "name": "Senior Developer",
+      "description": "Premium implementation specialist - Masters Laravel/Livewire/FluxUI, advanced CSS, Three.js integration",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "engineering-solidity-smart-contract-engineer",
+      "name": "Solidity Smart Contract Engineer",
+      "description": "Expert Solidity developer specializing in EVM smart contract architecture, gas optimization, upgradeable proxy patterns, DeFi protocol development, and security-first contract design across Ethereum and L2 chains.",
+      "model": "default",
+      "tools": [],
+      "category": "legal"
+    },
+    {
+      "id": "engineering-sre",
+      "name": "SRE (Site Reliability Engineer)",
+      "description": "Expert site reliability engineer specializing in SLOs, error budgets, observability, chaos engineering, and toil reduction for production systems at scale.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-technical-writer",
+      "name": "Technical Writer",
+      "description": "Expert technical writer specializing in developer documentation, API references, README files, and tutorials. Transforms complex engineering concepts into clear, accurate, and engaging docs that developers actually read and use.",
+      "model": "default",
+      "tools": [],
+      "category": "development"
+    },
+    {
+      "id": "engineering-threat-detection-engineer",
+      "name": "Threat Detection Engineer",
+      "description": "Expert detection engineer specializing in SIEM rule development, MITRE ATT&CK coverage mapping, threat hunting, alert tuning, and detection-as-code pipelines for security operations teams.",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
+      "id": "engineering-voice-ai-integration-engineer",
+      "name": "Voice AI Integration Engineer",
+      "description": "Expert in building end-to-end speech transcription pipelines using Whisper-style models and cloud ASR services — from raw audio ingestion through preprocessing, transcript cleanup, subtitle generation, speaker diarization, and structured downstream integration into apps, APIs, and CMS platforms.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
     },
     {
       "id": "escalation-fixer",
@@ -748,6 +1059,22 @@
       "memory": "project"
     },
     {
+      "id": "game-audio-engineer",
+      "name": "Game Audio Engineer",
+      "description": "Interactive audio specialist - Masters FMOD/Wwise integration, adaptive music systems, spatial audio, and audio performance budgeting across all game engines",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "game-designer",
+      "name": "Game Designer",
+      "description": "Systems and mechanics architect - Masters GDD authorship, player psychology, economy balancing, and gameplay loop design across all engines and genres",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
       "id": "gemini-reviewer",
       "name": "gemini-reviewer",
       "description": "Use for frontend-focused second opinion code review via Gemini. Reviews React/Next.js patterns, accessibility, CSS/Tailwind, bundle size, performance. Complements code-reviewer for frontend-specific blind spots. Requires Google subscription.",
@@ -761,6 +1088,30 @@
       "category": "review",
       "maxTurns": 15,
       "memory": "project"
+    },
+    {
+      "id": "godot-gameplay-scripter",
+      "name": "Godot Gameplay Scripter",
+      "description": "Composition and signal integrity specialist - Masters GDScript 2.0, C# integration, node-based architecture, and type-safe signal design for Godot 4 projects",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "godot-multiplayer-engineer",
+      "name": "Godot Multiplayer Engineer",
+      "description": "Godot 4 networking specialist - Masters the MultiplayerAPI, scene replication, ENet/WebRTC transport, RPCs, and authority models for real-time multiplayer games",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "godot-shader-developer",
+      "name": "Godot Shader Developer",
+      "description": "Godot 4 visual effects specialist - Masters the Godot Shading Language (GLSL-like), VisualShader editor, CanvasItem and Spatial shaders, post-processing, and performance optimization for 2D/3D effects",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
     },
     {
       "id": "gov-support-strategist",
@@ -812,6 +1163,14 @@
       "memory": "project"
     },
     {
+      "id": "hospitality-guest-services",
+      "name": "Hospitality Guest Services",
+      "description": "Comprehensive hospitality guest services specialist for hotels, resorts, restaurants, and event venues — covering reservations, check-in/check-out, concierge services, guest complaint resolution, loyalty program management, and post-stay follow-up to deliver exceptional guest experiences that drive loyalty and revenue",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
       "id": "hr-manager",
       "name": "hr-manager",
       "description": "QJC HR 전담. 채용 공고 자동 수집(워크넷/사람인 API), 근태 관리, 급여 계산/4대보험 신고 보조, 노무 컴플라이언스 점검, 직원 온보딩, 성과 관리. Use when 채용공고/근태/급여계산/4대보험/직원온보딩/성과관리. Bersin, Ulrich, Bock, Lencioni, McCord, Scott 적용. 경계: 노무 법률 판단/근로자성/해고는 labor-consultant, 채용 평가/면접은 musk-hiring-evaluator.",
@@ -828,6 +1187,14 @@
       "category": "operations",
       "maxTurns": 30,
       "memory": "project"
+    },
+    {
+      "id": "identity-graph-operator",
+      "name": "Identity Graph Operator",
+      "description": "Operates a shared identity graph that multiple AI agents resolve against. Ensures every agent in a multi-agent system gets the same canonical answer for \"who is this entity?\" - deterministically, even under concurrent writes.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
     },
     {
       "id": "impl-worker",
@@ -876,6 +1243,14 @@
       "category": "creative"
     },
     {
+      "id": "language-translator",
+      "name": "Language Translator",
+      "description": "Real-time Spanish ↔ English translation specialist with cultural context, regional dialect awareness, travel phrase guidance, and tone-appropriate communication for everyday, business, and emergency situations",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
       "id": "lead-scorer",
       "name": "lead-scorer",
       "description": "QJC 자율 리드 스코어링. ICP 적합도 점수, 우선순위 분류, 전환 가능성 예측. Supabase B2B(os_outreach_leads.fit_score) / B2C(os_customer_pipeline.lead_score) UPDATE. 6차원 모델(Fit + Engagement) 100점. Use when 리드점수/리드스코어/ICP매칭/우선순위매겨/전환예측/HotLead/Score Decay. Lincoln Murphy, David Skok, Aaron Ross 적용. 관계 관리는 crm-manager, 전략적 ICP는 qjc-business.",
@@ -886,6 +1261,14 @@
       "category": "business",
       "maxTurns": 25,
       "memory": "user"
+    },
+    {
+      "id": "level-designer",
+      "name": "Level Designer",
+      "description": "Spatial storytelling and flow specialist - Masters layout theory, pacing architecture, encounter design, and environmental narrative across all game engines",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
     },
     {
       "id": "loan-advisor",
@@ -906,6 +1289,22 @@
       "memory": "project"
     },
     {
+      "id": "lsp-index-engineer",
+      "name": "LSP/Index Engineer",
+      "description": "Language Server Protocol specialist building unified code intelligence systems through LSP client orchestration and semantic indexing",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "macos-spatial-metal-engineer",
+      "name": "macOS Spatial/Metal Engineer",
+      "description": "Native Swift and Metal specialist building high-performance 3D rendering systems and spatial computing experiences for macOS and Vision Pro",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
       "id": "mail-scout",
       "name": "mail-scout",
       "description": "Gmail inbox analysis specialist for email-action-team. Scans unread emails, extracts metadata, and categorizes by priority.",
@@ -919,6 +1318,30 @@
       "category": "operations",
       "maxTurns": 15,
       "memory": "project"
+    },
+    {
+      "id": "marketing-app-store-optimizer",
+      "name": "App Store Optimizer",
+      "description": "Expert app store marketing specialist focused on App Store Optimization (ASO), conversion rate optimization, and app discoverability",
+      "model": "default",
+      "tools": [],
+      "category": "marketing"
+    },
+    {
+      "id": "marketing-book-co-author",
+      "name": "Book Co-Author",
+      "description": "Strategic thought-leadership book collaborator for founders, experts, and operators turning voice notes, fragments, and positioning into structured first-person chapters.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "marketing-carousel-growth-engine",
+      "name": "Carousel Growth Engine",
+      "description": "Autonomous TikTok and Instagram carousel generation specialist. Analyzes any website URL with Playwright, generates viral 6-slide carousels via Gemini image generation, publishes directly to feed via Upload-Post API with auto trending music, fetches analytics, and iteratively improves through a data-driven learning loop.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
     },
     {
       "id": "marketing-content-team",
@@ -937,6 +1360,90 @@
       "category": "marketing",
       "maxTurns": 30,
       "memory": "project"
+    },
+    {
+      "id": "marketing-growth-hacker",
+      "name": "Growth Hacker",
+      "description": "Expert growth strategist specializing in rapid user acquisition through data-driven experimentation. Develops viral loops, optimizes conversion funnels, and finds scalable growth channels for exponential business growth.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit"
+      ],
+      "category": "marketing"
+    },
+    {
+      "id": "marketing-instagram-curator",
+      "name": "Instagram Curator",
+      "description": "Expert Instagram marketing specialist focused on visual storytelling, community building, and multi-format content optimization. Masters aesthetic development and drives meaningful engagement.",
+      "model": "default",
+      "tools": [],
+      "category": "marketing"
+    },
+    {
+      "id": "marketing-linkedin-content-creator",
+      "name": "LinkedIn Content Creator",
+      "description": "Expert LinkedIn content strategist focused on thought leadership, personal brand building, and high-engagement professional content. Masters LinkedIn's algorithm and culture to drive inbound opportunities for founders, job seekers, developers, and anyone building a professional presence.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "marketing-livestream-commerce-coach",
+      "name": "Livestream Commerce Coach",
+      "description": "Veteran livestream e-commerce coach specializing in host training and live room operations across Douyin, Kuaishou, Taobao Live, and Channels, covering script design, product sequencing, paid-vs-organic traffic balancing, conversion closing techniques, and real-time data-driven optimization.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "marketing-podcast-strategist",
+      "name": "Podcast Strategist",
+      "description": "Content strategy and operations expert for the Chinese podcast market, with deep expertise in Xiaoyuzhou, Ximalaya, and other major audio platforms, covering show positioning, audio production, audience growth, multi-platform distribution, and monetization to help podcast creators build sticky audio content brands.",
+      "model": "default",
+      "tools": [],
+      "category": "marketing"
+    },
+    {
+      "id": "marketing-reddit-community-builder",
+      "name": "Reddit Community Builder",
+      "description": "Expert Reddit marketing specialist focused on authentic community engagement, value-driven content creation, and long-term relationship building. Masters Reddit culture navigation.",
+      "model": "default",
+      "tools": [],
+      "category": "marketing"
+    },
+    {
+      "id": "marketing-short-video-editing-coach",
+      "name": "Short-Video Editing Coach",
+      "description": "Hands-on short-video editing coach covering the full post-production pipeline, with mastery of CapCut Pro, Premiere Pro, DaVinci Resolve, and Final Cut Pro across composition and camera language, color grading, audio engineering, motion graphics and VFX, subtitle design, multi-platform export optimization, editing workflow efficiency, and AI-assisted editing.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "marketing-social-media-strategist",
+      "name": "Social Media Strategist",
+      "description": "Expert social media strategist for LinkedIn, Twitter, and professional platforms. Creates cross-platform campaigns, builds communities, manages real-time engagement, and develops thought leadership strategies.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit"
+      ],
+      "category": "development"
+    },
+    {
+      "id": "marketing-twitter-engager",
+      "name": "Twitter Engager",
+      "description": "Expert Twitter marketing specialist focused on real-time engagement, thought leadership building, and community-driven growth. Builds brand authority through authentic conversation participation and viral thread creation.",
+      "model": "default",
+      "tools": [],
+      "category": "marketing"
+    },
+    {
+      "id": "marketing-video-optimization-specialist",
+      "name": "Video Optimization Specialist",
+      "description": "Video marketing strategist specializing in YouTube algorithm optimization, audience retention, chaptering, thumbnail concepts, and cross-platform video syndication.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
     },
     {
       "id": "mediation-negotiator",
@@ -1014,6 +1521,14 @@
       "memory": "project"
     },
     {
+      "id": "narrative-designer",
+      "name": "Narrative Designer",
+      "description": "Story systems and dialogue architect - Masters GDD-aligned narrative design, branching dialogue, lore architecture, and environmental storytelling across all game engines",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
       "id": "nda-generator",
       "name": "nda-generator",
       "description": "NDA/계약서 초안 자동 생성 전문 에이전트. 비밀유지계약(NDA), 용역계약, 강의계약, 파트너십 계약의 초안을 자동 생성하고 조항별 맞춤화를 수행한다. Ken Adams MSCD 5판 언어 표준, Tina Stark 6 Building Blocks + 5대 비즈니스 이슈, WorldCC Contracting Principles, Siedel/Haapio Proactive Law를 적용한다.",
@@ -1062,6 +1577,36 @@
       ],
       "category": "creative",
       "maxTurns": 15
+    },
+    {
+      "id": "paid-media-creative-strategist",
+      "name": "Ad Creative Strategist",
+      "description": "Paid media creative specialist focused on ad copywriting, RSA optimization, asset group design, and creative testing frameworks across Google, Meta, Microsoft, and programmatic platforms. Bridges the gap between performance data and persuasive messaging.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit, Bash"
+      ],
+      "category": "review"
+    },
+    {
+      "id": "paid-media-programmatic-buyer",
+      "name": "Programmatic & Display Buyer",
+      "description": "Display advertising and programmatic media buying specialist covering managed placements, Google Display Network, DV360, trade desk platforms, partner media (newsletters, sponsored content), and ABM display strategies via platforms like Demandbase and 6Sense.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit, Bash"
+      ],
+      "category": "development"
+    },
+    {
+      "id": "paid-media-tracking-specialist",
+      "name": "Tracking & Measurement Specialist",
+      "description": "Expert in conversion tracking architecture, tag management, and attribution modeling across Google Tag Manager, GA4, Google Ads, Meta CAPI, LinkedIn Insight Tag, and server-side implementations. Ensures every conversion is counted correctly and every dollar of ad spend is measurable.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit, Bash"
+      ],
+      "category": "marketing"
     },
     {
       "id": "patent-attorney",
@@ -1138,9 +1683,7 @@
       "tools": [
         "Read",
         "Grep",
-        "Glob",
-        "Write",
-        "Edit"
+        "Glob"
       ],
       "category": "development",
       "maxTurns": 20,
@@ -1155,6 +1698,24 @@
         "Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion"
       ],
       "category": "creative"
+    },
+    {
+      "id": "product-behavioral-nudge-engine",
+      "name": "Behavioral Nudge Engine",
+      "description": "Behavioral psychology specialist that adapts software interaction cadences and styles to maximize user motivation and success.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "product-sprint-prioritizer",
+      "name": "Sprint Prioritizer",
+      "description": "Expert product manager specializing in agile sprint planning, feature prioritization, and resource allocation. Focused on maximizing team velocity and business value delivery through data-driven prioritization frameworks.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit"
+      ],
+      "category": "business"
     },
     {
       "id": "product-strategist",
@@ -1174,6 +1735,40 @@
       "category": "business",
       "maxTurns": 30,
       "memory": "project"
+    },
+    {
+      "id": "product-trend-researcher",
+      "name": "Trend Researcher",
+      "description": "Expert market intelligence analyst specializing in identifying emerging trends, competitive analysis, and opportunity assessment. Focused on providing actionable insights that drive product strategy and innovation decisions.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit"
+      ],
+      "category": "development"
+    },
+    {
+      "id": "project-management-experiment-tracker",
+      "name": "Experiment Tracker",
+      "description": "Expert project manager specializing in experiment design, execution tracking, and data-driven decision making. Focused on managing A/B tests, feature experiments, and hypothesis validation through systematic experimentation and rigorous analysis.",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
+      "id": "project-management-jira-workflow-steward",
+      "name": "Jira Workflow Steward",
+      "description": "Expert delivery operations specialist who enforces Jira-linked Git workflows, traceable commits, structured pull requests, and release-safe branch strategy across software teams.",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
+      "id": "project-management-studio-producer",
+      "name": "Studio Producer",
+      "description": "Senior strategic leader specializing in high-level creative and technical project orchestration, resource allocation, and multi-project portfolio management. Focused on aligning creative vision with business objectives while managing complex cross-functional initiatives and ensuring optimal studio operations.",
+      "model": "default",
+      "tools": [],
+      "category": "business"
     },
     {
       "id": "qa-evaluator",
@@ -1427,6 +2022,14 @@
       "memory": "project"
     },
     {
+      "id": "report-distribution-agent",
+      "name": "Report Distribution Agent",
+      "description": "AI agent that automates distribution of consolidated sales reports to representatives based on territorial parameters",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
       "id": "research-pi",
       "name": "research-pi",
       "description": "시장분석·기술동향·정책연구·비즈니스 리서치 체계적 수행. researcher + auto-experimenter 오케스트레이션. PRISMA·TAM/SAM/SOM·경쟁 매핑 프레임워크. Use proactively when \"시장 조사\", \"산업 분석\", \"동향 분석\", \"정책 연구\", \"비즈니스 리서치\" 요청 시. 단순 팩트체크는 researcher, 공식문서 교차검증은 super-research, AI 논문은 ai-researcher 사용.",
@@ -1505,6 +2108,30 @@
       "memory": "user"
     },
     {
+      "id": "roblox-avatar-creator",
+      "name": "Roblox Avatar Creator",
+      "description": "Roblox UGC and avatar pipeline specialist - Masters Roblox's avatar system, UGC item creation, accessory rigging, texture standards, and the Creator Marketplace submission pipeline",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "roblox-experience-designer",
+      "name": "Roblox Experience Designer",
+      "description": "Roblox platform UX and monetization specialist - Masters engagement loop design, DataStore-driven progression, Roblox monetization systems (Passes, Developer Products, UGC), and player retention for Roblox experiences",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "roblox-systems-scripter",
+      "name": "Roblox Systems Scripter",
+      "description": "Roblox platform engineering specialist - Masters Luau, the client-server security model, RemoteEvents/RemoteFunctions, DataStore, and module architecture for scalable Roblox experiences",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
       "id": "saju-myeongri",
       "name": "saju-myeongri",
       "description": "사주명리학(四柱命理學) 전문 에이전트. 만세력 기반 사주팔자 산출, 오행 분석, 용신 판단, 대운/세운 해석, 궁합 분석, 택일, 작명 보조를 수행한다. 10명의 구루 프레임워크(강헌, 김동완, 박주현, 이석영, 백경학, 적천수/임철초, 서자평, 서락오, 심효첨, 만민영)를 적용하여 체계적 명리 분석을 지원한다.",
@@ -1523,6 +2150,30 @@
       "memory": "project"
     },
     {
+      "id": "sales-coach",
+      "name": "Sales Coach",
+      "description": "Expert sales coaching specialist focused on rep development, pipeline review facilitation, call coaching, deal strategy, and forecast accuracy. Makes every rep and every deal better through structured coaching methodology and behavioral feedback.",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
+      "id": "sales-discovery-coach",
+      "name": "Discovery Coach",
+      "description": "Coaches sales teams on elite discovery methodology — question design, current-state mapping, gap quantification, and call structure that surfaces real buying motivation.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "sales-engineer",
+      "name": "Sales Engineer",
+      "description": "Senior pre-sales engineer specializing in technical discovery, demo engineering, POC scoping, competitive battlecards, and bridging product capabilities to business outcomes. Wins the technical decision so the deal can close.",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
       "id": "sales-followup",
       "name": "sales-followup",
       "description": "영업 팔로업 자동화 에이전트. 콜드 아웃리치 / 미팅 / 제안서 발송 후 D+0·D+3·D+7 3-touch 시퀀스를 톤 차별화하여 발송한다. D+0=정중·가치 중심, D+3=가볍고 친근, D+7=시급성·마감 압박·대안 제시. Gmail(gws CLI) 발송, 시퀀스 상태는 로컬 JSON(`~/.claude/state/sales-followup/`)으로 관리, 답장 감지 시 자동 중단. Use when 영업팔로업/D+0/D+3/D+7/시퀀스이메일/3터치팔로업/콜드아웃리치팔로업/제안서팔로업/미팅후속/대안제시이메일/마감압박이메일. 경계: 첫 콜드 메시지는 copywriting/leads 스킬, 답장 후 응대는 cs-responder, 전반적 CRM은 crm-manager.",
@@ -1537,7 +2188,7 @@
     {
       "id": "scenario-visualizer",
       "name": "scenario-visualizer",
-      "description": "시나리오/스토리보드 시각화 전문가. 시나리오 텍스트나 장면 설명을 받으면 컷으로 분해하고 OpenAI GPT Image-2 API를 호출하여 이미지를 생성한다. 캐릭터 일관성과 영화적 카메라/조명 문법을 유지한다. Use proactively when user provides scenario text, scene description, or asks for storyboard/visualization. 트리거 키워드 — \"시나리오 시각화\", \"스토리보드\", \"장면 그려줘\", \"컷 분해\", \"캐릭터 시트\", \"GPT Image\", \"이미지 생성\", \"콘티\".",
+      "description": "시나리오/스토리보드 시각화 전문가. 시나리오 텍스트나 장면 설명을 받으면 컷으로 분해하고 OpenAI GPT Image-2 API를 호출하여 이미지를 생성한다. 캐릭터 일관성과 영화적 카메라/조명 문법을 유지한다. **사용자가 레퍼런스 이미지(파일 경로/URL/첨부)를 제공하면 자동으로 디자인 테마(팔레트·조명·구도·아트 디렉션·질감·분위기·시대감)를 7축으로 분석하여 모든 컷에 일관 적용한다.** Use proactively when user provides scenario text, scene description, or asks for storyboard/visualization. 트리거 키워드 — \"시나리오 시각화\", \"스토리보드\", \"장면 그려줘\", \"컷 분해\", \"캐릭터 시트\", \"GPT Image\", \"이미지 생성\", \"콘티\", \"레퍼런스 이미지\", \"이 스타일로\", \"이 톤으로\", \"이 분위기로\", \"style reference\", \"디자인 테마\".",
       "model": "opus",
       "tools": [
         "Read, Write, Bash, Glob"
@@ -1597,6 +2248,54 @@
       "category": "development"
     },
     {
+      "id": "specialized-chief-of-staff",
+      "name": "Chief of Staff",
+      "description": "Master coordinator for founders and executives — filters noise, owns processes, enforces consistency, routes decisions, and positions outputs for impact so the boss can think clearly.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "specialized-cultural-intelligence-strategist",
+      "name": "Cultural Intelligence Strategist",
+      "description": "CQ specialist that detects invisible exclusion, researches global context, and ensures software resonates authentically across intersectional identities.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "specialized-developer-advocate",
+      "name": "Developer Advocate",
+      "description": "Expert developer advocate specializing in building developer communities, creating compelling technical content, optimizing developer experience (DX), and driving platform adoption through authentic engineering engagement. Bridges product and engineering teams with external developers.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "specialized-mcp-builder",
+      "name": "MCP Builder",
+      "description": "Expert Model Context Protocol developer who designs, builds, and tests MCP servers that extend AI agent capabilities with custom tools, resources, and prompts.",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
+      "id": "specialized-salesforce-architect",
+      "name": "Salesforce Architect",
+      "description": "Solution architecture for Salesforce platform — multi-cloud design, integration patterns, governor limits, deployment strategy, and data model governance for enterprise-scale orgs",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "specialized-workflow-architect",
+      "name": "Workflow Architect",
+      "description": "Workflow design specialist who maps complete workflow trees for every system, user journey, and agent interaction — covering happy paths, all branch conditions, failure modes, recovery paths, handoff contracts, and observable states to produce build-ready specs that agents can implement against and QA can test against.",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
       "id": "stock-investment-advisor",
       "name": "stock-investment-advisor",
       "description": "주식 투자 전문가 에이전트. 한국/글로벌 주식 시장 분석, 종목 스크리닝, 재무제표 분석, 기술적 분석, 투자 전략 수립을 수행한다. 13명의 구루 프레임워크(버핏/그레이엄/린치/달리오/막스/그린블라트/오닐/미너비니/와인스타인/박세익/김정환/이채원/홍진채)를 적용하여 체계적 투자 의사결정을 지원한다.",
@@ -1643,6 +2342,14 @@
       "memory": "user"
     },
     {
+      "id": "supply-chain-strategist",
+      "name": "Supply Chain Strategist",
+      "description": "Expert supply chain management and procurement strategy specialist — skilled in supplier development, strategic sourcing, quality control, and supply chain digitalization. Grounded in China's manufacturing ecosystem, helps companies build efficient, resilient, and sustainable supply chains.",
+      "model": "default",
+      "tools": [],
+      "category": "development"
+    },
+    {
       "id": "systematic-debugger",
       "name": "systematic-debugger",
       "description": "재현 가능하지만 원인 불명 버그 전문. reproduce → bisect → hypothesize → verify 4단계 프로토콜. 실패 테스트 없이 추측 절대 금지. Use proactively when 버그가 재현되지만 원인을 모를 때 — \"왜 이렇게 되지\", \"이상하게 동작해\", \"간헐적 버그\", \"5-why\" 요청 시. 빌드/컴파일 에러는 build-error-resolver, 런타임 성능은 performance-reviewer 사용.",
@@ -1680,6 +2387,30 @@
       "maxTurns": 20,
       "memory": "project",
       "isolation": true
+    },
+    {
+      "id": "technical-artist",
+      "name": "Technical Artist",
+      "description": "Art-to-engine pipeline specialist - Masters shaders, VFX systems, LOD pipelines, performance budgeting, and cross-engine asset optimization",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "terminal-integration-specialist",
+      "name": "Terminal Integration Specialist",
+      "description": "Terminal emulation, text rendering optimization, and SwiftTerm integration for modern Swift applications",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "testing-evidence-collector",
+      "name": "Evidence Collector",
+      "description": "Screenshot-obsessed, fantasy-allergic QA specialist - Default to finding 3-5 issues, requires visual proof for everything",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
     },
     {
       "id": "training-designer",
@@ -1721,6 +2452,70 @@
       "memory": "project"
     },
     {
+      "id": "unity-architect",
+      "name": "Unity Architect",
+      "description": "Data-driven modularity specialist - Masters ScriptableObjects, decoupled systems, and single-responsibility component design for scalable Unity projects",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "unity-editor-tool-developer",
+      "name": "Unity Editor Tool Developer",
+      "description": "Unity editor automation specialist - Masters custom EditorWindows, PropertyDrawers, AssetPostprocessors, ScriptedImporters, and pipeline automation that saves teams hours per week",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "unity-multiplayer-engineer",
+      "name": "Unity Multiplayer Engineer",
+      "description": "Networked gameplay specialist - Masters Netcode for GameObjects, Unity Gaming Services (Relay/Lobby), client-server authority, lag compensation, and state synchronization",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "unity-shader-graph-artist",
+      "name": "Unity Shader Graph Artist",
+      "description": "Visual effects and material specialist - Masters Unity Shader Graph, HLSL, URP/HDRP rendering pipelines, and custom pass authoring for real-time visual effects",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "unreal-multiplayer-architect",
+      "name": "Unreal Multiplayer Architect",
+      "description": "Unreal Engine networking specialist - Masters Actor replication, GameMode/GameState architecture, server-authoritative gameplay, network prediction, and dedicated server setup for UE5",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "unreal-systems-engineer",
+      "name": "Unreal Systems Engineer",
+      "description": "Performance and hybrid architecture specialist - Masters C++/Blueprint continuum, Nanite geometry, Lumen GI, and Gameplay Ability System for AAA-grade Unreal Engine projects",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "unreal-technical-artist",
+      "name": "Unreal Technical Artist",
+      "description": "Unreal Engine visual pipeline specialist - Masters the Material Editor, Niagara VFX, Procedural Content Generation, and the art-to-engine pipeline for UE5 projects",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "unreal-world-builder",
+      "name": "Unreal World Builder",
+      "description": "Open-world and environment specialist - Masters UE5 World Partition, Landscape, procedural foliage, HLOD, and large-scale level streaming for seamless open-world experiences",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
       "id": "verify-agent",
       "name": "verify-agent",
       "description": "구현 완료 후 fresh-context 검증 전용. typecheck → lint → build → test 파이프라인 독립 실행. 단순 에러(import·타입) 자동 수정, 비수정 가능 에러 분류 보고. Use proactively when 구현 완료 직후 \"검증해줘\", \"빌드 확인\", \"테스트 돌려봐\" 요청 시, 또는 /handoff-verify 스킬에서 자동 스폰. 구현 자체는 tdd-guide나 impl-worker 사용.",
@@ -1736,6 +2531,14 @@
       "category": "development",
       "maxTurns": 10,
       "memory": "project"
+    },
+    {
+      "id": "visionos-spatial-engineer",
+      "name": "visionOS Spatial Engineer",
+      "description": "Native visionOS spatial computing, SwiftUI volumetric interfaces, and Liquid Glass design implementation",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
     },
     {
       "id": "web-designer",
@@ -1772,6 +2575,38 @@
       ],
       "category": "marketing",
       "maxTurns": 8
+    },
+    {
+      "id": "xr-cockpit-interaction-specialist",
+      "name": "XR Cockpit Interaction Specialist",
+      "description": "Specialist in designing and developing immersive cockpit-based control systems for XR environments",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "xr-immersive-developer",
+      "name": "XR Immersive Developer",
+      "description": "Expert WebXR and immersive technology developer with specialization in browser-based AR/VR/XR applications",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "xr-interface-architect",
+      "name": "XR Interface Architect",
+      "description": "Spatial interaction designer and interface strategist for immersive AR/VR/XR environments",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "zk-steward",
+      "name": "ZK Steward",
+      "description": "Knowledge-base steward in the spirit of Niklas Luhmann's Zettelkasten. Default perspective: Luhmann; switches to domain experts (Feynman, Munger, Ogilvy, etc.) by task. Enforces atomic notes, connectivity, and validation loops. Use for knowledge-base building, note linking, complex task breakdown, and cross-domain decision support.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
     }
   ],
   "skills": [
@@ -1791,6 +2626,20 @@
     },
     {
       "id": "agent-router",
+      "name": "agent-router",
+      "description": "전문 에이전트 자동 라우팅. 법률, 재무, 특허, SEO, 마케팅, 기획, BM 설계(BMC/Lean/JTBD/Wardley/Blue Ocean/Lightning Sprint), 코드리뷰, 아키텍처, 견적, CRM, HR/인사, 노무(노동법/해고/산재/취업규칙), 리서치, 데이터 분석, 제1원칙 사고, 주식 투자, 부동산 투자, 명리학, 회사운영(노란우산/창업혜택/고용지원/세무일정), 디자인 제작(배너/카드뉴스/SNS/광고/인포그래픽), FAQ/지식베이스(KCS/셀프서비스/아티클), 고객지원(CS응답/에스컬레이션) 등 50+ 에이전트",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "agent-router.bak-20260520_105820",
+      "name": "agent-router",
+      "description": "전문 에이전트 자동 라우팅. 법률, 재무, 특허, SEO, 마케팅, 기획, BM 설계(BMC/Lean/JTBD/Wardley/Blue Ocean/Lightning Sprint), 코드리뷰, 아키텍처, 견적, CRM, HR/인사, 노무(노동법/해고/산재/취업규칙), 리서치, 데이터 분석, 제1원칙 사고, 주식 투자, 부동산 투자, 명리학, 회사운영(노란우산/창업혜택/고용지원/세무일정), 디자인 제작(배너/카드뉴스/SNS/광고/인포그래픽), FAQ/지식베이스(KCS/셀프서비스/아티클), 고객지원(CS응답/에스컬레이션) 등 50+ 에이전트",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "agent-router.bak-tier2-20260520_112009",
       "name": "agent-router",
       "description": "전문 에이전트 자동 라우팅. 법률, 재무, 특허, SEO, 마케팅, 기획, BM 설계(BMC/Lean/JTBD/Wardley/Blue Ocean/Lightning Sprint), 코드리뷰, 아키텍처, 견적, CRM, HR/인사, 노무(노동법/해고/산재/취업규칙), 리서치, 데이터 분석, 제1원칙 사고, 주식 투자, 부동산 투자, 명리학, 회사운영(노란우산/창업혜택/고용지원/세무일정), 디자인 제작(배너/카드뉴스/SNS/광고/인포그래픽), FAQ/지식베이스(KCS/셀프서비스/아티클), 고객지원(CS응답/에스컬레이션) 등 50+ 에이전트",
       "type": "skill-file",
@@ -1948,6 +2797,13 @@
       "name": "community-converter",
       "description": "무료 커뮤니티 멤버를 유료 고객으로 전환하는 파이프라인 설계. 세그먼트화, 가치 사다리, 전환 트리거, 업셀 시퀀스. QJC 앰버서더 모델 최적화.",
       "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "company-sync",
+      "name": "/company-sync — 회사 하네스 동기화",
+      "description": "QJC 회사 하네스 동기화 (어디서든 호출, role 기반 자동 분기 — admin: 양방향, member: pull-only)",
+      "type": "skill-file",
       "hasSubcommands": false
     },
     {
@@ -2521,6 +3377,13 @@
       "id": "proposal",
       "name": "사업계획서 작성 에이전트",
       "description": "정부지원사업 사업계획서 작성 (v2.1 버그 수정)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pull-main",
+      "name": "pull-main",
+      "description": "개발 브랜치에서 main의 최신 내용을 충돌 없이 가져온다. 충돌 시 main 측 변경이 우선(-X theirs). main 브랜치에서 실행 시 거부. 사전 backup 브랜치 자동 생성 + 미커밋 변경 자동 stash.",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -3591,6 +4454,12 @@
       "priority": "critical"
     },
     {
+      "id": "answer-provenance",
+      "name": "답변 출처 추적 정책 (Answer Provenance, IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/answer-provenance.md",
+      "priority": "critical"
+    },
+    {
       "id": "bizcard-auto-detect",
       "name": "명함 자동 감지 (IMPORTANT)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/bizcard-auto-detect.md",
@@ -3627,9 +4496,21 @@
       "priority": "critical"
     },
     {
+      "id": "contract-engineering",
+      "name": "컨트랙트 엔지니어링 (Contract Engineering, IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/contract-engineering.md",
+      "priority": "critical"
+    },
+    {
       "id": "contract-legal",
       "name": "계약법/민사법률 자동 라우팅",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/contract-legal.md",
+      "priority": "critical"
+    },
+    {
+      "id": "dark-mode-audit",
+      "name": "다크 모드 양방향 검토 의무 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/dark-mode-audit.md",
       "priority": "critical"
     },
     {
@@ -3643,6 +4524,12 @@
       "name": "Design Engineer 룰 (web-designer 확장)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/design-engineer.md",
       "priority": "normal"
+    },
+    {
+      "id": "detail-page",
+      "name": "상세페이지 자동 제작 (detail-page-creator) 라우팅 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/detail-page.md",
+      "priority": "critical"
     },
     {
       "id": "discord-notify",
@@ -3753,6 +4640,12 @@
       "priority": "critical"
     },
     {
+      "id": "memory-policy",
+      "name": "메모리 정책 (Memory Policy, IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/memory-policy.md",
+      "priority": "critical"
+    },
+    {
       "id": "notification-hooks",
       "name": "알림 훅 작성 표준 (CRITICAL)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/notification-hooks.md",
@@ -3774,6 +4667,12 @@
       "id": "personal-os",
       "name": "Personal OS Rules",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/personal-os.md",
+      "priority": "critical"
+    },
+    {
+      "id": "pipeline-metrics",
+      "name": "파이프라인 메트릭 (Pipeline Metrics, IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/pipeline-metrics.md",
       "priority": "critical"
     },
     {
@@ -5016,6 +5915,10 @@
           "fileCount": 2
         },
         {
+          "name": "financial-accountant",
+          "fileCount": 1
+        },
+        {
           "name": "first-principles-thinker",
           "fileCount": 0
         },
@@ -5094,6 +5997,7 @@
       "directories": [
         "content",
         "identity",
+        "llm-wiki",
         "memory",
         "network",
         "operations"
@@ -5101,10 +6005,10 @@
     }
   },
   "stats": {
-    "agentCount": 99,
-    "skillCount": 162,
+    "agentCount": 201,
+    "skillCount": 166,
     "hookCount": 97,
-    "ruleCount": 49,
+    "ruleCount": 55,
     "pipelineCount": 18,
     "mcpServerCount": 47
   }
