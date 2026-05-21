@@ -86,6 +86,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // ~/.claude 디렉토리 변경 감지 시 자동 rescan (file_watcher → claude-system-changed 이벤트)
   // Phase 2 백그라운드 rescan과 보완 관계 — 마운트 시 1회 + 이후 변경 시마다.
   useEffect(() => {
+    // Vite dev에서 Tauri context 없으면 listen이 throw — 가드.
+    if (
+      typeof window === 'undefined' ||
+      !(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__
+    ) {
+      return
+    }
+
     let unlisten: (() => void) | null = null
 
     api
@@ -94,6 +102,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       })
       .then((fn) => {
         unlisten = fn
+      })
+      .catch(() => {
+        // listen 실패는 dev 환경 등 — 조용히 무시
       })
 
     return () => {

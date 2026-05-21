@@ -81,14 +81,38 @@ export function SessionEventsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    api.onSessionEvent(handleEvent).then((unlisten) => {
-      unlistenEventRef.current = unlisten
-    })
-    api.onSessionId((id: string) => setSessionId(id)).then((unlisten) => {
-      unlistenIdRef.current = unlisten
-    })
+    // Tauri 환경이 아닐 때는 listen 호출 자체가 throw → Vite dev에서 콘솔 에러 7개 발생.
+    // window.__TAURI_INTERNALS__ 존재 여부로 가드 (DataProvider와 동일 패턴).
+    if (
+      typeof window === 'undefined' ||
+      !(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__
+    ) {
+      return
+    }
+
+    let cancelled = false
+    api
+      .onSessionEvent(handleEvent)
+      .then((unlisten) => {
+        unlistenEventRef.current = unlisten
+        // listen 등록 완료 후 명시적 백필 요청 (race condition 방어)
+        if (!cancelled) {
+          api.backfillSession().catch(() => {})
+        }
+      })
+      .catch((e) => {
+        // eslint-disable-next-line no-console
+        console.warn('[SessionEvents] onSessionEvent listen failed:', e)
+      })
+    api
+      .onSessionId((id: string) => setSessionId(id))
+      .then((unlisten) => {
+        unlistenIdRef.current = unlisten
+      })
+      .catch(() => {})
 
     return () => {
+      cancelled = true
       unlistenEventRef.current?.()
       unlistenIdRef.current?.()
     }

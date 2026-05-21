@@ -36,6 +36,15 @@ export const api = {
     }
   },
 
+  // 프론트 mount 후 listen 등록 → 명시적 백필 요청 (race condition 방어)
+  backfillSession: async (): Promise<number> => {
+    try {
+      return await invoke<number>('backfill_session')
+    } catch {
+      return 0
+    }
+  },
+
   rescanUsage: async (): Promise<{ ok: boolean; data?: unknown; error?: string }> => {
     try {
       const data = await invoke<unknown>('rescan_usage')

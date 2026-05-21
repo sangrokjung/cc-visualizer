@@ -102,6 +102,13 @@ pub async fn rescan_system() -> Result<serde_json::Value, String> {
     serde_json::from_str(&content).map_err(|e| e.to_string())
 }
 
+/// 프론트엔드 mount 직후 호출하여 최신 세션 JSONL의 백필 이벤트를 받아옵니다.
+/// race condition 방어 — start_session_watcher의 자동 백필을 못 받았어도 명시적 재요청.
+#[tauri::command]
+pub fn backfill_session(app: tauri::AppHandle) -> Result<usize, String> {
+    crate::session_watcher::backfill_latest_session(&app)
+}
+
 #[tauri::command]
 pub async fn rescan_usage() -> Result<serde_json::Value, String> {
     let project_dir = home_dir().join("projects/cc-visualizer");

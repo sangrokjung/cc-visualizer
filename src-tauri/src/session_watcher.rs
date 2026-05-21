@@ -404,8 +404,53 @@ mod tests {
     }
 }
 
+/// 가장 최근 JSONL의 마지막 256KB 백필 이벤트 emit.
+/// 프론트엔드가 listen 등록 후 명시적으로 호출 가능 → race condition 회피.
+pub fn backfill_latest_session(app: &AppHandle) -> Result<usize, String> {
+    let mut last_scan: u64 = 0;
+    let path = find_latest_jsonl(&mut last_scan).ok_or("no jsonl found")?;
+    let file_size = path.metadata().map_err(|e| e.to_string())?.len();
+    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+
+    const BACKFILL_BYTES: u64 = 256 * 1024;
+    let backfill_start = file_size.saturating_sub(BACKFILL_BYTES);
+    let backfill_content: &str = if backfill_start == 0 {
+        content.as_str()
+    } else {
+        let byte_idx = backfill_start as usize;
+        let safe_idx = content[byte_idx..]
+            .find('\n')
+            .map(|i| byte_idx + i + 1)
+            .unwrap_or(content.len());
+        &content[safe_idx..]
+    };
+
+    let session_id = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let _ = app.emit("session-id", &session_id);
+
+    let mut count = 0;
+    for line in backfill_content.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        for event in parse_line(line) {
+            let _ = app.emit("session-event", &event);
+            count += 1;
+        }
+    }
+    eprintln!("[session-watcher] 백필 요청 처리: {} events", count);
+    Ok(count)
+}
+
 pub fn start_session_watcher(app: AppHandle) {
     std::thread::spawn(move || {
+        // race condition 방어 — 프론트 React가 listen 등록할 시간 확보 (1초)
+        std::thread::sleep(Duration::from_millis(1000));
+
         let mut last_scan: u64 = 0;
         let mut current_path: Option<PathBuf> = None;
         let mut offset: u64 = 0;
