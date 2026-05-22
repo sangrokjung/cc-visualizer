@@ -27,16 +27,35 @@ const DOMAIN_META = [
 ] as const
 
 // 변화 뱃지 — +N (초록) / -N (빨강) / 0 (숨김)
-function DiffBadge({ value }: { value: number }) {
+// variant: 'inline' (텍스트 옆 baseline) / 'corner' (칩 우상단 absolute)
+function DiffBadge({
+  value,
+  variant = 'inline',
+}: {
+  value: number
+  variant?: 'inline' | 'corner'
+}) {
   if (value === 0) return null
   const isPositive = value > 0
+  const base = {
+    backgroundColor: isPositive ? 'rgba(41, 166, 52, 0.18)' : 'rgba(211, 61, 23, 0.18)',
+    color: isPositive ? '#29A634' : '#D33D17',
+  }
+  if (variant === 'corner') {
+    return (
+      <span
+        className="absolute top-1.5 right-1.5 text-[10px] font-bold px-1.5 py-px rounded-full animate-pulse"
+        style={base}
+      >
+        {isPositive ? '+' : ''}
+        {value}
+      </span>
+    )
+  }
   return (
     <span
-      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse"
-      style={{
-        backgroundColor: isPositive ? 'rgba(41, 166, 52, 0.18)' : 'rgba(211, 61, 23, 0.18)',
-        color: isPositive ? '#29A634' : '#D33D17'
-      }}
+      className="text-xs font-bold px-1.5 py-0.5 rounded-full animate-pulse"
+      style={base}
     >
       {isPositive ? '+' : ''}
       {value}
@@ -44,7 +63,9 @@ function DiffBadge({ value }: { value: number }) {
   )
 }
 
-// 도메인 칩 — 큰 카운트 + 라벨 + 변화 뱃지
+// 도메인 칩 — 큰 카운트 + 라벨 + 변화 뱃지(우상단)
+// DiffBadge를 인라인에서 corner로 분리해 칩 내부 폭 부족으로 옆 칩을 침범하던
+// card-bleed(+35px, +12px, +2px) 결함을 해소한다. 칩 자체는 `relative` 필수.
 function DomainChip({
   icon,
   label,
@@ -61,27 +82,27 @@ function DomainChip({
   const animated = useCountUp(count, 1200)
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:scale-[1.04]"
+      className="relative flex items-center gap-2.5 px-3 py-3 rounded-xl transition-all hover:scale-[1.04] min-w-0"
       style={{
         backgroundColor: 'rgba(28, 33, 39, 0.6)',
         border: `1px solid ${color}33`,
         boxShadow: `inset 0 0 20px ${color}0F`
       }}
     >
-      <span className="text-2xl" style={{ color, filter: `drop-shadow(0 0 6px ${color}88)` }}>
+      {/* 변화 뱃지는 우상단 코너에 absolute — 칩 내부 폭 부족 회피 */}
+      <DiffBadge value={diff} variant="corner" />
+
+      <span className="text-3xl shrink-0" style={{ color, filter: `drop-shadow(0 0 6px ${color}88)` }}>
         {icon}
       </span>
-      <div className="flex flex-col">
-        <div className="flex items-baseline gap-1.5">
-          <span
-            className="text-3xl font-bold tabular-nums"
-            style={{ color: '#F6F7F9' }}
-          >
-            {animated}
-          </span>
-          <DiffBadge value={diff} />
-        </div>
-        <span className="text-[11px]" style={{ color: '#738091' }}>
+      <div className="flex flex-col min-w-0">
+        <span
+          className="text-4xl font-bold tabular-nums leading-tight"
+          style={{ color: '#F6F7F9' }}
+        >
+          {animated}
+        </span>
+        <span className="text-[13px]" style={{ color: '#738091' }}>
           {label}
         </span>
       </div>
@@ -143,23 +164,23 @@ export function HeroSection() {
               />
             </span>
             <span
-              className="text-[11px] uppercase tracking-[0.18em] font-semibold"
+              className="text-[13px] uppercase tracking-[0.18em] font-semibold"
               style={{ color: '#29A634' }}
             >
               Live · System Active
             </span>
-            <span className="text-[11px]" style={{ color: '#5F6B7C' }}>
+            <span className="text-[13px]" style={{ color: '#5F6B7C' }}>
               · 최종 스캔 {formatTimestamp(scanTimestamp)}
             </span>
           </div>
 
-          <h1 className="text-xs uppercase tracking-[0.2em]" style={{ color: '#ABB3BF' }}>
+          <h1 className="text-sm uppercase tracking-[0.2em]" style={{ color: '#ABB3BF' }}>
             클로드 코드 시스템 개요
           </h1>
 
           <div className="flex items-baseline gap-3 mt-1">
             <span
-              className="text-7xl font-black tabular-nums leading-none"
+              className="text-8xl font-black tabular-nums leading-[1.05] pb-1"
               style={{
                 background: 'linear-gradient(135deg, #F6F7F9 0%, #8ABBFF 50%, #BFAFFF 100%)',
                 WebkitBackgroundClip: 'text',
@@ -170,7 +191,7 @@ export function HeroSection() {
               {animatedTotal}
             </span>
             <div className="flex flex-col">
-              <span className="text-sm" style={{ color: '#ABB3BF' }}>
+              <span className="text-base" style={{ color: '#ABB3BF' }}>
                 Total Entities
               </span>
               <DiffBadge value={diff.totalDiff} />
@@ -178,8 +199,8 @@ export function HeroSection() {
           </div>
         </div>
 
-        {/* 우측: 6개 도메인 칩 그리드 */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-3 xl:grid-cols-6 gap-2">
+        {/* 우측: 6개 도메인 칩 그리드 — 2행 3열 (각 칩이 숫자/배지가 충분히 들어가는 폭 확보) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
           {DOMAIN_META.map((meta) => (
             <DomainChip
               key={meta.key}

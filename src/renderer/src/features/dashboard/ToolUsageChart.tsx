@@ -19,19 +19,28 @@ export function ToolUsageChart() {
     }
   }
 
-  // 빈도 순 정렬
-  const data = Object.entries(toolCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, count]) => ({ name, count }))
+  // 빈도 순 정렬 + 상위 15개로 제한 (전체 50+ 도구를 한 차트에 넣으면 라벨이 겹친다)
+  const TOP_N = 15
+  const sorted = Object.entries(toolCounts).sort((a, b) => b[1] - a[1])
+  const data = sorted.slice(0, TOP_N).map(([name, count]) => ({ name, count }))
+  const totalToolCount = sorted.length
+
+  // 긴 도구명(mcp__supabase_db__execute_sql 등) ellipsis
+  const formatTick = (name: string): string => (name.length > 22 ? `${name.slice(0, 21)}…` : name)
 
   return (
     <div style={{ backgroundColor: '#1C2127', borderColor: '#404854' }} className="rounded-xl border p-5">
-      <h3 style={{ color: '#F6F7F9' }} className="text-sm font-semibold mb-4">
-        에이전트 도구 사용 현황
-      </h3>
+      <div className="flex items-baseline justify-between mb-4">
+        <h3 style={{ color: '#F6F7F9' }} className="text-base font-semibold">
+          에이전트 도구 사용 현황
+        </h3>
+        <span className="text-xs" style={{ color: '#738091' }}>
+          Top {TOP_N} / {totalToolCount}개 도구
+        </span>
+      </div>
 
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={data} layout="vertical" margin={{ left: 10, right: 20 }}>
+      <ResponsiveContainer width="100%" height={360}>
+        <BarChart data={data} layout="vertical" margin={{ left: 4, right: 24, top: 4, bottom: 4 }}>
           <defs>
             <linearGradient id="toolBarGradient" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#2D72D2" />
@@ -40,24 +49,26 @@ export function ToolUsageChart() {
           </defs>
           <XAxis
             type="number"
-            tick={{ fill: '#ABB3BF', fontSize: 11 }}
+            tick={{ fill: '#ABB3BF', fontSize: 12 }}
             axisLine={{ stroke: '#404854' }}
             tickLine={false}
           />
           <YAxis
             type="category"
             dataKey="name"
-            width={80}
-            tick={{ fill: '#ABB3BF', fontSize: 11 }}
+            width={150}
+            tick={{ fill: '#ABB3BF', fontSize: 12 }}
+            tickFormatter={formatTick}
             axisLine={false}
             tickLine={false}
+            interval={0}
           />
           <Tooltip
             contentStyle={{
               backgroundColor: '#1C2127',
               border: '1px solid #404854',
               borderRadius: '8px',
-              fontSize: '12px',
+              fontSize: '13px',
               color: '#F6F7F9'
             }}
             cursor={{ fill: 'rgba(45,114,210,0.08)' }}
