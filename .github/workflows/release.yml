@@ -47,8 +47,9 @@ jobs:
 
       # system-data.json 재생성 — CI 머신에 ~/.claude 없으므로
       # 오류 시 번들 내 기존 파일로 폴백 (|| true)
-      - name: 시스템 데이터 스냅샷 생성
-        run: npm run scan || echo "⚠️  scan 실패 — 기존 system-data.json으로 빌드 진행"
+      # 주의: npm run scan은 CI 머신에 ~/.claude가 없어 빈 JSON으로 덮어쓰기 → TS never 추론 → 빌드 실패.
+      # main에 커밋된 system-data.json(빌더 머신의 최신 스냅샷)을 그대로 사용한다.
+      # 직원은 자기 머신에서 rescan(번들 scan 스크립트 + 자기 HOME)으로 자기 데이터로 갱신.
 
       # tauri-action v0: 미서명 빌드 (Apple 인증서 입력값 전부 빈칸)
       # 주의: 미서명 .dmg/.app은 직원이 최초 실행 시 Gatekeeper 경고를 수동 우회해야 함
