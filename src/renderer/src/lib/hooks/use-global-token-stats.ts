@@ -50,10 +50,13 @@ function last7Keys(): Set<string> {
 }
 
 // Claude 모델만 필터 — agent metadata 또는 modelsUsed 검사
+// 스냅샷 폴백처럼 두 필드 모두 없을 때는 통과시켜야 데이터가 0으로 안 떨어진다 (graceful)
 function isClaudeEntry(e: DailyEntry): boolean {
   const agents = e.metadata?.agents ?? []
   if (agents.some((a) => a.toLowerCase().includes('claude'))) return true
-  return e.modelsUsed.some((m) => m.toLowerCase().includes('claude'))
+  const models = e.modelsUsed ?? []
+  if (models.length === 0 && agents.length === 0) return true // 메타 없음 = 필터 무력화
+  return models.some((m) => m.toLowerCase().includes('claude'))
 }
 
 const EMPTY_STATS: Omit<GlobalTokenStats, 'refresh'> = {
@@ -70,15 +73,12 @@ export function useGlobalTokenStats(): GlobalTokenStats {
   const [stats, setStats] = useState<Omit<GlobalTokenStats, 'refresh'>>({ ...EMPTY_STATS, loading: true })
 
   const load = useCallback(async () => {
-    // Tauri context 없으면 빈 stats
-    if (typeof window === 'undefined' || !(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__) {
-      setStats({ ...EMPTY_STATS })
-      return
-    }
+    // Tauri/브라우저 dev 둘 다 지원 — api.fetchCcusageDaily가 invoke 실패 시 정적 스냅샷 폴백
     setStats((s) => ({ ...s, loading: true, error: null }))
     try {
       const raw = (await api.fetchCcusageDaily()) as { daily?: DailyEntry[]; error?: string }
       if (raw.error) throw new Error(raw.error)
+      // isClaudeEntry는 modelsUsed/metadata가 누락된 스냅샷도 graceful 통과시킨다 (필터 무력화 → 전체 포함)
       const daily = (raw.daily ?? []).filter(isClaudeEntry)
       const todayK = todayKey()
       const yK = yesterdayKey()

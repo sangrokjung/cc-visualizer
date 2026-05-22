@@ -12,6 +12,7 @@ import { ToolUsageChart } from './ToolUsageChart'
 import { PipelineCards } from './PipelineCards'
 import { McpGrid } from './McpGrid'
 import { MemoryPanel } from './MemoryPanel'
+import { GamificationPanel } from './GamificationPanel'
 import { RefreshToast } from '../../components/RefreshToast'
 
 // 6개 도메인 카운트 합산
@@ -106,6 +107,9 @@ export default function DashboardView() {
 
         {/* 1. 히어로 섹션 (메가 카운트 + 도메인 칩) */}
         <HeroSection />
+
+        {/* 1.5 게임화 패널 (레벨/XP/스트릭/업적) — 현재 상태 + 동기부여 */}
+        <GamificationPanel />
 
         {/* 2. 라이브 활동 (현재 작동 중인 Claude Code) + 토큰/비용 흐름 — 신규 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

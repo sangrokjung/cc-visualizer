@@ -46,11 +46,18 @@ export const api = {
   },
 
   // ccusage 일자별 통계 — Claude Code stats 데이터
+  // Tauri 환경: 실시간 ccusage. 비-Tauri(브라우저 dev): 빌드타임 정적 스냅샷 폴백.
   fetchCcusageDaily: async (): Promise<unknown> => {
     try {
       return await invoke<unknown>('fetch_ccusage_daily')
     } catch (error) {
-      return { error: String(error), daily: [] }
+      // 브라우저/dev 폴백 — ccusage-snapshot.json (게이미피케이션/사용량 표시용)
+      try {
+        const snap = await import('../data/ccusage-snapshot.json')
+        return (snap as { default?: unknown }).default ?? snap
+      } catch {
+        return { error: String(error), daily: [] }
+      }
     }
   },
 
@@ -64,9 +71,35 @@ export const api = {
   },
 
   // Data Loading (동적 — 정적 import 대체)
-  loadSystemData: (): Promise<unknown> => invoke<unknown>('load_system_data'),
-  loadUsageData: (): Promise<unknown> => invoke<unknown>('load_usage_data'),
-  loadExternalSystems: (): Promise<unknown> => invoke<unknown>('load_external_systems'),
+  // 브라우저 dev에서는 invoke 자체가 undefined → 정적 import 폴백
+  loadSystemData: async (): Promise<unknown> => {
+    try {
+      return await invoke<unknown>('load_system_data')
+    } catch {
+      const m = await import('../data/system-data.json')
+      return (m as { default?: unknown }).default ?? m
+    }
+  },
+  loadUsageData: async (): Promise<unknown> => {
+    try {
+      return await invoke<unknown>('load_usage_data')
+    } catch {
+      const m = await import('../data/usage-stats.json')
+      return (m as { default?: unknown }).default ?? m
+    }
+  },
+  loadExternalSystems: async (): Promise<unknown> => {
+    try {
+      return await invoke<unknown>('load_external_systems')
+    } catch {
+      try {
+        const m = await import('../data/external-systems.json')
+        return (m as { default?: unknown }).default ?? m
+      } catch {
+        return { systems: [] }
+      }
+    }
+  },
 
   // Events (Streaming)
   onFileChanged: (callback: (event: { path: string; type: string; timestamp: number }) => void): Promise<UnlistenFn> => {

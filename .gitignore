@@ -17,8 +17,15 @@ src/**/*.d.ts
 *.png
 .playwright-mcp/
 
+# 개인 사용량 스냅샷 (ccusage 비용/토큰 — git 제외, dev 폴백용 로컬 생성)
+# 재생성: npx ccusage daily --json | jq '{daily:[.daily[]|{period,totalTokens,totalCost,inputTokens,outputTokens,cacheCreationTokens,cacheReadTokens}],snapshotAt:(now|todate)}' > src/renderer/src/data/ccusage-snapshot.json
+src/renderer/src/data/ccusage-snapshot.json
+
 # Tauri Rust 빌드 캐시
 src-tauri/target/
+
+# macOS 메뉴바 데몬 Swift 빌드 산출물 (소스만 커밋, 바이너리는 build.sh로 재생성)
+menubar/.build/
 
 # 임시 worktree (병렬 에이전트 작업용)
 .claude/worktrees/
