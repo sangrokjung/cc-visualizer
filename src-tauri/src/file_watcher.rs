@@ -34,13 +34,35 @@ pub fn start_file_watcher(app: AppHandle) {
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
 
         // (경로, 감시 그룹) 쌍 목록
+        //
+        // SSOT 정합성 (CRITICAL):
+        // ~/.claude/{agents,commands,rules} 는 ~/qjc-office/dotclaude/* 로 가는 symlink일 수 있다.
+        // notify crate(macOS FSEvents 기반)는 symlink target을 자동 추적하지 않으므로
+        // 실제 SSOT 경로를 명시적으로 watch한다. 사용자가 symlink를 풀고 실제 디렉토리로 운영하는
+        // 경우를 대비해 ~/.claude/* 도 함께 watch — 디바운스 1초가 중복 발사를 흡수한다.
+        //
+        // pipelines 도 scan-system.ts 가 실제 읽는 경로 명시:
+        //   - pipelines : ~/qjc-office/dotclaude/reference/agent-pipeline.md
+        // mcpServers 는 settings.json(이미 watch) 의 MCP 필드 + ~/projects/*/.mcp.json 에서 오는데,
+        //   projects 하위 전체 watch 는 코드 변경마다 발화하는 noise 라 제외한다.
+        //   settings.json watch 로 MCP 주요 변경은 커버된다.
         let watch_specs: Vec<(PathBuf, WatchGroup)> = vec![
             (home.join(".claude/work-log"), WatchGroup::WorkLog),
             (home.join(".claude/agent-memory"), WatchGroup::WorkLog),
+            // ~/.claude symlink 경로 (호환성 유지)
             (home.join(".claude/agents"), WatchGroup::ClaudeSystem),
             (home.join(".claude/commands"), WatchGroup::ClaudeSystem),
             (home.join(".claude/rules"), WatchGroup::ClaudeSystem),
             (home.join(".claude/settings.json"), WatchGroup::ClaudeSystem),
+            // SSOT 실제 경로 (symlink가 없거나 notify가 target 추적 안 할 때 안전망)
+            (home.join("qjc-office/dotclaude/agents"), WatchGroup::ClaudeSystem),
+            (home.join("qjc-office/dotclaude/commands"), WatchGroup::ClaudeSystem),
+            (home.join("qjc-office/dotclaude/rules"), WatchGroup::ClaudeSystem),
+            // 파이프라인 정의 파일 (scanPipelines 가 직접 읽음)
+            (
+                home.join("qjc-office/dotclaude/reference/agent-pipeline.md"),
+                WatchGroup::ClaudeSystem,
+            ),
         ];
 
         let valid_specs: Vec<(PathBuf, WatchGroup)> = watch_specs
