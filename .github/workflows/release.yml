@@ -50,11 +50,11 @@ jobs:
       - name: 시스템 데이터 스냅샷 생성
         run: npm run scan || echo "⚠️  scan 실패 — 기존 system-data.json으로 빌드 진행"
 
-      # tauri-action v1: 미서명 빌드 (Apple 인증서 입력값 전부 빈칸)
+      # tauri-action v0: 미서명 빌드 (Apple 인증서 입력값 전부 빈칸)
       # 주의: 미서명 .dmg/.app은 직원이 최초 실행 시 Gatekeeper 경고를 수동 우회해야 함
       # (시스템 설정 → 개인정보 보호 및 보안 → "확인 없이 열기" 또는 xattr 명령)
       - name: Tauri 빌드 & GitHub Release 생성
-        uses: tauri-apps/tauri-action@v1
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # 미서명: Apple 관련 환경변수 전부 미설정
