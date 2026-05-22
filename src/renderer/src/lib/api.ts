@@ -46,18 +46,12 @@ export const api = {
   },
 
   // ccusage 일자별 통계 — Claude Code stats 데이터
-  // Tauri 환경: 실시간 ccusage. 비-Tauri(브라우저 dev): 빌드타임 정적 스냅샷 폴백.
+  // Tauri 환경에서 invoke로만 동작. 브라우저 dev에선 빈 daily 반환 (스냅샷은 개인 비용 데이터라 git에서 제외).
   fetchCcusageDaily: async (): Promise<unknown> => {
     try {
       return await invoke<unknown>('fetch_ccusage_daily')
     } catch (error) {
-      // 브라우저/dev 폴백 — ccusage-snapshot.json (게이미피케이션/사용량 표시용)
-      try {
-        const snap = await import('../data/ccusage-snapshot.json')
-        return (snap as { default?: unknown }).default ?? snap
-      } catch {
-        return { error: String(error), daily: [] }
-      }
+      return { error: String(error), daily: [] }
     }
   },
 
