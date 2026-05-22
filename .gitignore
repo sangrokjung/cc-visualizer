@@ -22,3 +22,6 @@ src-tauri/target/
 
 # 임시 worktree (병렬 에이전트 작업용)
 .claude/worktrees/
+.claude/scheduled_tasks.lock
+.claude/sync-all-plan.json
+.claude/sync-all-report.json

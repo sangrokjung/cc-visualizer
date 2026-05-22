@@ -43,9 +43,9 @@ __tests__/        # Vitest 테스트 (프로젝트 루트)
 
 ## 주요 데이터 (system-data.json 기준)
 
-agents(99), skills(162), hooks(97), rules(49), pipelines(18), mcpServers(47)
+agents(201), skills(176), hooks(97), rules(68), pipelines(18), mcpServers(46)
 
-*수치는 scan-system.ts 파싱 결과 — hooks는 settings.json 등록 command 단위 (29 matchers / 97 commands), skills는 ~/.claude/commands 하위 디렉토리+파일, rules는 ~/qjc-office/dotclaude/rules 기준. 2026-05-13 스캔.*
+*수치는 scan-system.ts 파싱 결과 — hooks는 settings.json 등록 command 단위 (29 matchers / 97 commands), skills는 ~/.claude/commands 하위 디렉토리+파일, rules는 ~/qjc-office/dotclaude/rules 기준. 2026-05-21 스캔.*
 
 ## Git 워크플로우
 
