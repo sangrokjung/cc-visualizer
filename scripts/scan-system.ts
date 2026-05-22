@@ -503,10 +503,16 @@ interface MemorySystem {
   }
 }
 
+// 홈 디렉토리를 Claude Code 프로젝트 폴더 인코딩으로 변환
+// 예: /Users/sangrok → -Users-sangrok (직원마다 다름, 하드코딩 금지)
+function encodeHomeProjectDir(): string {
+  return HOME.replace(/\//g, '-')
+}
+
 function scanMemory(): MemorySystem {
   const autoMemoryPath = path.join(
     HOME,
-    '.claude/projects/-Users-sangrok/memory'
+    `.claude/projects/${encodeHomeProjectDir()}/memory`
   )
   const autoFiles = listFiles(autoMemoryPath)
 
@@ -582,10 +588,12 @@ function main() {
     },
   }
 
-  const outputPath = path.join(
-    __dirname,
-    '../src/renderer/src/data/system-data.json'
-  )
+  // SCAN_OUTPUT_DIR 환경변수가 있으면 해당 디렉토리에 저장 (직원 머신 캐시 경로).
+  // 없으면 기존 소스 트리 경로 (개발 워크플로우 유지).
+  const outputDir = process.env.SCAN_OUTPUT_DIR
+    ? process.env.SCAN_OUTPUT_DIR
+    : path.join(__dirname, '../src/renderer/src/data')
+  const outputPath = path.join(outputDir, 'system-data.json')
   fs.mkdirSync(path.dirname(outputPath), { recursive: true })
   fs.writeFileSync(outputPath, JSON.stringify(systemData, null, 2), 'utf-8')
 

@@ -1,9 +1,10 @@
 ---
-description: "cc-visualizer 아키텍처 - 데이터 흐름, Tauri 백엔드, 프론트엔드 라우팅"
+description: "cc-visualizer 아키텍처 - 데이터 흐름, Tauri 백엔드, 프론트엔드 라우팅, 메뉴바 데몬"
 paths:
   - "src/renderer/**/*.ts"
   - "src/renderer/**/*.tsx"
   - "src-tauri/src/**/*.rs"
+  - "menubar/**/*.swift"
 ---
 
 # cc-visualizer 아키텍처
@@ -61,3 +62,27 @@ Palantir Blueprint 다크 테마 기반:
 - 배경: `#111418` → `#1C2127` → `#252A31`
 - 보더/텍스트: `#404854` / `#ABB3BF`
 - React Flow 노드: `memo()` 필수 (리렌더 방지)
+
+## 맥 메뉴바 데몬 (menubar/Sources/main.swift)
+
+cc-visualizer 앱과 **독립 실행**되는 Swift 데몬. 같은 ccusage 데이터를 쓰지만 별도 프로세스.
+
+```
+~/.claude/projects/ (디렉토리 mtime → 활동 감지)   pgrep claude (병렬 세션 수)
+  ↓ 15초                                              ↓ 15초
+        npx ccusage daily --json (60초, tmp 파일 redirect)
+  ↓
+AppDelegate: 1초 펄스 tick / 5초 슬롯 롤링 / 60초 데이터
+  ↓
+NSStatusItem.button: makePulseDot + makeSparklineImage(NSImage 합성) + 롤링 텍스트
+NSMenu: TrendChartView(14일 막대) + ParallelGaugeView(병렬 게이지) NSView 임베드
+```
+
+핵심 제약 (Tauri 백엔드 commands.rs와 동일 패턴):
+- **ccusage 호출**: fnm symlink(`~/.local/share/fnm/aliases/default/bin/npx`) 직접 spawn. `zsh -ilc`는 launchd tty 없는 환경에서 hang → 회피.
+- **pipe deadlock**: 142KB JSON > 64KB OS pipe buffer → 자식 write block. stdout을 `/tmp/cc-menubar-ccusage-<pid>.json` 파일로 redirect.
+- **동시 호출 가드** (`isFetching`): 60초 주기 호출이 느린 ccusage와 겹치면 자식 프로세스가 무한 누적 (426 좀비 사고). 진행 중이면 skip + 실패 시 기존 데이터 유지.
+- **활동 감지**: 26K+ jsonl 전체 traverse 금지. 1-depth 디렉토리 mtime만 stat (OS가 자식 변경 시 자동 갱신).
+- LaunchAgent KeepAlive=true → 새 빌드 반영은 본체 PID `kill`로 자동 재시작.
+
+데이터 모델: `DayPoint{date,cost,tokens}` 배열(recent7/14Days)이 일별 추이 차트·리스트 공유 소스. NSMenu에 `TrendChartView`/`DailyRowView`/`ParallelGaugeView` NSView 임베드(`NSMenuItem.view`).

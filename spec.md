@@ -92,7 +92,7 @@
 
 ## Feature 10: Agent Office (에이전트 오피스)
 ### 요구사항
-1. 67개 에이전트를 픽셀아트 캐릭터 + 10개 부서 구역 메타포로 시각화
+1. 201개 에이전트를 픽셀아트 캐릭터 + 10개 부서 구역 메타포로 시각화
 2. 3컬럼 BI 레이아웃: 좌 200px FilterPanel, 중 ReactFlow 오피스, 우 280px InsightPanel
 3. 상단 KPI Strip: Working/Recent/Idle/Offline/Pipelines/Tools 6개 카드 (카운트업 애니메이션)
 4. 실시간 상태 (working 30s / recent 5min / idle / offline) — 세션 이벤트 매칭, DEMO MODE 폴백
@@ -109,6 +109,40 @@
 ### 현재 상태
 - Phase 1+2A 완료 (PR #4): 접근성 + 실데이터 연동 + 파이프라인 엣지
 - Phase 2B 완료 (PR #5, 2026-04-14): BI 패널 + 성능 최적화, AgentOfficeView 285→141줄
+
+## Feature 11: Dashboard 게이미피케이션 패널
+### 요구사항
+1. 레벨/XP 시스템 (13단계 비선형 곡선, 한국어 칭호 — 수습 빌더~퀀텀 마스터)
+2. 스트릭 (ccusage 연속 사용일 + 최장 기록)
+3. 업적 12종 (토큰/비용/스트릭/시스템 다양성, bronze/silver/gold tier, 진행률 바)
+4. Palantir 다크 테마 + 업적 그리드
+### 데이터 소스
+- ccusage daily (api.fetchCcusageDaily, 브라우저 dev는 ccusage-snapshot.json 폴백)
+- system-data.json stats (에이전트/스킬 수)
+### 구현
+- lib/gamification.ts (zod 순수 함수) + features/dashboard/GamificationPanel.tsx
+### 현재 상태
+- v1 완료 (2026-05-22): 47 단위 테스트, DashboardView 통합
+
+## Feature 12: macOS 메뉴바 데몬 (menubar/)
+### 요구사항
+1. cc-visualizer와 독립된 Swift NSStatusItem 네이티브 데몬 (LSUIElement)
+2. 메뉴바: 펄스 도트(활성 초록/idle 회색) + 7일 비용 스파크라인(NSImage) + 7슬롯 5초 롤링
+3. 7슬롯: 오늘 비용/오늘 토큰/누적 비용/누적 토큰/병렬 세션/주간 비용/주력 모델
+4. 드롭다운 일별 추이:
+   - 14일 추이 막대 차트(TrendChartView) — 날짜축 라벨 + 피크 일자/금액 표시
+   - 최근 7일 일별 상세(DailyRowView × 7) — 날짜 + 인라인 미니바 + 비용 + 토큰 (오늘 초록 강조)
+   - 병렬 세션 게이지(ParallelGaugeView) — 비율별 색변화(청록→주황)
+5. 활동 감지: ~/.claude/projects/ 디렉토리 mtime 60초 이내 → ⚡ 활성 표시
+6. 병렬 감지: `pgrep -f '^claude'` 인스턴스 수
+### 데이터 소스
+- `npx ccusage daily --json` (fnm symlink 직접 spawn, tmp 파일 redirect로 142KB pipe deadlock 회피)
+- 동시 호출 가드(`isFetching`) — 60초 주기 호출이 겹쳐 ccusage 자식 무한 누적되는 버그 차단 (426 좀비 사고)
+### 빌드/배포
+- menubar/build.sh (swiftc -O) → LaunchAgent (com.qjc.cc-menubar.plist, 로그인 자동시작)
+### 현재 상태
+- v1 완료 (2026-05-22): CPU 0.7~1.7%, 60초 ccusage 갱신, 1초 펄스/5초 슬롯/15초 활동 타이머
+- 일별 추이 추가 (2026-05-22): 14일 차트 날짜축 + 7일 상세 리스트 + 동시 호출 가드
 
 ## 공통: 검색
 ### 요구사항

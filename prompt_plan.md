@@ -29,10 +29,17 @@
 - [ ] Live Monitor 뷰 추가 시각화 (차트/메트릭 세분화)
 
 ## Phase 5: 테스트 & 패키징
-- [x] 주요 컴포넌트 단위 테스트 — 100 tests (14 files) 달성
+- [x] 주요 컴포넌트 단위 테스트 — 193 tests (23 files) 달성
 - [x] React Flow 노드/엣지 상호작용 테스트 (use-pipeline-edges, use-agent-node-data)
 - [ ] Tauri 빌드 검증 (macOS)
 - [x] 데이터 스캔 스크립트 안정화 (tsconfig noEmit로 stale 파일 근본 차단)
+
+## Phase 6: 게이미피케이션 + 맥 메뉴바 (2026-05-22)
+- [x] 게이미피케이션 — lib/gamification.ts (XP/레벨 13단계/스트릭/업적 12종, zod 순수함수) + GamificationPanel.tsx + 47 tests
+- [x] 데이터 정합 — agent-category-map.ts 외부 102개 에이전트 매핑 (201/201 커버리지), api.ts 브라우저 dev 정적 폴백
+- [x] 맥 메뉴바 Swift 데몬 — menubar/ (NSStatusItem + ccusage 연동 + LaunchAgent 로그인 자동시작)
+- [x] 메뉴바 시각화 — 펄스 도트 + 7일 스파크라인 + 7슬롯 롤링(누적/병렬 포함) + 드롭다운 14일 차트 + 병렬 게이지
+- [x] 병렬 세션 감지 — pgrep 기반 동시 실행 Claude 인스턴스 수 표시
 
 ## 의존성
 - Phase 2 (Agent Office)는 Phase 1 완료 후 진행 — **완료 (Phase 2B까지)**

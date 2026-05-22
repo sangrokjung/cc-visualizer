@@ -173,7 +173,12 @@ console.log(`  Projects: ${stats.summary.totalProjects}`)
 console.log(`  Tools: ${stats.toolUsage.length}`)
 console.log(`  Agents: ${stats.agentSpawns.length}`)
 
-const outputPath = join(__dirname, '../src/renderer/src/data/usage-stats.json')
+// SCAN_OUTPUT_DIR 환경변수가 있으면 해당 디렉토리에 저장 (직원 머신 캐시 경로).
+// 없으면 기존 소스 트리 경로 (개발 워크플로우 유지).
+const outputDir = process.env.SCAN_OUTPUT_DIR
+  ? process.env.SCAN_OUTPUT_DIR
+  : join(__dirname, '../src/renderer/src/data')
+const outputPath = join(outputDir, 'usage-stats.json')
 mkdirSync(dirname(outputPath), { recursive: true })
 writeFileSync(outputPath, JSON.stringify(stats, null, 2), 'utf-8')
 console.log(`Output: ${outputPath}`)

@@ -1,0 +1,152 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: '릴리스 태그 (예: v1.0.0) — workflow_dispatch 수동 실행 시 사용'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  # ──────────────────────────────────────────────
+  # Job 1: Tauri 본체 앱 빌드 (macOS arm64 미서명)
+  # ──────────────────────────────────────────────
+  build-tauri:
+    name: Tauri 앱 빌드 (macOS arm64)
+    runs-on: macos-14
+    permissions:
+      contents: write
+
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 20 셋업
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Rust stable 셋업 (aarch64-apple-darwin)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      # Rust 빌드 캐시 — Cargo.lock 기반
+      - name: Rust 캐시 (sccache)
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: npm 의존성 설치
+        run: npm ci
+
+      # system-data.json 재생성 — CI 머신에 ~/.claude 없으므로
+      # 오류 시 번들 내 기존 파일로 폴백 (|| true)
+      - name: 시스템 데이터 스냅샷 생성
+        run: npm run scan || echo "⚠️  scan 실패 — 기존 system-data.json으로 빌드 진행"
+
+      # tauri-action v1: 미서명 빌드 (Apple 인증서 입력값 전부 빈칸)
+      # 주의: 미서명 .dmg/.app은 직원이 최초 실행 시 Gatekeeper 경고를 수동 우회해야 함
+      # (시스템 설정 → 개인정보 보호 및 보안 → "확인 없이 열기" 또는 xattr 명령)
+      - name: Tauri 빌드 & GitHub Release 생성
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 미서명: Apple 관련 환경변수 전부 미설정
+        with:
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag_name }}
+          releaseName: 'CC Visualizer ${{ github.ref_type == ''tag'' && github.ref_name || inputs.tag_name }}'
+          releaseBody: |
+            ## CC Visualizer ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag_name }}
+
+            ### 포함 산출물
+            - `CC.Visualizer_*_aarch64.dmg` — Tauri 앱 설치 이미지 (macOS arm64)
+            - `CC.Visualizer_*_aarch64.app.tar.gz` — Tauri 앱 아카이브 (업데이터용)
+            - `cc-menubar-*.zip` — Swift 메뉴바 데몬 + 설치 스크립트
+
+            ### 설치 방법
+
+            **Tauri 앱 (CC Visualizer)**
+            1. `.dmg` 다운로드 → 마운트 → `CC Visualizer.app`을 `/Applications/`으로 드래그
+            2. 미서명 앱이므로 최초 실행 시 Gatekeeper 경고가 표시됩니다.
+               - 방법 A: 시스템 설정 → 개인정보 보호 및 보안 → "확인 없이 열기"
+               - 방법 B: 터미널에서 `xattr -d com.apple.quarantine /Applications/CC\ Visualizer.app`
+
+            **메뉴바 데몬 (cc-menubar)**
+            1. `cc-menubar-*.zip` 다운로드 → 압축 해제
+            2. `bash install.sh` 실행
+            3. 메뉴바에 ⚡ 아이콘 확인
+
+          releaseDraft: false
+          prerelease: false
+          args: --target aarch64-apple-darwin
+
+  # ──────────────────────────────────────────────
+  # Job 2: Swift 메뉴바 데몬 빌드 + Release 첨부
+  # ──────────────────────────────────────────────
+  build-menubar:
+    name: 메뉴바 데몬 빌드 & 릴리스 첨부
+    runs-on: macos-14
+    # Tauri 릴리스가 먼저 생성된 뒤 upload — 단 실패해도 독립 진행
+    needs: build-tauri
+    if: always() && (needs.build-tauri.result == 'success' || needs.build-tauri.result == 'skipped')
+    permissions:
+      contents: write
+
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 메뉴바 빌드
+        run: bash menubar/build.sh
+
+      - name: 메뉴바 패키지 구성 및 zip 생성
+        run: |
+          TAG="${{ github.ref_type == 'tag' && github.ref_name || inputs.tag_name }}"
+          PKG_DIR="menubar-pkg"
+          mkdir -p "$PKG_DIR"
+
+          # 1. 바이너리
+          cp menubar/.build/cc-menubar "$PKG_DIR/cc-menubar"
+          chmod +x "$PKG_DIR/cc-menubar"
+
+          # 2. LaunchAgent plist 템플릿 (있으면 동봉)
+          if [ -f menubar/com.qjc.cc-menubar.plist.template ]; then
+            cp menubar/com.qjc.cc-menubar.plist.template "$PKG_DIR/com.qjc.cc-menubar.plist.template"
+          fi
+
+          # 3. 설치 스크립트
+          cp menubar/install.sh "$PKG_DIR/install.sh"
+          chmod +x "$PKG_DIR/install.sh"
+
+          # 4. README
+          cat > "$PKG_DIR/README.txt" << 'EOF'
+          CC Menubar Daemon 설치 방법
+          ===========================
+          1. 터미널에서 이 폴더로 이동
+          2. bash install.sh
+          3. 메뉴바에 ⚡ 아이콘이 표시되면 완료
+
+          미서명 바이너리 Gatekeeper 우회:
+            xattr -d com.apple.quarantine cc-menubar
+          EOF
+
+          # 5. zip 아카이브
+          ZIP_NAME="cc-menubar-${TAG}.zip"
+          cd menubar-pkg && zip -r "../$ZIP_NAME" . && cd ..
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
+
+      - name: Release에 메뉴바 zip 첨부
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag_name }}
+          files: ${{ env.ZIP_NAME }}
+          # 기존 릴리스에 첨부만 (생성은 build-tauri에서 담당)
+          fail_on_unmatched_files: true

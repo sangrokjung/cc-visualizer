@@ -33,6 +33,14 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": {
+      "../scripts/scan-system.ts": "scripts/scan-system.ts",
+      "../scripts/scan-usage.ts": "scripts/scan-usage.ts",
+      "../src/renderer/src/lib/agent-category-map.ts": "src/renderer/src/lib/agent-category-map.ts",
+      "../src/renderer/src/data/system-data.json": "data/system-data.json",
+      "../src/renderer/src/data/usage-stats.json": "data/usage-stats.json",
+      "../src/renderer/src/data/external-systems.json": "data/external-systems.json"
+    }
   }
 }

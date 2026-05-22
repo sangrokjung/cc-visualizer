@@ -2,34 +2,168 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
+use tauri::Manager;
 
 fn home_dir() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"))
 }
 
-fn project_dir() -> PathBuf {
-    home_dir().join("projects/cc-visualizer")
+/// 개발 환경 전용 폴백 경로. 빌드된 앱에선 사용 안 함.
+fn dev_data_dir() -> PathBuf {
+    home_dir()
+        .join("projects/cc-visualizer")
+        .join("src/renderer/src/data")
 }
 
-#[tauri::command]
-pub fn load_system_data() -> Result<serde_json::Value, String> {
-    let path = project_dir().join("src/renderer/src/data/system-data.json");
-    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+/// GUI 앱(Tauri `.app`)은 fnm/nvm shell PATH를 상속받지 못한다.
+/// `Command::new("npm")` 은 `command not found` 로 조용히 실패 → 오래된 데이터 표시.
+/// npm 절대경로 후보를 순회하며 PATH도 보강해서 `npm run <script>` 를 실행한다.
+/// (fetch_ccusage_daily 의 npx 절대경로 순회 패턴과 동일한 방어.)
+/// 개발 환경에서 소스 트리가 있을 때 rescan 폴백용으로 예약.
+#[allow(dead_code)]
+fn run_npm_script(script: &str, work_dir: &PathBuf) -> Result<(), String> {
+    // /opt/homebrew/bin 에 npm/npx/node 가 함께 있어, PATH 보강 시 npm 내부의
+    // npx → tsx → node 연쇄도 같은 디렉토리에서 해결된다.
+    let npm_candidates = [
+        "/opt/homebrew/bin/npm",
+        "/usr/local/bin/npm",
+        "npm", // 마지막 시도 — PATH 의존 (개발 셸 환경)
+    ];
+    let augmented_path = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin";
+
+    let mut last_err = String::from("npm 후보 모두 실패");
+    for npm in &npm_candidates {
+        let result = Command::new(npm)
+            .args(["run", script])
+            .current_dir(work_dir)
+            .env("PATH", augmented_path)
+            .output();
+
+        match result {
+            Ok(output) if output.status.success() => return Ok(()),
+            Ok(output) => {
+                last_err = format!(
+                    "{} run {} 종료 코드 ≠ 0: {}",
+                    npm,
+                    script,
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+            Err(e) => {
+                last_err = format!("{} 실행 실패: {}", npm, e);
+            }
+        }
+    }
+    Err(last_err)
+}
+
+/// 번들된 scan 스크립트를 직원 머신에서 `npx tsx`로 실행한다.
+/// 출력 JSON은 app_data_dir (사용자 캐시) 에 저장된다.
+///
+/// 폴백 순서:
+///   1. /opt/homebrew/bin/npx  (Apple Silicon Homebrew)
+///   2. /usr/local/bin/npx     (Intel Homebrew / nvm global)
+///   3. ~/.local/share/fnm/aliases/default/bin/npx  (fnm default symlink)
+///   4. npx (PATH 의존 — 개발 셸)
+fn run_tsx_script(
+    script_path: &PathBuf,
+    output_dir: &PathBuf,
+    home: &PathBuf,
+) -> Result<(), String> {
+    let fnm_default = home
+        .join(".local/share/fnm/aliases/default/bin/npx")
+        .to_string_lossy()
+        .to_string();
+    let npx_candidates = [
+        "/opt/homebrew/bin/npx",
+        "/usr/local/bin/npx",
+        fnm_default.as_str(),
+        "npx",
+    ];
+    let augmented_path = format!(
+        "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:{}",
+        home.join(".local/share/fnm/aliases/default/bin")
+            .to_string_lossy()
+    );
+
+    let output_dir_str = output_dir.to_string_lossy().to_string();
+    let script_str = script_path.to_string_lossy().to_string();
+
+    let mut last_err = String::from("npx 후보 모두 실패 (tsx 없음 — node 설치 필요)");
+    for npx_path in &npx_candidates {
+        let result = Command::new(npx_path)
+            .args(["tsx", &script_str])
+            .env("PATH", &augmented_path)
+            .env("HOME", home.to_string_lossy().as_ref())
+            .env("SCAN_OUTPUT_DIR", &output_dir_str)
+            .output();
+
+        match result {
+            Ok(output) if output.status.success() => return Ok(()),
+            Ok(output) => {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                last_err = format!("{} tsx 종료 코드 ≠ 0: {}", npx_path, stderr);
+            }
+            Err(e) => {
+                last_err = format!("{} 실행 실패: {}", npx_path, e);
+            }
+        }
+    }
+    Err(last_err)
+}
+
+/// 3단계 폴백으로 JSON 파일을 읽는다.
+///   1순위: 사용자 캐시 (app_data_dir / filename) — rescan 결과
+///   2순위: 번들 리소스 스냅샷 (resource_dir / data / filename)
+///   3순위: 개발 소스 트리 (~/projects/cc-visualizer/src/renderer/src/data/filename)
+fn load_json_with_fallback(
+    app: &tauri::AppHandle,
+    filename: &str,
+) -> Result<serde_json::Value, String> {
+    // 1순위: 사용자 캐시
+    if let Ok(cache_dir) = app.path().app_data_dir() {
+        let cache_path = cache_dir.join(filename);
+        if cache_path.exists() {
+            if let Ok(content) = fs::read_to_string(&cache_path) {
+                if let Ok(v) = serde_json::from_str(&content) {
+                    return Ok(v);
+                }
+            }
+        }
+    }
+
+    // 2순위: 번들 리소스 스냅샷
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let resource_path = resource_dir.join("data").join(filename);
+        if resource_path.exists() {
+            if let Ok(content) = fs::read_to_string(&resource_path) {
+                if let Ok(v) = serde_json::from_str(&content) {
+                    return Ok(v);
+                }
+            }
+        }
+    }
+
+    // 3순위: 개발 소스 트리 폴백
+    let dev_path = dev_data_dir().join(filename);
+    let content = fs::read_to_string(&dev_path)
+        .map_err(|e| format!("데이터 파일을 찾을 수 없습니다 ({}): {}", filename, e))?;
     serde_json::from_str(&content).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn load_usage_data() -> Result<serde_json::Value, String> {
-    let path = project_dir().join("src/renderer/src/data/usage-stats.json");
-    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    serde_json::from_str(&content).map_err(|e| e.to_string())
+pub fn load_system_data(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    load_json_with_fallback(&app, "system-data.json")
 }
 
 #[tauri::command]
-pub fn load_external_systems() -> Result<serde_json::Value, String> {
-    let path = project_dir().join("src/renderer/src/data/external-systems.json");
-    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    serde_json::from_str(&content).map_err(|e| e.to_string())
+pub fn load_usage_data(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    load_json_with_fallback(&app, "usage-stats.json")
+}
+
+#[tauri::command]
+pub fn load_external_systems(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    load_json_with_fallback(&app, "external-systems.json")
 }
 
 #[tauri::command]
@@ -85,21 +219,93 @@ pub fn get_system_paths() -> HashMap<String, String> {
 }
 
 #[tauri::command]
-pub async fn rescan_system() -> Result<serde_json::Value, String> {
-    let project_dir = home_dir().join("projects/cc-visualizer");
-    let output = Command::new("npm")
-        .args(["run", "scan"])
-        .current_dir(&project_dir)
-        .output()
-        .map_err(|e| e.to_string())?;
+pub async fn rescan_system(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let home = home_dir();
+    let cache_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("app_data_dir 조회 실패: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    // 번들 리소스에서 scan 스크립트 경로 확인
+    let resource_script = app
+        .path()
+        .resource_dir()
+        .ok()
+        .map(|r| r.join("scripts").join("scan-system.ts"));
+
+    // 개발 소스 트리 폴백 경로
+    let dev_script = home
+        .join("projects/cc-visualizer")
+        .join("scripts/scan-system.ts");
+
+    let script_path = resource_script
+        .filter(|p| p.exists())
+        .or_else(|| if dev_script.exists() { Some(dev_script) } else { None })
+        .ok_or_else(|| {
+            "scan-system.ts 스크립트를 찾을 수 없습니다 (번들 리소스 또는 소스 트리 필요)".to_string()
+        })?;
+
+    fs::create_dir_all(&cache_dir)
+        .map_err(|e| format!("캐시 디렉토리 생성 실패: {}", e))?;
+
+    // npx tsx로 스크립트 실행. 실패 시 기존 번들 스냅샷으로 폴백.
+    match run_tsx_script(&script_path, &cache_dir, &home) {
+        Ok(()) => {
+            let result_path = cache_dir.join("system-data.json");
+            let content = fs::read_to_string(&result_path)
+                .map_err(|e| format!("rescan 결과 읽기 실패: {}", e))?;
+            serde_json::from_str(&content).map_err(|e| e.to_string())
+        }
+        Err(tsx_err) => {
+            // npx/tsx 없음 → 번들 스냅샷 반환 + 안내 에러는 로그로만
+            eprintln!("rescan 실패 (node 필요): {}", tsx_err);
+            load_json_with_fallback(&app, "system-data.json")
+                .map_err(|_| format!("node/npx가 필요합니다. 설치 후 재시도하세요. (원인: {})", tsx_err))
+        }
     }
+}
 
-    let data_path = project_dir.join("src/renderer/src/data/system-data.json");
-    let content = fs::read_to_string(data_path).map_err(|e| e.to_string())?;
-    serde_json::from_str(&content).map_err(|e| e.to_string())
+#[tauri::command]
+pub async fn rescan_usage(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let home = home_dir();
+    let cache_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("app_data_dir 조회 실패: {}", e))?;
+
+    let resource_script = app
+        .path()
+        .resource_dir()
+        .ok()
+        .map(|r| r.join("scripts").join("scan-usage.ts"));
+
+    let dev_script = home
+        .join("projects/cc-visualizer")
+        .join("scripts/scan-usage.ts");
+
+    let script_path = resource_script
+        .filter(|p| p.exists())
+        .or_else(|| if dev_script.exists() { Some(dev_script) } else { None })
+        .ok_or_else(|| {
+            "scan-usage.ts 스크립트를 찾을 수 없습니다".to_string()
+        })?;
+
+    fs::create_dir_all(&cache_dir)
+        .map_err(|e| format!("캐시 디렉토리 생성 실패: {}", e))?;
+
+    match run_tsx_script(&script_path, &cache_dir, &home) {
+        Ok(()) => {
+            let result_path = cache_dir.join("usage-stats.json");
+            let content = fs::read_to_string(&result_path)
+                .map_err(|e| format!("rescan 결과 읽기 실패: {}", e))?;
+            serde_json::from_str(&content).map_err(|e| e.to_string())
+        }
+        Err(tsx_err) => {
+            eprintln!("rescan_usage 실패 (node 필요): {}", tsx_err);
+            load_json_with_fallback(&app, "usage-stats.json")
+                .map_err(|_| format!("node/npx가 필요합니다. 설치 후 재시도하세요. (원인: {})", tsx_err))
+        }
+    }
 }
 
 /// 프론트엔드 mount 직후 호출하여 최신 세션 JSONL의 백필 이벤트를 받아옵니다.
@@ -114,11 +320,17 @@ pub fn backfill_session(app: tauri::AppHandle) -> Result<usize, String> {
 /// Tauri .app은 GUI라 PATH가 제한적 → npx 위치를 다중 fallback으로 탐색.
 #[tauri::command]
 pub async fn fetch_ccusage_daily() -> Result<serde_json::Value, String> {
-    // Tauri .app은 fnm/nvm shell PATH 미상속 — 후보 절대 경로 순회
+    // Tauri .app은 fnm/nvm shell PATH 미상속 — 후보 절대 경로 순회.
+    // fnm default symlink는 사용자 무관 안정 경로(직원 배포 시 sangrok 특정 multishell 경로 제거).
+    let home = home_dir();
+    let fnm_default = home
+        .join(".local/share/fnm/aliases/default/bin/npx")
+        .to_string_lossy()
+        .to_string();
     let npx_candidates = [
         "/opt/homebrew/bin/npx",
         "/usr/local/bin/npx",
-        "/Users/sangrok/.local/state/fnm_multishells/7497_1779169147482/bin/npx",
+        fnm_default.as_str(),
         "npx", // 마지막 시도 — PATH 의존
     ];
 
@@ -150,22 +362,4 @@ pub async fn fetch_ccusage_daily() -> Result<serde_json::Value, String> {
     }
 
     Err(last_err)
-}
-
-#[tauri::command]
-pub async fn rescan_usage() -> Result<serde_json::Value, String> {
-    let project_dir = home_dir().join("projects/cc-visualizer");
-    let output = Command::new("npm")
-        .args(["run", "scan:usage"])
-        .current_dir(&project_dir)
-        .output()
-        .map_err(|e| e.to_string())?;
-
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
-    }
-
-    let data_path = project_dir.join("src/renderer/src/data/usage-stats.json");
-    let content = fs::read_to_string(data_path).map_err(|e| e.to_string())?;
-    serde_json::from_str(&content).map_err(|e| e.to_string())
 }
