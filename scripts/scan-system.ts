@@ -118,7 +118,8 @@ interface Agent {
   category: string
   maxTurns?: number
   memory?: string
-  isolation?: boolean
+  // isolation 값은 'worktree' 같은 string으로 들어와요. 정보 보존을 위해 string으로 유지.
+  isolation?: string
 }
 
 function scanAgents(): Agent[] {
@@ -153,7 +154,7 @@ function scanAgents(): Agent[] {
 
     if (data.maxTurns) agent.maxTurns = Number(data.maxTurns)
     if (data.memory) agent.memory = data.memory
-    if (data.isolation !== undefined) agent.isolation = Boolean(data.isolation)
+    if (data.isolation !== undefined) agent.isolation = String(data.isolation)
 
     return agent
   })

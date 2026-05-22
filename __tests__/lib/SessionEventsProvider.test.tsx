@@ -21,6 +21,8 @@ vi.mock('../../src/renderer/src/lib/api', () => ({
         sessionIdCallback = null
       })
     }),
+    // 테스트는 backfillSession을 stub만 — 실제 호출 안 됨
+    backfillSession: vi.fn(() => Promise.resolve(0)),
   },
 }))
 
@@ -51,6 +53,8 @@ describe('SessionEventsProvider', () => {
   beforeEach(() => {
     eventCallback = null
     sessionIdCallback = null
+    // SessionEventsProvider가 Tauri 환경에서만 listen 등록 — 테스트는 Tauri 환경 흉내
+    ;(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {}
   })
 
   it('Provider 없이 useSessionEventsContext 호출하면 에러를 던진다', () => {

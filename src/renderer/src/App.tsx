@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import Sidebar from './components/Sidebar'
 import Layout from './components/Layout'
 import SearchBar from './components/SearchBar'
+import { useRefreshShortcut } from './lib/use-refresh-shortcut'
 
 export type ViewType = 'dashboard' | 'agent-map' | 'architecture' | 'live-monitor' | 'catalog' | 'systems' | 'usage' | 'process' | 'agent-office'
 
@@ -15,6 +16,7 @@ export default function App() {
     },
     []
   )
+  useRefreshShortcut()
 
   return (
     <div className="flex h-screen bg-gray-950 text-gray-100">

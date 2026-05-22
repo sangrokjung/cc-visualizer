@@ -2,6 +2,7 @@ import type { ViewType } from '../App'
 import { Suspense, lazy } from 'react'
 import AgentOfficeErrorBoundary from '../features/agent-office/AgentOfficeErrorBoundary'
 import AgentOfficeSkeleton from '../features/agent-office/AgentOfficeSkeleton'
+import ViewErrorBoundary from './ViewErrorBoundary'
 
 const DashboardView = lazy(() => import('../features/dashboard/DashboardView'))
 const AgentMapView = lazy(() => import('../features/agent-map/AgentMapView'))
@@ -29,14 +30,46 @@ export default function Layout({ activeView }: Props) {
   return (
     <main className="flex-1 overflow-hidden">
       <Suspense fallback={<LoadingFallback />}>
-        {activeView === 'dashboard' && <DashboardView />}
-        {activeView === 'agent-map' && <AgentMapView />}
-        {activeView === 'architecture' && <ArchitectureView />}
-        {activeView === 'live-monitor' && <LiveMonitorView />}
-        {activeView === 'catalog' && <CatalogView />}
-        {activeView === 'systems' && <SystemsView />}
-        {activeView === 'usage' && <UsageView />}
-        {activeView === 'process' && <ProcessView />}
+        {activeView === 'dashboard' && (
+          <ViewErrorBoundary viewName="시스템 개요">
+            <DashboardView />
+          </ViewErrorBoundary>
+        )}
+        {activeView === 'agent-map' && (
+          <ViewErrorBoundary viewName="에이전트 맵">
+            <AgentMapView />
+          </ViewErrorBoundary>
+        )}
+        {activeView === 'architecture' && (
+          <ViewErrorBoundary viewName="시스템 아키텍처">
+            <ArchitectureView />
+          </ViewErrorBoundary>
+        )}
+        {activeView === 'live-monitor' && (
+          <ViewErrorBoundary viewName="실시간 모니터">
+            <LiveMonitorView />
+          </ViewErrorBoundary>
+        )}
+        {activeView === 'catalog' && (
+          <ViewErrorBoundary viewName="카탈로그">
+            <CatalogView />
+          </ViewErrorBoundary>
+        )}
+        {activeView === 'systems' && (
+          <ViewErrorBoundary viewName="자동화 생태계">
+            <SystemsView />
+          </ViewErrorBoundary>
+        )}
+        {activeView === 'usage' && (
+          <ViewErrorBoundary viewName="사용 통계">
+            <UsageView />
+          </ViewErrorBoundary>
+        )}
+        {activeView === 'process' && (
+          <ViewErrorBoundary viewName="개발 프로세스">
+            <ProcessView />
+          </ViewErrorBoundary>
+        )}
         {activeView === 'agent-office' && (
           <AgentOfficeErrorBoundary>
             <Suspense fallback={<AgentOfficeSkeleton />}>

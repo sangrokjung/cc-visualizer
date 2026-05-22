@@ -40,7 +40,12 @@ export const AgentNodeSchema = z.object({
   category: AgentCategorySchema,
   maxTurns: z.number().optional(),
   memory: z.string().optional(),
-  isolation: z.string().optional()
+  // isolation은 스캔 시점에 boolean(true/false) 또는 string("worktree" 등)으로 들어올 수 있어요.
+  // 어느 쪽이든 받아서 string으로 정규화합니다.
+  isolation: z
+    .union([z.string(), z.boolean()])
+    .transform((v) => (typeof v === 'boolean' ? String(v) : v))
+    .optional()
 })
 export type AgentNode = z.infer<typeof AgentNodeSchema>
 
@@ -157,6 +162,8 @@ export const SessionEventSchema = z.object({
     hookEvent: z.string().optional(),
     hookName: z.string().optional(),
     command: z.string().optional(),
+    // 메시지 텍스트 글자 수 (전체 텍스트 대신 정수만 — 리소스 절약 + 토큰 추정용)
+    charCount: z.number().optional(),
   })
 })
 export type SessionEvent = z.infer<typeof SessionEventSchema>

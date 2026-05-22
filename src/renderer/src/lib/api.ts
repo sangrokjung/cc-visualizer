@@ -36,6 +36,24 @@ export const api = {
     }
   },
 
+  // 프론트 mount 후 listen 등록 → 명시적 백필 요청 (race condition 방어)
+  backfillSession: async (): Promise<number> => {
+    try {
+      return await invoke<number>('backfill_session')
+    } catch {
+      return 0
+    }
+  },
+
+  // ccusage 일자별 통계 — Claude Code stats 데이터
+  fetchCcusageDaily: async (): Promise<unknown> => {
+    try {
+      return await invoke<unknown>('fetch_ccusage_daily')
+    } catch (error) {
+      return { error: String(error), daily: [] }
+    }
+  },
+
   rescanUsage: async (): Promise<{ ok: boolean; data?: unknown; error?: string }> => {
     try {
       const data = await invoke<unknown>('rescan_usage')
@@ -61,5 +79,10 @@ export const api = {
 
   onSessionId: (callback: (id: string) => void): Promise<UnlistenFn> => {
     return listen('session-id', (e) => callback(e.payload as string))
+  },
+
+  // claude-system-changed 이벤트 리스너 — ~/.claude 디렉토리 변경 시 발생
+  onClaudeSystemChanged: (callback: () => void): Promise<UnlistenFn> => {
+    return listen('claude-system-changed', () => callback())
   },
 }

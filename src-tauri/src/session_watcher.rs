@@ -33,6 +33,32 @@ pub struct SessionEventData {
     pub hook_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
+    // 메시지 텍스트 글자 수 — 전체 텍스트 대신 정수만 emit (메모리 절약 + 토큰 추정용)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub char_count: Option<u32>,
+}
+
+/// message.content[] 의 모든 text 블록 글자 수 합산.
+/// content가 문자열이면 그대로 길이, 배열이면 text 블록만 합산.
+fn count_message_chars(raw: &serde_json::Value) -> u32 {
+    let content = match raw.get("message").and_then(|m| m.get("content")) {
+        Some(c) => c,
+        None => return 0,
+    };
+    if let Some(s) = content.as_str() {
+        return s.chars().count() as u32;
+    }
+    let mut total: usize = 0;
+    if let Some(arr) = content.as_array() {
+        for block in arr {
+            if block.get("type").and_then(|t| t.as_str()) == Some("text") {
+                if let Some(s) = block.get("text").and_then(|t| t.as_str()) {
+                    total += s.chars().count();
+                }
+            }
+        }
+    }
+    total as u32
 }
 
 #[derive(Deserialize)]
@@ -113,6 +139,20 @@ fn find_latest_jsonl(last_scan: &mut u64) -> Option<PathBuf> {
     latest_file
 }
 
+/// UTF-8 safe truncation — multi-byte 문자(한글 등) 중간 절단 panic 방어.
+/// byte length max_bytes 이하 + char boundary에 맞춰 자릅니다.
+fn truncate_utf8_safe(s: &str, max_bytes: usize) -> String {
+    if s.len() <= max_bytes {
+        return s.to_string();
+    }
+    // max_bytes 이하의 가장 큰 char boundary 찾기
+    let mut idx = max_bytes;
+    while idx > 0 && !s.is_char_boundary(idx) {
+        idx -= 1;
+    }
+    s[..idx].to_string()
+}
+
 fn extract_tool_uses(data: &serde_json::Value) -> Vec<(String, Option<String>)> {
     let mut results = Vec::new();
     let message = data.get("message").unwrap_or(data);
@@ -120,12 +160,7 @@ fn extract_tool_uses(data: &serde_json::Value) -> Vec<(String, Option<String>)> 
         for block in content {
             if block.get("type").and_then(|t| t.as_str()) == Some("tool_use") {
                 if let Some(name) = block.get("name").and_then(|n| n.as_str()) {
-                    let input = block
-                        .get("input")
-                        .map(|i| {
-                            let s = i.to_string();
-                            if s.len() > 100 { s[..100].to_string() } else { s }
-                        });
+                    let input = block.get("input").map(|i| truncate_utf8_safe(&i.to_string(), 100));
                     results.push((name.to_string(), input));
                 }
             }
@@ -208,10 +243,12 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
                             });
                         } else if !tool_name.is_empty() {
                             // 일반 도구 사용 이벤트
-                            let tool_input = input.map(|i| {
-                                let s = i.to_string();
-                                if s.len() > 100 { s[..100].to_string() } else { s }
-                            });
+                            // 토큰 추정용 input 전체 글자 수 (잘리기 전)
+                            let input_chars = input
+                                .map(|i| i.to_string().chars().count() as u32)
+                                .unwrap_or(0);
+                            // UTF-8 안전 truncate — 100 bytes 근처에서 char boundary 찾기
+                            let tool_input = input.map(|i| truncate_utf8_safe(&i.to_string(), 100));
 
                             events.push(SessionEvent {
                                 id: format!("{}-tool-{}", id, i),
@@ -220,6 +257,7 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
                                 data: SessionEventData {
                                     tool_name: Some(tool_name.to_string()),
                                     tool_input,
+                                    char_count: Some(input_chars),
                                     ..Default::default()
                                 },
                             });
@@ -234,7 +272,10 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
                     id,
                     timestamp: ts,
                     r#type: "assistant".into(),
-                    data: Default::default(),
+                    data: SessionEventData {
+                        char_count: Some(count_message_chars(&raw)),
+                        ..Default::default()
+                    },
                 });
             }
         }
@@ -268,7 +309,10 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
                     id,
                     timestamp: ts,
                     r#type: "user".into(),
-                    data: Default::default(),
+                    data: SessionEventData {
+                        char_count: Some(count_message_chars(&raw)),
+                        ..Default::default()
+                    },
                 });
             }
         }
@@ -317,8 +361,124 @@ fn uuid_simple() -> String {
     format!("{:x}-{:x}", d.as_secs(), d.subsec_nanos())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn user_event_has_char_count() {
+        // 실제 Claude Code JSONL 형식의 user 메시지
+        let line = r#"{"type":"user","uuid":"u1","timestamp":"2026-05-21T10:00:00Z","message":{"role":"user","content":[{"type":"text","text":"안녕하세요 테스트"}]}}"#;
+        let events = parse_line(line);
+        assert_eq!(events.len(), 1, "user line should emit 1 event");
+        assert_eq!(events[0].r#type, "user");
+        // "안녕하세요 테스트" = 5(안녕하세요) + 1(공백) + 3(테스트) = 9자
+        assert_eq!(events[0].data.char_count, Some(9));
+    }
+
+    #[test]
+    fn assistant_text_event_has_char_count() {
+        let line = r#"{"type":"assistant","uuid":"a1","timestamp":"2026-05-21T10:00:00Z","message":{"role":"assistant","content":[{"type":"text","text":"Hello world this is a response"}]}}"#;
+        let events = parse_line(line);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].r#type, "assistant");
+        assert_eq!(events[0].data.char_count, Some(30), "영문 30자");
+    }
+
+    #[test]
+    fn assistant_with_tool_use_emits_tool_event_with_char_count() {
+        // tool_use 블록을 포함한 assistant 메시지
+        let line = r#"{"type":"assistant","uuid":"a2","timestamp":"2026-05-21T10:00:00Z","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"ls -la"}}]}}"#;
+        let events = parse_line(line);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].r#type, "tool_use");
+        assert_eq!(events[0].data.tool_name.as_deref(), Some("Bash"));
+        // input JSON 직렬화 길이
+        assert!(events[0].data.char_count.is_some_and(|c| c > 0));
+    }
+
+    #[test]
+    fn unknown_line_emits_no_event() {
+        let line = r#"{"type":"attachment","data":"..."}"#;
+        let events = parse_line(line);
+        assert_eq!(events.len(), 0, "attachment 같은 알 수 없는 타입은 emit 안 함");
+    }
+
+    #[test]
+    fn truncate_utf8_safe_does_not_panic_on_multibyte() {
+        // 한글 한 글자 = 3 bytes. 33자 × 3 = 99 bytes, +1 → 100 byte index가 char 중간
+        let korean = "가".repeat(34); // 34 chars × 3 bytes = 102 bytes
+        let result = truncate_utf8_safe(&korean, 100);
+        // panic 없이 동작 + 결과는 100 bytes 이하 + 유효한 UTF-8
+        assert!(result.len() <= 100);
+        assert!(result.is_char_boundary(result.len()));
+    }
+
+    #[test]
+    fn tool_use_with_korean_input_does_not_panic() {
+        // 실제 사고 케이스: AskUserQuestion 한글 input이 100 byte 경계에서 잘려 panic
+        let line = r#"{"type":"assistant","uuid":"a3","timestamp":"2026-05-21T10:00:00Z","message":{"role":"assistant","content":[{"type":"tool_use","id":"t2","name":"AskUserQuestion","input":{"questions":[{"header":"동기화 방향","multiSelect":false,"options":[{"description":"지금 PC를 정답으로 사용해서 반영"}]}]}}]}}"#;
+        let events = parse_line(line);
+        // panic 없이 동작해야 함
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].r#type, "tool_use");
+    }
+
+    #[test]
+    fn malformed_json_returns_empty() {
+        let events = parse_line("not json");
+        assert!(events.is_empty());
+    }
+}
+
+/// 가장 최근 JSONL의 마지막 256KB 백필 이벤트 emit.
+/// 프론트엔드가 listen 등록 후 명시적으로 호출 가능 → race condition 회피.
+pub fn backfill_latest_session(app: &AppHandle) -> Result<usize, String> {
+    let mut last_scan: u64 = 0;
+    let path = find_latest_jsonl(&mut last_scan).ok_or("no jsonl found")?;
+    let file_size = path.metadata().map_err(|e| e.to_string())?.len();
+    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+
+    // 백필 영역 — 1MB (메모리 부담 작고 수십-수백 이벤트 확보)
+    const BACKFILL_BYTES: u64 = 1024 * 1024;
+    let backfill_start = file_size.saturating_sub(BACKFILL_BYTES);
+    let backfill_content: &str = if backfill_start == 0 {
+        content.as_str()
+    } else {
+        let byte_idx = backfill_start as usize;
+        let safe_idx = content[byte_idx..]
+            .find('\n')
+            .map(|i| byte_idx + i + 1)
+            .unwrap_or(content.len());
+        &content[safe_idx..]
+    };
+
+    let session_id = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let _ = app.emit("session-id", &session_id);
+
+    let mut count = 0;
+    for line in backfill_content.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        for event in parse_line(line) {
+            let _ = app.emit("session-event", &event);
+            count += 1;
+        }
+    }
+    eprintln!("[session-watcher] 백필 요청 처리: {} events", count);
+    Ok(count)
+}
+
 pub fn start_session_watcher(app: AppHandle) {
     std::thread::spawn(move || {
+        // race condition 방어 — 프론트 React가 listen 등록할 시간 확보 (1초)
+        std::thread::sleep(Duration::from_millis(1000));
+
         let mut last_scan: u64 = 0;
         let mut current_path: Option<PathBuf> = None;
         let mut offset: u64 = 0;
@@ -329,7 +489,6 @@ pub fn start_session_watcher(app: AppHandle) {
             if let Some(ref path) = latest {
                 if current_path.as_ref() != Some(path) {
                     current_path = Some(path.clone());
-                    offset = path.metadata().map(|m| m.len()).unwrap_or(0);
 
                     let session_id = path
                         .file_stem()
@@ -339,6 +498,37 @@ pub fn start_session_watcher(app: AppHandle) {
 
                     let _ = app.emit("session-id", &session_id);
                     eprintln!("[session-watcher] 감시 시작: {}", path.display());
+
+                    // 백필 — 마지막 ~1MB 라인을 즉시 emit해서 UI가 빈 상태로 안 보이게.
+                    // 파일이 작으면 전체, 크면 끝에서 1MB만.
+                    let file_size = path.metadata().map(|m| m.len()).unwrap_or(0);
+                    const BACKFILL_BYTES: u64 = 1024 * 1024;
+                    let backfill_start = file_size.saturating_sub(BACKFILL_BYTES);
+                    if let Ok(content) = fs::read_to_string(path) {
+                        let backfill_content = if backfill_start == 0 {
+                            content.as_str()
+                        } else {
+                            // 중간에서 자르면 깨진 라인 — 첫 newline 이후부터
+                            let byte_idx = backfill_start as usize;
+                            let safe_idx = content[byte_idx..]
+                                .find('\n')
+                                .map(|i| byte_idx + i + 1)
+                                .unwrap_or(content.len());
+                            &content[safe_idx..]
+                        };
+                        let mut count = 0;
+                        for line in backfill_content.lines() {
+                            if line.trim().is_empty() {
+                                continue;
+                            }
+                            for event in parse_line(line) {
+                                let _ = app.emit("session-event", &event);
+                                count += 1;
+                            }
+                        }
+                        eprintln!("[session-watcher] 백필 {} events", count);
+                    }
+                    offset = file_size;
                 }
             }
 

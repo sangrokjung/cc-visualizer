@@ -1,6 +1,6 @@
 import type { AgentCategory } from '../../lib/types'
 
-// ── 픽셀아트 팔레트 ──
+// ── 픽셀아트 팔레트 ── (legacy, 일부 호환용)
 export const PIXEL_PALETTE = {
   wall: '#2a2a3a',
   wallHighlight: '#3a3a4e',
@@ -17,14 +17,32 @@ export const PIXEL_PALETTE = {
   chair: '#2a2a3a',
 }
 
+// ── 자비스(JARVIS) HUD 팔레트 ──
+// 토니 스타크 AI 비서 시각 언어 — 청록 시그니처 + 위험 시 주황
+export const JARVIS = {
+  primary: '#00d4ff',      // 메인 청록 (작동 중 코어)
+  primaryDim: '#0099cc',   // 어두운 청록 (idle)
+  accent: '#ff8c00',       // 주황 액센트 (경고/위험)
+  gold: '#ffb84d',         // 골드 (opus 부장)
+  emerald: '#10e88c',      // 에메랄드 (작업 활성)
+  scarlet: '#ff3860',      // 적색 (offline)
+  bg: '#020817',           // 거의 검정 배경
+  bgPanel: '#0a1628',      // 패널 배경
+  bgGrid: '#0e1a30',       // 그리드 라인
+  text: '#e0f0ff',         // 메인 텍스트
+  textDim: '#5a7ba8',      // 보조 텍스트
+  border: '#1c3458',       // 일반 보더
+  borderActive: '#00d4ff', // 활성 보더 (글로우 적용)
+}
+
 // 벽 두께
 export const WALL_THICKNESS = 6
 
-// 에이전트 1인 공간
-export const AVATAR_CELL = { w: 80, h: 100 }
+// 에이전트 1인 공간 — 텍스트 가독성을 위해 키움 (2026-05-21)
+export const AVATAR_CELL = { w: 120, h: 140 }
 
-// 방 패딩 (벽 두께 포함)
-export const ROOM_PADDING = { top: 56, right: 28, bottom: 28, left: 28 }
+// 방 패딩 (벽 두께 포함) — 헤더 영역 충분히 확보
+export const ROOM_PADDING = { top: 72, right: 32, bottom: 32, left: 32 }
 
 // 부서별 그리드 열 수
 export const ROOM_COLS: Record<AgentCategory, number> = {
@@ -62,14 +80,14 @@ export const FLOOR_COLORS: Record<AgentCategory, [string, string]> = {
   lifestyle: ['#231a24', '#2a1e2c'],
 }
 
-// 모델별 아바타 설정
+// 모델별 아바타 설정 — 코어 크기 확대 (2026-05-21)
 export const MODEL_CONFIG: Record<string, {
   badge: string; headSize: number; rank: string; glow: boolean
   headColor: string; bodyScale: number
 }> = {
-  opus: { badge: '👑', headSize: 40, rank: '부장', glow: true, headColor: '#7961DB', bodyScale: 1.2 },
-  sonnet: { badge: '🎯', headSize: 34, rank: '대리', glow: false, headColor: '#2D72D2', bodyScale: 1.0 },
-  haiku: { badge: '🌱', headSize: 28, rank: '인턴', glow: false, headColor: '#29A634', bodyScale: 0.85 }
+  opus: { badge: '👑', headSize: 56, rank: '부장', glow: true, headColor: '#7961DB', bodyScale: 1.2 },
+  sonnet: { badge: '🎯', headSize: 48, rank: '대리', glow: false, headColor: '#2D72D2', bodyScale: 1.0 },
+  haiku: { badge: '🌱', headSize: 40, rank: '인턴', glow: false, headColor: '#29A634', bodyScale: 0.85 }
 }
 
 // 상태별 설정

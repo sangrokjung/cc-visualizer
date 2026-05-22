@@ -31,22 +31,35 @@ export function computeLayout(
   g.setDefaultEdgeLabel(() => ({}))
   g.setGraph({ rankdir: 'TB', nodesep: 80, ranksep: 120 })
 
+  // 빈 그래프 가드 — dagre가 빈 그래프에서 throw할 수 있어요
+  if (agents.length === 0) {
+    return { nodes: [], edges: [] }
+  }
+
+  // 에이전트 ID 집합 — pipeline에 등록되지 않은 ID를 dagre가 phantom 노드로 만들지 않게 필터
+  const agentIds = new Set(agents.map((a) => a.id))
+
   agents.forEach((agent) => {
     g.setNode(agent.id, { width: NODE_WIDTH, height: NODE_HEIGHT })
   })
 
   pipelines.forEach((p) => {
-    g.setEdge(p.from, p.to)
+    if (agentIds.has(p.from) && agentIds.has(p.to)) {
+      g.setEdge(p.from, p.to)
+    }
   })
 
   dagre.layout(g)
 
-  const nodes: Node[] = agents.map((agent) => {
+  const nodes: Node[] = agents.map((agent, idx) => {
     const pos = g.node(agent.id)
+    // dagre가 위치를 못 잡으면 grid 폴백 — 검은 화면 방지
+    const x = pos?.x ?? (idx % 20) * (NODE_WIDTH + 40) + NODE_WIDTH / 2
+    const y = pos?.y ?? Math.floor(idx / 20) * (NODE_HEIGHT + 40) + NODE_HEIGHT / 2
     return {
       id: agent.id,
       type: 'agentNode',
-      position: { x: pos.x - NODE_WIDTH / 2, y: pos.y - NODE_HEIGHT / 2 },
+      position: { x: x - NODE_WIDTH / 2, y: y - NODE_HEIGHT / 2 },
       data: agent
     }
   })

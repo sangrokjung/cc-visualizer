@@ -1,588 +1,310 @@
 {
-  "scanTimestamp": "2026-03-30T18:00:03.523Z",
+  "scanTimestamp": "2026-05-21T01:49:40.195Z",
   "summary": {
-    "totalEvents": 706143,
-    "totalSessions": 7089,
-    "totalProjects": 141
+    "totalEvents": 294347,
+    "totalSessions": 346,
+    "totalProjects": 206
   },
   "projects": [
     {
-      "name": "QJC",
-      "events": 122694,
-      "sessions": 1510
-    },
-    {
-      "name": "yt-factory",
-      "events": 67859,
-      "sessions": 289
+      "name": "content-automation",
+      "events": 43660,
+      "sessions": 70
     },
     {
       "name": "qjc-webapp",
-      "events": 57940,
-      "sessions": 66
+      "events": 31759,
+      "sessions": 39
     },
     {
       "name": "qjc-os",
-      "events": 53450,
-      "sessions": 175
-    },
-    {
-      "name": "clariva",
-      "events": 38430,
-      "sessions": 3042
-    },
-    {
-      "name": ".openclaw",
-      "events": 33579,
-      "sessions": 695
-    },
-    {
-      "name": "qjc-webapp-안내-메세지",
-      "events": 30698,
-      "sessions": 31
-    },
-    {
-      "name": "qjc-webapp-홈페이지",
-      "events": 26257,
-      "sessions": 388
-    },
-    {
-      "name": "sangrok",
-      "events": 25608,
-      "sessions": 490
-    },
-    {
-      "name": "g2b-monitor",
-      "events": 18311,
-      "sessions": 87
-    },
-    {
-      "name": "qjc-webapp-구글-광고-최적화",
-      "events": 14028,
-      "sessions": 9
-    },
-    {
-      "name": "qjc-webapp-챗봇",
-      "events": 13891,
-      "sessions": 10
-    },
-    {
-      "name": "agent-factory-변리-에이전트",
-      "events": 12776,
-      "sessions": 38
-    },
-    {
-      "name": "OpenClaw_인스타_셀러DM_자동화",
-      "events": 12763,
-      "sessions": 20
-    },
-    {
-      "name": "agent-factory",
-      "events": 12611,
-      "sessions": 35
-    },
-    {
-      "name": "qjc-webapp-광고-최적화",
-      "events": 12080,
-      "sessions": 4
-    },
-    {
-      "name": "agent-factory-재무-회계",
-      "events": 11790,
-      "sessions": 17
-    },
-    {
-      "name": "cc-playground",
-      "events": 11520,
-      "sessions": 23
-    },
-    {
-      "name": "-Users-sangrok-clariva",
-      "events": 11413,
-      "sessions": 3041
-    },
-    {
-      "name": "cc-visualizer",
-      "events": 10109,
-      "sessions": 8
-    },
-    {
-      "name": "qjc-webapp-특이점-수익화",
-      "events": 10010,
-      "sessions": 16
-    },
-    {
-      "name": "instructor-automation",
-      "events": 9532,
-      "sessions": 21
-    },
-    {
-      "name": "-Users-sangrok-Library-Mobile-Documents-com-apple-CloudDocs-Desktop-QJC",
-      "events": 8026,
-      "sessions": 1477
-    },
-    {
-      "name": "samyook-ai-center",
-      "events": 6902,
-      "sessions": 10
-    },
-    {
-      "name": "agent-factory-IP-법무",
-      "events": 5513,
-      "sessions": 5
-    },
-    {
-      "name": "agent-factory-정부지원사업",
-      "events": 5376,
+      "events": 19152,
       "sessions": 14
     },
     {
-      "name": "qjc-webapp-특이점-리뷰",
-      "events": 5178,
-      "sessions": 10
+      "name": "sangrok",
+      "events": 12800,
+      "sessions": 55
     },
     {
-      "name": "agent-factory-CRM-에이전트",
-      "events": 3686,
-      "sessions": 6
+      "name": "패스트캠퍼스",
+      "events": 11575,
+      "sessions": 9
     },
     {
-      "name": "meeting-automation",
-      "events": 3553,
-      "sessions": 20
+      "name": "qjc-os-컨텐츠-자동화-브리핑",
+      "events": 9948,
+      "sessions": 1
     },
     {
-      "name": "dashboard-uiux-improvement",
-      "events": 3325,
+      "name": "instructor-automation",
+      "events": 9190,
+      "sessions": 19
+    },
+    {
+      "name": "QJC",
+      "events": 9014,
+      "sessions": 16
+    },
+    {
+      "name": "qjc-webapp-design-improvement-20260506",
+      "events": 7968,
+      "sessions": 4
+    },
+    {
+      "name": "멋쟁이사자처럼",
+      "events": 7328,
       "sessions": 3
+    },
+    {
+      "name": "-Users-sangrok-content-automation",
+      "events": 6810,
+      "sessions": 70
+    },
+    {
+      "name": "qjc-webapp-main-page-redesign",
+      "events": 6753,
+      "sessions": 3
+    },
+    {
+      "name": "yt-factory",
+      "events": 5506,
+      "sessions": 13
+    },
+    {
+      "name": "content-automation-reels",
+      "events": 4835,
+      "sessions": 1
+    },
+    {
+      "name": "-Users-sangrok-projects-qjc-webapp",
+      "events": 4034,
+      "sessions": 39
+    },
+    {
+      "name": "dashboard",
+      "events": 3743,
+      "sessions": 11
+    },
+    {
+      "name": "-Users-sangrok-qjc-office-qjc-os",
+      "events": 3724,
+      "sessions": 14
+    },
+    {
+      "name": "marketing-team",
+      "events": 3538,
+      "sessions": 3
+    },
+    {
+      "name": "qjc-os-AI-PM-생성",
+      "events": 3509,
+      "sessions": 1
+    },
+    {
+      "name": "qjc-webapp-컨설팅-오픈",
+      "events": 3425,
+      "sessions": 1
+    },
+    {
+      "name": "-Users-sangrok",
+      "events": 3027,
+      "sessions": 54
+    },
+    {
+      "name": "-Users-sangrok-Library-Mobile-Documents-com-apple-CloudDocs-Desktop-QJC-01-------------------",
+      "events": 2937,
+      "sessions": 9
+    },
+    {
+      "name": "qjc-webapp-ai-native",
+      "events": 2600,
+      "sessions": 1
+    },
+    {
+      "name": "-Users-sangrok-Library-Mobile-Documents-com-apple-CloudDocs-Desktop-QJC",
+      "events": 2561,
+      "sessions": 16
+    },
+    {
+      "name": "qjc-webapp-chatbot",
+      "events": 2439,
+      "sessions": 3
+    },
+    {
+      "name": "-Users-sangrok-qjc-office-qjc-os------------",
+      "events": 2145,
+      "sessions": 1
+    },
+    {
+      "name": "samyook-ai-center",
+      "events": 2116,
+      "sessions": 1
+    },
+    {
+      "name": "hermes-agent-class",
+      "events": 2102,
+      "sessions": 8
+    },
+    {
+      "name": "글로벌AI교육협회",
+      "events": 1879,
+      "sessions": 2
+    },
+    {
+      "name": "qjc-os-동기화-스킬-검토",
+      "events": 1758,
+      "sessions": 1
     }
   ],
-  "toolUsage": [
-    {
-      "name": "Bash",
-      "count": 91404
-    },
-    {
-      "name": "Edit",
-      "count": 36727
-    },
-    {
-      "name": "Read",
-      "count": 30786
-    },
-    {
-      "name": "Write",
-      "count": 10544
-    },
-    {
-      "name": "Grep",
-      "count": 6704
-    },
-    {
-      "name": "ToolSearch",
-      "count": 4506
-    },
-    {
-      "name": "Agent",
-      "count": 4500
-    },
-    {
-      "name": "TaskUpdate",
-      "count": 4042
-    },
-    {
-      "name": "SendMessage",
-      "count": 3878
-    },
-    {
-      "name": "Glob",
-      "count": 2487
-    },
-    {
-      "name": "TaskCreate",
-      "count": 2050
-    },
-    {
-      "name": "WebSearch",
-      "count": 1834
-    },
-    {
-      "name": "mcp__supabase__execute_sql",
-      "count": 1617
-    },
-    {
-      "name": "TaskOutput",
-      "count": 687
-    },
-    {
-      "name": "mcp__plugin_supabase_supabase__execute_sql",
-      "count": 642
-    },
-    {
-      "name": "TeamDelete",
-      "count": 620
-    },
-    {
-      "name": "TaskList",
-      "count": 582
-    },
-    {
-      "name": "Skill",
-      "count": 458
-    },
-    {
-      "name": "TeamCreate",
-      "count": 430
-    },
-    {
-      "name": "AskUserQuestion",
-      "count": 356
-    }
-  ],
-  "agentSpawns": [
-    {
-      "name": "a913e97df971",
-      "count": 3,
-      "project": "qjc-webapp"
-    },
-    {
-      "name": "acd8592e0e9f",
-      "count": 2,
-      "project": "g2b-monitor"
-    },
-    {
-      "name": "a38b5b7ae01c",
-      "count": 2,
-      "project": "g2b-monitor"
-    },
-    {
-      "name": "af5f1792b010",
-      "count": 2,
-      "project": "g2b-monitor"
-    },
-    {
-      "name": "a53ac987d8c3",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "ae48eada2b68",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a957657918b9",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a997d02f4dd9",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a54573585881",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a81c1cd01874",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a3c218b4ba08",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "ad82617ff918",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "afd103267e0b",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a7c199c749be",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a19a019cff00",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a6ee713b889c",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a9bb2189f1ac",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a4707501e947",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a0826a02f587",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a0e74240ee47",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a7cd0dc870c8",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a8adc484ce74",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "ad85a4c88b02",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a4f4738fed48",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a7e11bc4ac55",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a3f4b9579ca2",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "abef8fa5e916",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "a8a2d6598ec6",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "af1a65f121ff",
-      "count": 1,
-      "project": "sangrok"
-    },
-    {
-      "name": "aa9d67dac248",
-      "count": 1,
-      "project": "sangrok"
-    }
-  ],
-  "hookEvents": [
-    {
-      "event": "PreToolUse",
-      "tool": "Bash",
-      "count": 104924
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "Bash",
-      "count": 91404
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "Edit",
-      "count": 36727
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "Read",
-      "count": 30786
-    },
-    {
-      "event": "SessionStart",
-      "tool": "compact",
-      "count": 26416
-    },
-    {
-      "event": "Stop",
-      "tool": "Stop",
-      "count": 18414
-    },
-    {
-      "event": "PreToolUse",
-      "tool": "Edit",
-      "count": 14465
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "Write",
-      "count": 10544
-    },
-    {
-      "event": "SessionStart",
-      "tool": "startup",
-      "count": 7610
-    },
-    {
-      "event": "PreToolUse",
-      "tool": "Read",
-      "count": 6752
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "Grep",
-      "count": 6704
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "ToolSearch",
-      "count": 4506
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "Agent",
-      "count": 4500
-    },
-    {
-      "event": "PreToolUse",
-      "tool": "Write",
-      "count": 4170
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "TaskUpdate",
-      "count": 4042
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "SendMessage",
-      "count": 3878
-    },
-    {
-      "event": "SessionStart",
-      "tool": "clear",
-      "count": 2865
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "Glob",
-      "count": 2487
-    },
-    {
-      "event": "PreToolUse",
-      "tool": "mcp__supabase__execute_sql",
-      "count": 2322
-    },
-    {
-      "event": "PostToolUse",
-      "tool": "TaskCreate",
-      "count": 2050
-    }
-  ],
+  "toolUsage": [],
+  "agentSpawns": [],
+  "hookEvents": [],
   "dailyActivity": [
     {
-      "date": "2026-03-12",
-      "events": 5628,
+      "date": "2026-04-16",
+      "events": 1742,
+      "sessions": 1
+    },
+    {
+      "date": "2026-04-17",
+      "events": 2,
+      "sessions": 1
+    },
+    {
+      "date": "2026-04-20",
+      "events": 4197,
       "sessions": 2
     },
     {
-      "date": "2026-03-13",
-      "events": 3929,
+      "date": "2026-04-21",
+      "events": 2461,
+      "sessions": 1
+    },
+    {
+      "date": "2026-04-22",
+      "events": 2835,
+      "sessions": 1
+    },
+    {
+      "date": "2026-04-23",
+      "events": 1682,
+      "sessions": 3
+    },
+    {
+      "date": "2026-04-24",
+      "events": 1104,
       "sessions": 2
     },
     {
-      "date": "2026-03-14",
-      "events": 9177,
+      "date": "2026-04-25",
+      "events": 143,
+      "sessions": 1
+    },
+    {
+      "date": "2026-04-27",
+      "events": 537,
+      "sessions": 2
+    },
+    {
+      "date": "2026-04-28",
+      "events": 762,
+      "sessions": 3
+    },
+    {
+      "date": "2026-04-29",
+      "events": 1348,
+      "sessions": 3
+    },
+    {
+      "date": "2026-04-30",
+      "events": 552,
+      "sessions": 2
+    },
+    {
+      "date": "2026-05-01",
+      "events": 3563,
+      "sessions": 4
+    },
+    {
+      "date": "2026-05-02",
+      "events": 2391,
       "sessions": 6
     },
     {
-      "date": "2026-03-15",
-      "events": 1723,
-      "sessions": 6
+      "date": "2026-05-03",
+      "events": 2232,
+      "sessions": 4
     },
     {
-      "date": "2026-03-16",
-      "events": 19406,
-      "sessions": 23
+      "date": "2026-05-04",
+      "events": 4741,
+      "sessions": 9
     },
     {
-      "date": "2026-03-17",
-      "events": 80136,
-      "sessions": 194
+      "date": "2026-05-05",
+      "events": 5544,
+      "sessions": 14
     },
     {
-      "date": "2026-03-18",
-      "events": 84308,
-      "sessions": 152
+      "date": "2026-05-06",
+      "events": 11928,
+      "sessions": 18
     },
     {
-      "date": "2026-03-19",
-      "events": 88406,
-      "sessions": 152
+      "date": "2026-05-07",
+      "events": 21697,
+      "sessions": 54
     },
     {
-      "date": "2026-03-20",
-      "events": 25348,
-      "sessions": 47
-    },
-    {
-      "date": "2026-03-21",
-      "events": 4436,
-      "sessions": 15
-    },
-    {
-      "date": "2026-03-22",
-      "events": 35167,
+      "date": "2026-05-08",
+      "events": 38651,
       "sessions": 75
     },
     {
-      "date": "2026-03-23",
-      "events": 35654,
-      "sessions": 72
+      "date": "2026-05-09",
+      "events": 4653,
+      "sessions": 21
     },
     {
-      "date": "2026-03-24",
-      "events": 66890,
-      "sessions": 96
+      "date": "2026-05-10",
+      "events": 6115,
+      "sessions": 22
     },
     {
-      "date": "2026-03-25",
-      "events": 64556,
-      "sessions": 89
+      "date": "2026-05-11",
+      "events": 15316,
+      "sessions": 39
     },
     {
-      "date": "2026-03-26",
-      "events": 42531,
-      "sessions": 45
+      "date": "2026-05-12",
+      "events": 24542,
+      "sessions": 68
     },
     {
-      "date": "2026-03-27",
-      "events": 30124,
-      "sessions": 915
+      "date": "2026-05-13",
+      "events": 40943,
+      "sessions": 70
     },
     {
-      "date": "2026-03-28",
-      "events": 47656,
-      "sessions": 3293
+      "date": "2026-05-14",
+      "events": 9013,
+      "sessions": 29
     },
     {
-      "date": "2026-03-30",
-      "events": 40407,
-      "sessions": 2166
+      "date": "2026-05-19",
+      "events": 17509,
+      "sessions": 99
+    },
+    {
+      "date": "2026-05-20",
+      "events": 25117,
+      "sessions": 70
+    },
+    {
+      "date": "2026-05-21",
+      "events": 6041,
+      "sessions": 25
     }
   ]
 }

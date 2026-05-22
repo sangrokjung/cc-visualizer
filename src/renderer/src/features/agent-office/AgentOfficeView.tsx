@@ -15,6 +15,7 @@ import { CATEGORY_COLORS } from '../../lib/types'
 import { useSystemData } from '../../lib/use-system-data'
 import { useSessionEventsContext } from '../../lib/SessionEventsProvider'
 import { useAgentStatuses } from './use-agent-status'
+import { JARVIS, DEPT_LABELS } from './office-config'
 import { useOfficeLayout } from './use-office-layout'
 import { useAgentNodeData } from './use-agent-node-data'
 import { usePipelineEdges } from './use-pipeline-edges'
@@ -73,6 +74,13 @@ export default function AgentOfficeView() {
   const onPaneClick = useCallback(() => { setSelectedAgent(null) }, [])
   const liveAnnouncement = useLiveRegion(statuses)
 
+  // OfficeKpiStrip TopDeptCard용 — agentId → category 매핑
+  const agentCategory = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const a of agents) m.set(a.id, a.category)
+    return m
+  }, [agents])
+
   if (loading && agents.length === 0) {
     return <div className="h-full flex items-center justify-center text-sm" style={{ color: '#ABB3BF' }}>데이터 로딩 중...</div>
   }
@@ -93,10 +101,17 @@ export default function AgentOfficeView() {
       <div aria-live="polite" className="sr-only" data-testid="office-live-region">{liveAnnouncement}</div>
 
       {/* KPI 스트립 */}
-      <OfficeKpiStrip statuses={statuses} pipelineCount={pipelines.length} toolCount={uniqueToolCount} demoMode={demoMode} />
+      <OfficeKpiStrip
+        statuses={statuses}
+        pipelineCount={pipelines.length}
+        toolCount={uniqueToolCount}
+        demoMode={demoMode}
+        agentCategory={agentCategory}
+        categoryLabels={DEPT_LABELS}
+      />
 
-      {/* 3컬럼 레이아웃 */}
-      <div className="flex-1 grid grid-cols-[200px_1fr_280px] overflow-hidden">
+      {/* 3컬럼 레이아웃 — 좌측 패널 폭 280px (TOKEN ECONOMY 깔끔 렌더) */}
+      <div className="flex-1 grid grid-cols-[280px_1fr_320px] overflow-hidden">
         <OfficeFilterPanel
           agents={agents}
           activeCategories={activeCategories}
@@ -126,7 +141,17 @@ export default function AgentOfficeView() {
               }}
               maskColor="rgba(17,20,24,0.8)"
               style={{ backgroundColor: '#1C2127', borderColor: '#404854' }} />
-            <Background variant={BackgroundVariant.Cross} color="#1a1e28" gap={16} size={1} style={{ backgroundColor: '#0d0f14' }} />
+            <Background variant={BackgroundVariant.Dots} color={JARVIS.borderActive} gap={28} size={1.2} style={{ backgroundColor: JARVIS.bg, opacity: 0.6 }} />
+            {/* JARVIS 스캔 라인 오버레이 */}
+            <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: 1 }}>
+              <div
+                className="absolute left-0 right-0 h-px animate-jarvis-scan"
+                style={{
+                  background: `linear-gradient(90deg, transparent 0%, ${JARVIS.primary}aa 50%, transparent 100%)`,
+                  boxShadow: `0 0 8px ${JARVIS.primary}`,
+                }}
+              />
+            </div>
           </ReactFlow>
         </div>
 

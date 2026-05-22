@@ -42,14 +42,17 @@
 ### 현재 상태
 - 기본 구현 완료
 
-## Feature 6: 실시간 세션 연동 (미구현)
+## Feature 6: 실시간 세션 연동
 ### 요구사항
 1. Claude Code 세션 데이터 실시간 수집
 2. 에이전트 실행 상태 라이브 업데이트
 3. 토큰 사용량 실시간 추적
 ### 데이터 소스
-- 현재: `scripts/scan-system.ts` 정적 스캔
-- 향후: 세션 로그 파싱 또는 IPC 연동
+- 정적: `scripts/scan-system.ts`
+- 실시간: `src-tauri/src/session_watcher.rs` (~/.claude/projects/*/ JSONL tail → Tauri event emit)
+### 현재 상태
+- v1 완료 (Phase 2A): session_watcher.rs + SessionEventsProvider + agentActivityMap
+- Agent Office 뷰 실시간 상태 연동 완료 (Phase 2B)
 
 ## Feature 7: Systems (자동화 생태계)
 ### 요구사항
@@ -86,6 +89,26 @@
 - data/usage-stats.json (scan-usage.ts 생성)
 ### 현재 상태
 - v1 완료
+
+## Feature 10: Agent Office (에이전트 오피스)
+### 요구사항
+1. 67개 에이전트를 픽셀아트 캐릭터 + 10개 부서 구역 메타포로 시각화
+2. 3컬럼 BI 레이아웃: 좌 200px FilterPanel, 중 ReactFlow 오피스, 우 280px InsightPanel
+3. 상단 KPI Strip: Working/Recent/Idle/Offline/Pipelines/Tools 6개 카드 (카운트업 애니메이션)
+4. 실시간 상태 (working 30s / recent 5min / idle / offline) — 세션 이벤트 매칭, DEMO MODE 폴백
+5. 파이프라인 엣지: 에이전트 선택 시 in/out 흐름 하이라이트
+6. 우측 탭 3개: Selected (AgentProfilePanel) / Events (최근 20개) / Stats (부서 분포 + 도구 호출 TOP)
+7. 접근성: ARIA role/tabIndex/focus-ring, 라이브 리전 3초 디바운스 (WCAG AA)
+8. 에러 바운더리 + 로딩 Skeleton
+### 데이터 소스
+- system-data.json (agents, pipelines)
+- SessionEventsProvider (agentActivityMap, recentTools)
+### 성능 최적화 (Phase 2B)
+- use-office-layout: `statuses` deps 제거 → 5초 tick에서 레이아웃 재계산 안 함
+- use-agent-node-data: 변경된 에이전트만 새 참조 생성 → AgentAvatarNode memo skip
+### 현재 상태
+- Phase 1+2A 완료 (PR #4): 접근성 + 실데이터 연동 + 파이프라인 엣지
+- Phase 2B 완료 (PR #5, 2026-04-14): BI 패널 + 성능 최적화, AgentOfficeView 285→141줄
 
 ## 공통: 검색
 ### 요구사항

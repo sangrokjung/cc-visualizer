@@ -25,12 +25,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [externalSystems, setExternalSystems] = useState(staticExternalSystems)
   const [loading, setLoading] = useState(false)
 
-  // 앱 시작 시 Rust에서 최신 데이터 로드
+  // 앱 시작/새로고침 시 2-Phase 로드:
+  //   Phase 1 — 즉시 캐시 표시 (load_system_data: 기존 JSON 읽기)
+  //   Phase 2 — 백그라운드 rescan (npm run scan → 최신 데이터로 자동 갱신)
+  // Tauri 환경에서만 Phase 2 동작. Vite dev/브라우저는 staticSystemData 폴백.
   useEffect(() => {
     loadAll()
   }, [])
 
   async function loadAll() {
+    // Phase 1: 즉시 캐시 로드
     try {
       const [sys, usage, ext] = await Promise.all([
         api.loadSystemData().catch(() => null),
@@ -43,6 +47,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } catch {
       // 폴백: 정적 데이터 유지
     }
+
+    // Phase 2: 백그라운드 rescan (Tauri 환경에서만, 비차단)
+    api
+      .rescanSystem()
+      .then((res) => {
+        if (res.ok && res.data) {
+          setSystemData(res.data as typeof staticSystemData)
+        }
+      })
+      .catch(() => {
+        // 폴백: Phase 1 데이터 유지 (Vite dev 등 비-Tauri 환경)
+      })
   }
 
   const refreshSystem = useCallback(async () => {
@@ -66,6 +82,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     }
   }, [])
+
+  // ~/.claude 디렉토리 변경 감지 시 자동 rescan (file_watcher → claude-system-changed 이벤트)
+  // Phase 2 백그라운드 rescan과 보완 관계 — 마운트 시 1회 + 이후 변경 시마다.
+  useEffect(() => {
+    // Vite dev에서 Tauri context 없으면 listen이 throw — 가드.
+    if (
+      typeof window === 'undefined' ||
+      !(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__
+    ) {
+      return
+    }
+
+    let unlisten: (() => void) | null = null
+
+    api
+      .onClaudeSystemChanged(() => {
+        refreshSystem()
+      })
+      .then((fn) => {
+        unlisten = fn
+      })
+      .catch(() => {
+        // listen 실패는 dev 환경 등 — 조용히 무시
+      })
+
+    return () => {
+      if (unlisten) unlisten()
+    }
+  }, [refreshSystem])
 
   return (
     <DataContext.Provider value={{ systemData, usageData, externalSystems, refreshSystem, refreshUsage, loading }}>

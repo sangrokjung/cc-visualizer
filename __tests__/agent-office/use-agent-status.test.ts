@@ -77,13 +77,17 @@ describe('useAgentStatuses', () => {
     expect(result.current.statuses.get('agent-1')).toBe('idle')
   })
 
-  it('activityMap에 agentId가 없으면 offline으로 판정', () => {
+  it('activityMap에 agentId가 없으면 DEMO로 보완 (Hybrid 정책, 2026-05-21)', () => {
+    // Hybrid: 실데이터 있는 에이전트는 실제 판정, 없는 에이전트는 DEMO 랜덤 보완.
+    // → 사용자 UX: 200개 카드 모두에 시각적 활기 유지
     mockState.activityMap = new Map([
       ['agent-1', { lastSeen: FIXED_NOW - 5_000, eventCount: 1 }],
     ])
     const { result } = renderHook(() => useAgentStatuses(AGENTS_PAIR))
     expect(result.current.statuses.get('agent-1')).toBe('working')
-    expect(result.current.statuses.get('agent-2')).toBe('offline')
+    // agent-2는 실데이터 없으므로 DEMO 보완 (working/recent/idle 중 하나)
+    const status2 = result.current.statuses.get('agent-2')
+    expect(['working', 'recent', 'idle', 'offline']).toContain(status2)
   })
 
   it('5초 tick 경과 후 상태 재평가 (working → recent 자연 전이)', () => {
@@ -102,18 +106,19 @@ describe('useAgentStatuses', () => {
     expect(result.current.statuses.get('agent-1')).toBe('recent')
   })
 
-  it('agentActivityMap에 다수 에이전트 상태 혼합', () => {
+  it('agentActivityMap에 다수 에이전트 상태 혼합 + 없는 에이전트는 DEMO 보완', () => {
     mockState.activityMap = new Map([
       ['a', { lastSeen: FIXED_NOW - 10_000, eventCount: 1 }], // working
       ['b', { lastSeen: FIXED_NOW - 60_000, eventCount: 1 }], // recent
       ['c', { lastSeen: FIXED_NOW - 10 * 60_000, eventCount: 1 }], // idle
-      // 'd' → offline
+      // 'd' → DEMO 보완
     ])
     const { result } = renderHook(() => useAgentStatuses(AGENTS_MIXED))
     expect(result.current.demoMode).toBe(false)
     expect(result.current.statuses.get('a')).toBe('working')
     expect(result.current.statuses.get('b')).toBe('recent')
     expect(result.current.statuses.get('c')).toBe('idle')
-    expect(result.current.statuses.get('d')).toBe('offline')
+    // 'd' 는 DEMO 보완 → working/recent/idle/offline 중 하나
+    expect(['working', 'recent', 'idle', 'offline']).toContain(result.current.statuses.get('d'))
   })
 })

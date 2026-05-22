@@ -1,6 +1,69 @@
 {
-  "scanTimestamp": "2026-04-04T14:55:31.257Z",
+  "scanTimestamp": "2026-05-22T01:25:36.984Z",
   "agents": [
+    {
+      "id": "a11y-reviewer",
+      "name": "a11y-reviewer",
+      "description": "WCAG 2.1 AA 자동 접근성 감사. chrome-devtools take_snapshot + Playwright browser_snapshot으로 axe-core 호환 violations JSON 산출. Use proactively when UI 변경 완료 후 — 특히 \"접근성\", \"WCAG\", \"a11y\", \"스크린리더\" 요청 시, 또는 Stage 5b에서 performance-reviewer와 병행 필수. 성능 측정은 performance-reviewer, 코드 품질은 code-reviewer 사용.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Bash",
+        "Write",
+        "Grep",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_snapshot",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__evaluate_script",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_screenshot",
+        "mcp__plugin_playwright_playwright__browser_snapshot",
+        "mcp__plugin_playwright_playwright__browser_evaluate",
+        "mcp__plugin_playwright_playwright__browser_navigate",
+        "mcp__plugin_playwright_playwright__browser_take_screenshot"
+      ],
+      "category": "review",
+      "maxTurns": 20,
+      "memory": "project"
+    },
+    {
+      "id": "academic-anthropologist",
+      "name": "Anthropologist",
+      "description": "Expert in cultural systems, rituals, kinship, belief systems, and ethnographic method — builds culturally coherent societies that feel lived-in rather than invented",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "academic-geographer",
+      "name": "Geographer",
+      "description": "Expert in physical and human geography, climate systems, cartography, and spatial analysis — builds geographically coherent worlds where terrain, climate, resources, and settlement patterns make scientific sense",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "academic-historian",
+      "name": "Historian",
+      "description": "Expert in historical analysis, periodization, material culture, and historiography — validates historical coherence and enriches settings with authentic period detail grounded in primary and secondary sources",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "academic-narratologist",
+      "name": "Narratologist",
+      "description": "Expert in narrative theory, story structure, character arcs, and literary analysis — grounds advice in established frameworks from Propp to Campbell to modern narratology",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "academic-psychologist",
+      "name": "Psychologist",
+      "description": "Expert in human behavior, personality theory, motivation, and cognitive patterns — builds psychologically credible characters and interactions grounded in clinical and research frameworks",
+      "model": "default",
+      "tools": [],
+      "category": "research"
+    },
     {
       "id": "action-architect",
       "name": "action-architect",
@@ -35,7 +98,7 @@
     {
       "id": "ad-optimizer-team",
       "name": "ad-optimizer-team",
-      "description": "Use when optimizing ad campaigns across Google Ads, Meta Ads, and GA4. Leads a 4-agent opus team (Scout/Pixel/Compass/Strategist) using Agent Teams for parallel analysis. Generates prioritized, evidence-based optimization recommendations.",
+      "description": "Use when optimizing ad campaigns across Google Ads, Meta Ads, and GA4, including mobile vs desktop Lighthouse audits of ad landing pages via chrome-devtools-mcp (lighthouse_audit + emulate + take_screenshot) for landing-experience diagnostics. Leads a 4-agent opus team (Scout/Pixel/Compass/Strategist) using Agent Teams for parallel analysis. Generates prioritized, evidence-based optimization recommendations.",
       "model": "opus",
       "tools": [
         "Read",
@@ -43,7 +106,11 @@
         "Edit",
         "Bash",
         "Grep",
-        "Glob"
+        "Glob",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__lighthouse_audit",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_screenshot",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__emulate"
       ],
       "category": "marketing",
       "maxTurns": 25,
@@ -82,6 +149,14 @@
       "memory": "project"
     },
     {
+      "id": "agentic-identity-trust",
+      "name": "Agentic Identity & Trust Architect",
+      "description": "Designs identity, authentication, and trust verification systems for autonomous AI agents operating in multi-agent environments. Ensures agents can prove who they are, what they're authorized to do, and what they actually did.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
       "id": "ai-researcher",
       "name": "ai-researcher",
       "description": "자율 AI 연구 에이전트. 논문 탐색→가설 생성→실험 설계→결과 분석→보고서 작성.",
@@ -106,7 +181,7 @@
     {
       "id": "architect",
       "name": "architect",
-      "description": "프로젝트 아키텍처 전문 에이전트 v3. 코드 분석 + 아키텍처 거버넌스 + 자율 리포트를 수행한다. 10명의 구루 프레임워크(Fowler Evolutionary Design/Brown C4+Structurizr MCP/Hohpe Cloud Strategy/Richards&Ford Architecture as Code+Fitness Functions/Newman Modular Monolith/Vernon DDD/Keeling Risk Storming/Fairbanks Risk-Driven/AgenticAKM 4-Agent ADR/Patten AI Governance Agent)를 적용하여 아키텍처 결정, 기술 부채 관리, Fitness Function 측정, C4 다이어그램 생성, ADR 자동 생성, AI 거버넌스 감사를 자율 수행한다.",
+      "description": "C4 다이어그램·ADR·Fitness Functions·기술 부채 스캔·의존성 분석·모듈 경계 설계 전문. Fowler, Brown C4, Newman, Vernon DDD 10구루 적용. Use proactively when 아키텍처 분석, C4 모델, ADR 작성, 기술 부채 스캔, 순환 의존성, 마이크로서비스 설계, 진화적 아키텍처 요청 시. 구현 계획은 planner, 코드 수정은 refactor-cleaner 사용.",
       "model": "opus",
       "tools": [
         "Read",
@@ -139,7 +214,52 @@
       "category": "research",
       "maxTurns": 30,
       "memory": "project",
-      "isolation": true
+      "isolation": "worktree"
+    },
+    {
+      "id": "automation-governance-architect",
+      "name": "Automation Governance Architect",
+      "description": "Governance-first architect for business automations (n8n-first) who audits value, risk, and maintainability before implementation.",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
+      "id": "bizmodel-architect",
+      "name": "bizmodel-architect",
+      "description": "자율 BM 설계 전담. BMC/Lean Canvas/JTBD/Wardley Map/Blue Ocean 5모드 + 16구루 + 정량평가(score 85%) + Mermaid·DOCX·PDF 산출. Use proactively when 사업 모델 설계/BMC/Lean Canvas/JTBD/Wardley/Build vs Buy/Blue Ocean/ERRC/수익 모델/BM 피벗 요청 시. QJC 자체 브랜드/포트폴리오는 qjc-business, 일반 PM PRD/OST는 product-strategist 분기.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "Write",
+        "Edit",
+        "WebSearch",
+        "Agent",
+        "mcp__plugin_context7_context7__resolve-library-id",
+        "mcp__plugin_context7_context7__query-docs"
+      ],
+      "category": "business",
+      "maxTurns": 35,
+      "memory": "project"
+    },
+    {
+      "id": "blender-addon-engineer",
+      "name": "Blender Add-on Engineer",
+      "description": "Blender tooling specialist - Builds Python add-ons, asset validators, exporters, and pipeline automations that turn repetitive DCC work into reliable one-click workflows",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "blockchain-security-auditor",
+      "name": "Blockchain Security Auditor",
+      "description": "Expert smart contract security auditor specializing in vulnerability detection, formal verification, exploit analysis, and comprehensive audit report writing for DeFi protocols and blockchain applications.",
+      "model": "default",
+      "tools": [],
+      "category": "legal"
     },
     {
       "id": "browser-automation-agent",
@@ -177,7 +297,7 @@
     {
       "id": "build-error-resolver",
       "name": "build-error-resolver",
-      "description": "Use when build fails or type errors occur to get back to green with minimal changes. Fixes type errors, compilation failures, import errors, dependency issues. Minimal diffs only -- no refactoring or architecture changes.",
+      "description": "빌드 실패·타입 에러·컴파일 오류·import 에러·의존성 이슈를 최소 변경으로 그린 복구. 리팩토링·아키텍처 변경 절대 금지. Use proactively when CI/빌드가 빨간불이거나, 터미널에 타입 에러·컴파일 에러가 표시될 때 즉시. 런타임 로직 버그는 systematic-debugger, 아키텍처 변경은 architect 사용.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -192,9 +312,65 @@
       "memory": "project"
     },
     {
+      "id": "business-team-lead",
+      "name": "business-team-lead",
+      "description": "Memory-Aware Hub for QJC business domain. ONLY invoke when user explicitly requests '비즈니스팀으로', '사업 풀사이클', 'B2B 영업 사이클', '고객 온보딩 전체', OR when 3+ business spokes need orchestration (e.g., lead-scorer + crm-manager + meeting-prep). Dispatches 5-stage cycle: brainstorm → plan → execute → verify → learn. Calls load-agent-memory.sh BEFORE each spoke + save-agent-memory.sh AFTER. Never writes business artifacts directly. Hub-and-Spoke + mesh 금지. Single spoke calls (1-2 spokes) → main session calls spoke directly, NOT via this Hub.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "Bash",
+        "Agent"
+      ],
+      "category": "business",
+      "maxTurns": 50,
+      "memory": "project"
+    },
+    {
+      "id": "cert-grader",
+      "name": "cert-grader",
+      "description": "특이점 빌더스 최종 프로젝트 평가 추정 에이전트. final_project_details의 demo_url·project_description·ai_tools_used·automated_tasks를 분석하여 5축 점수(lesson 10 + assignment 10 + project 50 + presentation 15 + participation 15 = 100)를 추정하고, 대표 승인을 받은 후 Supabase UPDATE한다. 학생 평가는 외부 클레임 위험 영역이라 절대 자동 합리화 금지 — 추정만 하고 승인은 반드시 사용자.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Bash",
+        "Grep",
+        "Glob",
+        "AskUserQuestion",
+        "mcp__supabase-db__execute_sql",
+        "mcp__plugin_playwright_playwright__browser_navigate",
+        "mcp__plugin_playwright_playwright__browser_snapshot",
+        "mcp__plugin_playwright_playwright__browser_close"
+      ],
+      "category": "operations",
+      "maxTurns": 15,
+      "memory": "project"
+    },
+    {
+      "id": "cert-sender",
+      "name": "cert-sender",
+      "description": "특이점 빌더스 수료증 PDF 생성 + 이메일 발송 + plaque 추적 에이전트. final_project_details에서 approved + plaque_status NULL/pending인 row를 조회하여 PDF 생성(Chrome --headless), 이메일 발송(qjc_cert_send.py), Sent 첨부 검증, plaque_* UPDATE까지 결정론적으로 처리. cert-grader가 평가를 마친 후 호출됨.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob",
+        "mcp__supabase-db__execute_sql"
+      ],
+      "category": "operations",
+      "maxTurns": 20,
+      "memory": "project"
+    },
+    {
       "id": "ci-bi-strategist",
       "name": "ci-bi-strategist",
-      "description": "QJC CI/BI(Competitive Intelligence/Business Intelligence) 전략 에이전트. 경쟁사 모니터링, 시장 인텔리전스, 비즈니스 인사이트 도출을 자율적으로 수행한다. 10명의 구루 프레임워크(Gilad/Fuld/Fleisher/Bensoussan/Porter/Marr/Eckerson/Dykes/김위찬/Christensen)를 적용하여 1인 기업 맞춤 CI/BI 의사결정을 지원한다.",
+      "description": "QJC CI/BI(Competitive/Business Intelligence) 전략. 경쟁사 모니터링, 시장 인텔리전스, 비즈니스 인사이트 도출, 배틀카드 생성, KPI 대시보드. Use when 경쟁사분석/시장인텔리전스/배틀카드/KPI벤치마킹/CEW/Porter Five Forces. Gilad CEPC, Fuld, Porter, Marr, Eckerson 적용. 경계: 외부 경쟁=본 에이전트, 내부 VoC/NPS=feedback-analyst, 특허=patent-attorney.",
       "model": "opus",
       "tools": [
         "Read",
@@ -211,9 +387,27 @@
       "memory": "project"
     },
     {
+      "id": "civil-law-advisor",
+      "name": "civil-law-advisor",
+      "description": "한국 민사 법률 전문. 손해배상, 채권추심, 소액소송, 민사조정(법원), 내용증명, 부당이득, 지급명령, 임대차 분쟁, 소비자 피해 구제. Use when 손해배상/채권추심/소액소송/지급명령/내용증명/부당이득/임대차분쟁/소비자피해. 양창수, 지원림, 송덕수, 이은영, Susskind 적용. 경계: 계약 검토=contract-legal, 초안 생성=nda-generator, 협상=mediation-negotiator, 노동법=labor-consultant.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "Edit"
+      ],
+      "category": "legal",
+      "maxTurns": 30,
+      "memory": "project"
+    },
+    {
       "id": "code-reviewer",
       "name": "code-reviewer",
-      "description": "Use when completing code changes to review quality, security, and maintainability. Two-stage review: spec compliance first, then code quality. Severity-rated issues with fix suggestions.",
+      "description": "코드 품질·보안·유지보수성 2단계 리뷰 (스펙 준수 → 코드 품질). 심각도 등급 이슈와 수정 제안 산출. Use proactively when 코드 변경 완료 후, PR 머지 전, \"리뷰해줘\" 요청 시. 보안 전용은 security-reviewer, DB 쿼리는 database-reviewer, 아키텍처 판단은 architect 사용.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -233,7 +427,7 @@
     {
       "id": "codex-reviewer",
       "name": "codex-reviewer",
-      "description": "Use for cross-model second opinion code review via OpenAI Codex (GPT). Complements code-reviewer by catching Claude-specific blind spots. Sends diffs to Codex CLI for independent analysis. Requires ChatGPT subscription.",
+      "description": "Use for cross-model second opinion code review via OpenAI Codex (gpt-5.5). Complements code-reviewer by catching Claude-specific blind spots. Sends diffs to Codex CLI with --profile review + --output-schema (stdin-only) for structured analysis. Requires ChatGPT subscription + ~/.codex/config.toml [profiles.review] + ~/.codex/AGENTS.md.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -248,7 +442,7 @@
     {
       "id": "compliance-checker",
       "name": "compliance-checker",
-      "description": "자율 규정 준수 체커 에이전트. 개인정보보호법(PIPA) 체크리스트, 전자상거래법 준수, 약관 검증, 법률 변경 모니터링, 컴플라이언스 리포트를 수행한다. 10명의 구루 프레임워크(Daniel Solove, Lina Khan, Max Schrems, 이인호, 고학수, Anu Bradford, Calo/Citron, 김일환, 이창범, 정상조)를 적용하여 1인 기업/소규모 기업 맞춤 컴플라이언스 진단을 제공한다.",
+      "description": "자율 규정 준수 체커. 개인정보보호법(PIPA) 체크리스트, 전자상거래법, 약관 검증, 법률 변경 모니터링, 컴플라이언스 리포트. Use when 개인정보보호법/전자상거래법/약관검증/컴플라이언스/규정준수/정보통신망법/GDPR/유출사고. Solove, Schrems, 이인호, 고학수, Bradford 적용. 경계: 약관 수정은 contract-legal, 노무는 labor-consultant, 보안 코드는 security-reviewer.",
       "model": "opus",
       "tools": [
         "Read",
@@ -264,9 +458,34 @@
       "memory": "project"
     },
     {
+      "id": "context-sync-lead",
+      "name": "context-sync-lead",
+      "description": "프로젝트 맥락(CLAUDE.md/spec/PRD/회의록/rules) 동기화 단일 책임자. /sync-docs, /sync-all, /context-sync, /harness-sync, /project-status-snapshot, doc-updater, gws drive를 hub-and-spoke 오케스트레이션. dry-run default + 사용자 승인 게이트 + 매 단계 structured result 검증. Use proactively when \"맥락 동기화\", \"팀 공유 문서 갱신\", \"GitHub + Drive에 올려\", \"프로젝트 메타 정합성\", \"산출물 동기화\" 등 2개+ 스킬 체이닝 또는 GDrive 통합 필요 시. 단일 스킬(/sync-docs만)이면 직접 호출.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob",
+        "Skill",
+        "Agent",
+        "AskUserQuestion",
+        "mcp__plugin_supabase_supabase__execute_sql",
+        "mcp__plugin_supabase_supabase__list_tables",
+        "mcp__claude_ai_Google_Drive__search_files",
+        "mcp__claude_ai_Google_Drive__create_file",
+        "mcp__claude_ai_Google_Drive__get_file_metadata"
+      ],
+      "category": "operations",
+      "maxTurns": 25,
+      "memory": "project"
+    },
+    {
       "id": "contract-legal",
       "name": "contract-legal",
-      "description": "한국 계약/법률 업무 전문 에이전트. 계약서 초안 작성, 검토/리스크 분석, 법령 조회(국가법령정보 Open API), 판례 검색, 계약 해지/위약금/약관 검토를 수행한다. 10명의 구루 프레임워크(Ken Adams, Tina Stark, WorldCC, Siedel/Haapio, Susskind, 양창수/김재형, 지원림, 송덕수, 이은영, 정상조)를 적용한다.",
+      "description": "한국 계약/법률 검토·분석 전문. 계약서 검토/리스크 분석, 법령 조회(국가법령정보 Open API 191개), 판례 검색, 입법예고 모니터링, 계약 해지/위약금/약관 검토. Use when 계약서검토/리스크분석/법령조회/판례검색/입법예고/위약금/약관/전자계약. Adams MSCD, Stark, WorldCC, Susskind, 양창수 적용. 경계: 초안 생성=nda-generator, 민사 분쟁=civil-law-advisor, 노무=labor-consultant.",
       "model": "opus",
       "tools": [
         "Read",
@@ -284,7 +503,7 @@
     {
       "id": "copywriting",
       "name": "copywriting",
-      "description": "Use when writing or editing marketing copy: landing pages, ad copy, email sequences, sales pages, CTAs, headlines, value propositions. Applies Schwartz, Hormozi, Ogilvy, Sugarman, Cialdini, StoryBrand, Wiebe, Dunford frameworks.",
+      "description": "전환 카피라이팅 전문. 랜딩 페이지·광고 카피·이메일 시퀀스·세일즈 페이지·CTA·헤드라인·가치 제안. Schwartz, Hormozi, Ogilvy, Cialdini, StoryBrand 7구루 적용. Use proactively when \"카피 써줘\", \"광고 문구\", \"헤드라인\", \"CTA\", \"이메일 시퀀스\" 요청 시. 장문 콘텐츠는 qjc-content, SEO 최적화는 seo-geo-aeo-strategist 사용.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -301,7 +520,7 @@
     {
       "id": "crm-manager",
       "name": "crm-manager",
-      "description": "QJC CRM 전담 에이전트. Use this agent proactively when the user mentions customers, leads, deals, follow-ups, pipeline, sales, contacts, or customer health. 리드 관리, 파이프라인 추적, 팔로업 자동화, 고객 건강 점수 산정, 이탈 방지, 활동 로그를 수행한다. Supabase CRM(os_customer_pipeline, os_deals, os_pipeline_activities) + Gmail + Calendar를 통합 활용한다. 10명의 구루 프레임워크(Lincoln Murphy, David Skok, Jill Konrath, Aaron Ross, Brent Adamson, HubSpot, Jacco van der Kooij, Nick Mehta, Jay Baer, 최규철)를 적용하여 1인 기업 맞춤 CRM을 운영한다.",
+      "description": "QJC CRM 전담. 리드 관리, 파이프라인 추적, 팔로업 자동화, 고객 건강 점수, 이탈 방지, 활동 로그. Supabase B2B(os_outreach_leads + os_deals + os_pipeline_activities) / B2C(os_customer_pipeline) + Gmail + Calendar 통합. Use when 리드/파이프라인/팔로업/고객건강/이탈/활동로그/B2B영업. Lincoln Murphy, David Skok, Aaron Ross 적용. 리드 스코어링은 lead-scorer.",
       "model": "opus",
       "tools": [
         "Read",
@@ -311,7 +530,9 @@
         "Edit",
         "Bash",
         "WebSearch",
-        "AskUserQuestion"
+        "AskUserQuestion",
+        "mcp__supabase__execute_sql",
+        "mcp__supabase__list_tables"
       ],
       "category": "business",
       "maxTurns": 30,
@@ -320,7 +541,7 @@
     {
       "id": "cs-responder",
       "name": "cs-responder",
-      "description": "QJC 자율 고객 문의 응대 에이전트. 고객 문의를 자동 분류하고, 답변 초안을 생성하며, 긴급도를 판단하고, 에스컬레이션 여부를 결정한다. Gmail(gws CLI), 채널톡/카카오 연동 가능성을 포함하여 모든 CS 채널을 통합 관리한다. Supabase(os_cs_tickets, os_cs_templates, os_cs_knowledge_base)를 티켓 시스템으로 활용한다. 10명의 구루 프레임워크(Jay Baer Hug Your Haters, Shep Hyken Amazement, Micah Solomon 예측적 서비스, Jeanne Bliss 5역량, Ron Kaufman 6단계, Colin Shaw 감정 매핑, Zendesk AI 자동 분류, Intercom Fin 자동 해결, HubSpot 워크플로우, 최규철 한국 CS)를 적용하여 1인 기업 맞춤 CS를 운영한다.",
+      "description": "QJC 자율 고객 문의 응대. Gmail/채널톡/카카오 통합, 문의 8종 자동 분류, 답변 초안 + 에스컬레이션 판단. Supabase os_cs_tickets/templates/knowledge_base 활용. Use when 고객문의/CS처리/답변초안/불만/클레임/환불요청/에스컬레이션. Jay Baer Hug Your Haters, Shep Hyken, Zendesk AI 적용. 경계: 반복문의 FAQ화는 faq-builder, VoC NPS는 feedback-analyst.",
       "model": "opus",
       "tools": [
         "Read, Grep, Glob, Write, Edit, Bash, WebSearch, AskUserQuestion"
@@ -332,7 +553,7 @@
     {
       "id": "data-analyst",
       "name": "data-analyst",
-      "description": "QJC 데이터 분석가 에이전트. 공공 API(KOSIS/ECOS/data.go.kr/DART 등)에서 데이터를 수집하고, 정규화·분석·시각화하여 비즈니스 인사이트를 도출한다. 10명의 구루 프레임워크(Knaflic, Tufte, Kozyrkov, Cairo, Patil, Mason, Au, Stancil, Davenport, 한국공공데이터)를 적용하여 1인 기업 맞춤 데이터 기반 의사결정을 지원한다.",
+      "description": "QJC 데이터 분석가. 공공 API(KOSIS/ECOS/data.go.kr/DART) 수집, 정규화·분석·시각화하여 비즈니스 인사이트. Use when 공공데이터수집/KOSIS/ECOS/시계열분석/데이터시각화/KPI대시보드/Storytelling with Data/Decision Intelligence. Knaflic, Tufte, Kozyrkov, Cairo 적용. 경계: 외부 경쟁/시장은 ci-bi-strategist, 내부 VoC는 feedback-analyst, 예산/현금흐름은 budget-analyst.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -346,6 +567,14 @@
       "category": "research",
       "maxTurns": 30,
       "memory": "project"
+    },
+    {
+      "id": "data-consolidation-agent",
+      "name": "Data Consolidation Agent",
+      "description": "AI agent that consolidates extracted sales data into live reporting dashboards with territory, rep, and pipeline summaries",
+      "model": "default",
+      "tools": [],
+      "category": "business"
     },
     {
       "id": "database-reviewer",
@@ -363,9 +592,17 @@
       "memory": "project"
     },
     {
+      "id": "design-brand-guardian",
+      "name": "Brand Guardian",
+      "description": "Expert brand strategist and guardian specializing in brand identity development, consistency maintenance, and strategic brand positioning",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
       "id": "design-creator",
       "name": "design-creator",
-      "description": "QJC 자율 디자인 제작 에이전트. 배너/상세페이지/SNS 그래픽/카드뉴스/광고 크리에이티브/인포그래픽을 자율적으로 기획·제작·납품한다. Gemini 이미지 생성 API + HTML/CSS 렌더링 + Chrome 스크린샷 파이프라인으로 1인 기업 맞춤 디자인 자동화를 실현한다. 10명의 구루 프레임워크(Rand/Müller-Brockmann/Lupton/Cederholm/Frost/Vinh/Krug/Canva Design School/Pham/Draplin)를 적용하여 전문 디자인 품질을 보장한다.",
+      "description": "배너·카드뉴스·SNS 이미지·광고 크리에이티브·인포그래픽·썸네일·상세페이지 디자인 자율 제작. 이미지 생성 default = OpenAI gpt-image-2 medium ($0.041/장). HTML/CSS 렌더링 + chrome-devtools-mcp 스크린샷 파이프라인. Use proactively when 배너, 카드뉴스, SNS 이미지, 광고 크리에이티브, 썸네일, 인포그래픽 제작 요청 시. 웹 코드 구현은 web-designer, 단일 컷 프롬프트 정제는 openai-image-creator 사용.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -373,16 +610,112 @@
         "Edit",
         "Bash",
         "Grep",
-        "Glob"
+        "Glob",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__resize_page",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_screenshot",
+        "mcp__plugin_lazyweb_lazyweb__lazyweb_search",
+        "mcp__plugin_lazyweb_lazyweb__lazyweb_compare_image"
       ],
       "category": "creative",
       "maxTurns": 30,
       "memory": "project"
     },
     {
+      "id": "design-image-prompt-engineer",
+      "name": "Image Prompt Engineer",
+      "description": "Expert photography prompt engineer specializing in crafting detailed, evocative prompts for AI image generation. Masters the art of translating visual concepts into precise language that produces stunning, professional-quality photography through generative AI tools.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "design-inclusive-visuals-specialist",
+      "name": "Inclusive Visuals Specialist",
+      "description": "Representation expert who defeats systemic AI biases to generate culturally accurate, affirming, and non-stereotypical images and video.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "design-ux-researcher",
+      "name": "UX Researcher",
+      "description": "Expert user experience researcher specializing in user behavior analysis, usability testing, and data-driven design insights. Provides actionable research findings that improve product usability and user satisfaction",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
+      "id": "design-visual-storyteller",
+      "name": "Visual Storyteller",
+      "description": "Expert visual communication specialist focused on creating compelling visual narratives, multimedia content, and brand storytelling through design. Specializes in transforming complex information into engaging visual stories that connect with audiences and drive emotional engagement.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "design-whimsy-injector",
+      "name": "Whimsy Injector",
+      "description": "Expert creative specialist focused on adding personality, delight, and playful elements to brand experiences. Creates memorable, joyful interactions that differentiate brands through unexpected moments of whimsy",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "detail-page-creator",
+      "name": "detail-page-creator",
+      "description": "상세페이지 자동 제작 오케스트레이터. 사용자가 제공한 상품/강의 이미지 1장과 텍스트 정보(상품명·가격·핵심특징)에서 product_info JSON을 합성하고, OpenAI gpt-image-2 (image-to-image edits)로 헤더부터 CTA까지 10~15장을 다국어·정확한 비율·패키지 보존 보장하에 일괄 생성한다. PROACTIVELY 사용: \"상세페이지 만들어줘\", \"디테일페이지\", \"detail page 자동\", \"상세페이지 자동화\", \"쇼핑몰 상세 이미지 15장\", \"강의 상세페이지\", \"다국어 상세페이지\", \"헤더부터 CTA까지\", \"상세페이지 일괄 생성\" 키워드 감지 시. NOT 사용: 단일 컷 포스터(openai-image-creator), 카드뉴스/광고 세트(design-creator), 유튜브 썸네일(youtube-thumbnail-maker), 풍경/배경(generate-image), 마켓플레이스 리스팅 카드(higgsfield-marketplace-cards).",
+      "model": "sonnet",
+      "tools": [
+        "Bash",
+        "Read",
+        "Write",
+        "Glob",
+        "AskUserQuestion"
+      ],
+      "category": "creative",
+      "maxTurns": 20
+    },
+    {
+      "id": "dev-brainstormer",
+      "name": "dev-brainstormer",
+      "description": "발산 설계 전문. 요구사항 모호·복수 접근법·기술 선택 미결 상황에서 3-5개 옵션 + 트레이드오프 매트릭스 생성. NEVER plan 작성. Use proactively when \"뭘 만들지 모르겠다\", \"어떤 방법이 좋을까\", \"LLM vs 규칙\", \"옵션 비교해줘\" 처럼 발산이 필요한 시점. 방향 선택 후 구현 계획은 planner, 풀사이클 개발은 dev-team-lead 사용.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "WebSearch",
+        "mcp__plugin_context7_context7__query-docs",
+        "mcp__plugin_context7_context7__resolve-library-id"
+      ],
+      "category": "development",
+      "maxTurns": 25,
+      "memory": "project"
+    },
+    {
+      "id": "dev-team-lead",
+      "name": "dev-team-lead",
+      "description": "풀사이클 개발 Hub-and-Spoke 리더. brainstorm → architect → plan → TDD → 5-way review → perf/a11y → verify 8단계 파이프라인 오케스트레이션. 직접 코드 작성 없음. HARD-GATE 3개 준수. Use proactively when \"풀사이클\", \"개발팀으로\", \"팀으로 개발\", \"Dev Team\" 요청 시, 또는 변경 파일 3개 이상 + 독립 페이즈 복수인 경우. 단일 기능 구현은 tdd-guide, 계획만 필요하면 planner 사용.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "Bash",
+        "Agent"
+      ],
+      "category": "development",
+      "maxTurns": 50,
+      "memory": "project"
+    },
+    {
       "id": "doc-updater",
       "name": "doc-updater",
-      "description": "Use when documentation or codemaps need updating after code changes. Generates codemaps from actual source code, refreshes READMEs and guides, validates paths and links. Never writes docs from memory — always from code.",
+      "description": "코드 변경 후 문서·코드맵 자동 갱신. 실제 소스 기반 코드맵 생성, README·가이드 새로고침, 경로·링크 검증. 기억에서 문서 작성 절대 금지. Use proactively when 코드 변경 완료 후 — \"문서 업데이트\", \"README 갱신\", \"코드맵 만들어줘\" 요청 시, 또는 구현 완료 후 background 자동 트리거. 새 기능 설계 문서는 planner 사용.",
       "model": "haiku",
       "tools": [
         "Read",
@@ -399,7 +732,7 @@
     {
       "id": "e2e-runner",
       "name": "e2e-runner",
-      "description": "Use when creating, maintaining, or running E2E tests for critical user journeys (auth, payments, core features). Uses Vercel Agent Browser (preferred), browser-use CLI (complex auth/RPA), Playwright (deterministic tests). Page Object Model pattern, data-testid selectors, flaky test management.",
+      "description": "Use when creating, maintaining, or running E2E tests for critical user journeys (auth, payments, core features), or diagnosing memory leaks (V8 heap snapshot), console error traces, and network waterfalls in flaky tests. Uses Vercel Agent Browser (preferred), browser-use CLI (complex auth/RPA), Playwright (deterministic tests), plus chrome-devtools-mcp (take_memory_snapshot / list_console_messages / list_network_requests) for deep debugging. Page Object Model pattern, data-testid selectors, flaky test management.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -407,12 +740,15 @@
         "Edit",
         "Bash",
         "Grep",
-        "Glob"
+        "Glob",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_memory_snapshot",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_console_messages",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_network_requests"
       ],
       "category": "development",
       "maxTurns": 20,
       "memory": "project",
-      "isolation": true
+      "isolation": "worktree"
     },
     {
       "id": "email-action-team",
@@ -428,6 +764,174 @@
       "category": "operations",
       "maxTurns": 30,
       "memory": "project"
+    },
+    {
+      "id": "engineering-ai-data-remediation-engineer",
+      "name": "AI Data Remediation Engineer",
+      "description": "Specialist in self-healing data pipelines — uses air-gapped local SLMs and semantic clustering to automatically detect, classify, and fix data anomalies at scale. Focuses exclusively on the remediation layer: intercepting bad data, generating deterministic fix logic via Ollama, and guaranteeing zero data loss. Not a general data engineer — a surgical specialist for when your data is broken and the pipeline can't stop.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-ai-engineer",
+      "name": "AI Engineer",
+      "description": "Expert AI/ML engineer specializing in machine learning model development, deployment, and integration into production systems. Focused on building intelligent features, data pipelines, and AI-powered applications with emphasis on practical, scalable solutions.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-autonomous-optimization-architect",
+      "name": "Autonomous Optimization Architect",
+      "description": "Intelligent system governor that continuously shadow-tests APIs for performance while enforcing strict financial and security guardrails against runaway costs.",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
+      "id": "engineering-cms-developer",
+      "name": "CMS Developer",
+      "description": "Drupal and WordPress specialist for theme development, custom plugins/modules, content architecture, and code-first CMS implementation",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-codebase-onboarding-engineer",
+      "name": "Codebase Onboarding Engineer",
+      "description": "Expert developer onboarding specialist who helps new engineers understand unfamiliar codebases fast by reading source code, tracing code paths, and stating only facts grounded in the code.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-data-engineer",
+      "name": "Data Engineer",
+      "description": "Expert data engineer specializing in building reliable data pipelines, lakehouse architectures, and scalable data infrastructure. Masters ETL/ELT, Apache Spark, dbt, streaming systems, and cloud data platforms to turn raw data into trusted, analytics-ready assets.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-devops-automator",
+      "name": "DevOps Automator",
+      "description": "Expert DevOps engineer specializing in infrastructure automation, CI/CD pipeline development, and cloud operations",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
+      "id": "engineering-embedded-firmware-engineer",
+      "name": "Embedded Firmware Engineer",
+      "description": "Specialist in bare-metal and RTOS firmware - ESP32/ESP-IDF, PlatformIO, Arduino, ARM Cortex-M, STM32 HAL/LL, Nordic nRF5/nRF Connect SDK, FreeRTOS, Zephyr",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-filament-optimization-specialist",
+      "name": "Filament Optimization Specialist",
+      "description": "Expert in restructuring and optimizing Filament PHP admin interfaces for maximum usability and efficiency. Focuses on impactful structural changes — not just cosmetic tweaks.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-frontend-developer",
+      "name": "Frontend Developer",
+      "description": "Expert frontend developer specializing in modern web technologies, React/Vue/Angular frameworks, UI implementation, and performance optimization",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "engineering-git-workflow-master",
+      "name": "Git Workflow Master",
+      "description": "Expert in Git workflows, branching strategies, and version control best practices including conventional commits, rebasing, worktrees, and CI-friendly branch management.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-incident-response-commander",
+      "name": "Incident Response Commander",
+      "description": "Expert incident commander specializing in production incident management, structured response coordination, post-mortem facilitation, SLO/SLI tracking, and on-call process design for reliable engineering organizations.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "engineering-minimal-change-engineer",
+      "name": "Minimal Change Engineer",
+      "description": "Engineering specialist focused on minimum-viable diffs — fixes only what was asked, refuses scope creep, prefers three similar lines over a premature abstraction. The discipline that prevents bug-fix PRs from becoming refactor avalanches.",
+      "model": "default",
+      "tools": [],
+      "category": "development"
+    },
+    {
+      "id": "engineering-mobile-app-builder",
+      "name": "Mobile App Builder",
+      "description": "Specialized mobile application developer with expertise in native iOS/Android development and cross-platform frameworks",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-rapid-prototyper",
+      "name": "Rapid Prototyper",
+      "description": "Specialized in ultra-fast proof-of-concept development and MVP creation using efficient tools and frameworks",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-senior-developer",
+      "name": "Senior Developer",
+      "description": "Premium implementation specialist - Masters Laravel/Livewire/FluxUI, advanced CSS, Three.js integration",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "engineering-solidity-smart-contract-engineer",
+      "name": "Solidity Smart Contract Engineer",
+      "description": "Expert Solidity developer specializing in EVM smart contract architecture, gas optimization, upgradeable proxy patterns, DeFi protocol development, and security-first contract design across Ethereum and L2 chains.",
+      "model": "default",
+      "tools": [],
+      "category": "legal"
+    },
+    {
+      "id": "engineering-sre",
+      "name": "SRE (Site Reliability Engineer)",
+      "description": "Expert site reliability engineer specializing in SLOs, error budgets, observability, chaos engineering, and toil reduction for production systems at scale.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "engineering-technical-writer",
+      "name": "Technical Writer",
+      "description": "Expert technical writer specializing in developer documentation, API references, README files, and tutorials. Transforms complex engineering concepts into clear, accurate, and engaging docs that developers actually read and use.",
+      "model": "default",
+      "tools": [],
+      "category": "development"
+    },
+    {
+      "id": "engineering-threat-detection-engineer",
+      "name": "Threat Detection Engineer",
+      "description": "Expert detection engineer specializing in SIEM rule development, MITRE ATT&CK coverage mapping, threat hunting, alert tuning, and detection-as-code pipelines for security operations teams.",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
+      "id": "engineering-voice-ai-integration-engineer",
+      "name": "Voice AI Integration Engineer",
+      "description": "Expert in building end-to-end speech transcription pipelines using Whisper-style models and cloud ASR services — from raw audio ingestion through preprocessing, transcript cleanup, subtitle generation, speaker diarization, and structured downstream integration into apps, APIs, and CMS platforms.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
     },
     {
       "id": "escalation-fixer",
@@ -469,9 +973,17 @@
     {
       "id": "faq-builder",
       "name": "faq-builder",
-      "description": "QJC FAQ/지식베이스 자율 관리 에이전트. Use this agent proactively when the user mentions FAQ, knowledge base, help center, customer questions, repeated inquiries, self-service, or article management. 반복 문의 패턴 분석, FAQ 자동 생성/업데이트, 지식 베이스 구축, 답변 정확도 검증, Notion FAQ DB 관리, qjc.app 블로그 발행을 수행한다. KCS v6(Knowledge-Centered Service), Zendesk Guide, Cynefin, SECI, ITIL v4 등 10명의 지식관리 구루 프레임워크를 적용하여 1인 기업 맞춤 지식 관리를 운영한다.",
+      "description": "QJC FAQ/지식베이스 자율 관리. 반복 문의 패턴 분석, FAQ 자동 생성, Notion DB 관리, qjc.app 헬프센터 발행. Use when FAQ/지식베이스/헬프센터/반복문의/셀프서비스/아티클. KCS v6, Zendesk Guide, ITIL v4 적용. 경계: 실시간 개별 응답은 cs-responder, faq-builder는 비실시간 지식화 전담.",
       "model": "opus",
-      "tools": [],
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch"
+      ],
       "category": "operations",
       "maxTurns": 30,
       "memory": "project"
@@ -479,7 +991,7 @@
     {
       "id": "feedback-analyst",
       "name": "feedback-analyst",
-      "description": "QJC 고객 피드백 분석 에이전트. 고객 리뷰 수집, 감정 분석, 토픽 분류, NPS 산정, 이슈 우선순위 도출, 개선 제안 리포트를 자율적으로 수행한다. 10명의 구루 프레임워크(Nick Mehta VoC Loop/Teresa Torres OST/Sean Ellis PMF Survey/Marty Cagan Discovery Feedback/Jason Fried Language Mining/Hiten Shah Multi-Source/Lincoln Murphy Health Score/Bprogram JTBD/Jeff Sauro UX Metrics/Jared Spool Signal-vs-Noise)를 적용하여 1인 기업 맞춤 고객 인사이트를 도출한다.",
+      "description": "QJC 고객 피드백 분석. 리뷰 수집, 감정 분석, 토픽 분류, NPS 산정, 이탈 원인 분석, 개선 우선순위. Use when 피드백분석/리뷰분석/감정분석/NPS/이탈분석/PMF/VoC/유튜브댓글분석/Language Mining. Nick Mehta VoC Loop, Teresa Torres OST, Sean Ellis PMF Survey 적용. 경계: 외부 경쟁/시장은 ci-bi-strategist, 실시간 CS는 cs-responder, FAQ화는 faq-builder.",
       "model": "opus",
       "tools": [
         "Read",
@@ -547,6 +1059,22 @@
       "memory": "project"
     },
     {
+      "id": "game-audio-engineer",
+      "name": "Game Audio Engineer",
+      "description": "Interactive audio specialist - Masters FMOD/Wwise integration, adaptive music systems, spatial audio, and audio performance budgeting across all game engines",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "game-designer",
+      "name": "Game Designer",
+      "description": "Systems and mechanics architect - Masters GDD authorship, player psychology, economy balancing, and gameplay loop design across all engines and genres",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
       "id": "gemini-reviewer",
       "name": "gemini-reviewer",
       "description": "Use for frontend-focused second opinion code review via Gemini. Reviews React/Next.js patterns, accessibility, CSS/Tailwind, bundle size, performance. Complements code-reviewer for frontend-specific blind spots. Requires Google subscription.",
@@ -562,9 +1090,33 @@
       "memory": "project"
     },
     {
+      "id": "godot-gameplay-scripter",
+      "name": "Godot Gameplay Scripter",
+      "description": "Composition and signal integrity specialist - Masters GDScript 2.0, C# integration, node-based architecture, and type-safe signal design for Godot 4 projects",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "godot-multiplayer-engineer",
+      "name": "Godot Multiplayer Engineer",
+      "description": "Godot 4 networking specialist - Masters the MultiplayerAPI, scene replication, ENet/WebRTC transport, RPCs, and authority models for real-time multiplayer games",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "godot-shader-developer",
+      "name": "Godot Shader Developer",
+      "description": "Godot 4 visual effects specialist - Masters the Godot Shading Language (GLSL-like), VisualShader editor, CanvasItem and Spatial shaders, post-processing, and performance optimization for 2D/3D effects",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
       "id": "gov-support-strategist",
       "name": "gov-support-strategist",
-      "description": "정부지원사업 전략 전문 에이전트. 3개 공공 API(기업마당/K-Startup/보조금24)에서 공고를 자동 수집하고, QJC 기업 프로필 기반 적합도를 AI 분석하며, 사업계획서 작성을 보조한다. 10명의 구루 프레임워크(김상미, 하승범, 위너스랩TV, TIPA, 홍승민, Kellogg Foundation, Funding for Good, Beverly Browning, KISED, @carticker)를 적용하여 체계적 정부지원사업 전략을 지원한다.",
+      "description": "정부지원사업 전략 전문. 3개 공공 API(기업마당/K-Startup/보조금24) 자동 수집, QJC 적합도 AI 분석, 사업계획서 작성 보조(PSST). Use when 정부지원사업/공고수집/적합도분석/사업계획서/PSST/가점전략. 김상미, 하승범, TIPA, KISED 적용. 경계: 보조금/R&D/창업지원=본 에이전트, 상환의무 있는 정책자금/보증부/은행대출=loan-advisor.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -580,9 +1132,48 @@
       "memory": "project"
     },
     {
+      "id": "growth-engineer",
+      "name": "growth-engineer",
+      "description": "랜딩페이지 A/B 테스트 인프라·실험 코드·전환 퍼널 자동화·feature flag·통계 검증 전담. GrowthBook + Vercel Edge Config + Mixpanel/Amplitude/PostHog 통합. copywriting·Design Engineer가 만든 변형(variant)을 코드로 구현하고 통계 유의성 도달 시 winning variant 승격까지 책임. Use when \"A/B 테스트 설계\", \"랜딩 실험\", \"퍼널 분석\", \"feature flag\", \"GrowthBook\", \"전환 실험\", \"통계 유의성\", \"랜딩 variant\", \"ICE/RICE 우선순위\", \"growth hacking\" 키워드 감지 시. 4 구루: Sean Ellis(AARRR)/Andrew Chen(Cold Start)/Brian Balfour(4 Fits)/Casey Winters(SEO·Marketplace).",
+      "model": "opus",
+      "tools": [
+        ""
+      ],
+      "category": "marketing",
+      "isolation": "worktree"
+    },
+    {
+      "id": "hometax-processor",
+      "name": "hometax-processor",
+      "description": "자율 홈택스 매출 동기화 에이전트. 홈택스 발급 알림 메일(from hometaxadmin@hometax.go.kr) 자동 감지, 보안메일 첨부 복호화(사업자번호 자동 입력), 라인 아이템 분해, 재무폴더/고객폴더 PDF·HTML 저장, revenue-processor 위임으로 Supabase/Notion 3종 원장 동시 기록까지 end-to-end 자동화. 매출 전용. 매입 처리(expense-processor)와 대칭이지만 발행 후 메일 자동 동기화 책임 분리.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Agent",
+        "mcp__supabase-db__execute_sql",
+        "mcp__supabase-db__list_tables"
+      ],
+      "category": "operations",
+      "maxTurns": 25,
+      "memory": "project"
+    },
+    {
+      "id": "hospitality-guest-services",
+      "name": "Hospitality Guest Services",
+      "description": "Comprehensive hospitality guest services specialist for hotels, resorts, restaurants, and event venues — covering reservations, check-in/check-out, concierge services, guest complaint resolution, loyalty program management, and post-stay follow-up to deliver exceptional guest experiences that drive loyalty and revenue",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
       "id": "hr-manager",
       "name": "hr-manager",
-      "description": "QJC HR(인사관리) 전담 에이전트. 채용 공고 자동 수집(워크넷/사람인 API), 근태 관리, 급여 계산/4대보험 신고 보조, 노무 컴플라이언스 점검, 직원 온보딩, 성과 관리를 수행한다. 10명의 구루 프레임워크(Josh Bersin, Dave Ulrich, Laszlo Bock, Patrick Lencioni, Adam Grant, Patty McCord, Kim Scott, 한국 HR Insight 전문가 그룹, 류랑도, 공태윤)를 적용하여 1인 기업/소규모 기업 맞춤 HR을 운영한다.",
+      "description": "QJC HR 전담. 채용 공고 자동 수집(워크넷/사람인 API), 근태 관리, 급여 계산/4대보험 신고 보조, 노무 컴플라이언스 점검, 직원 온보딩, 성과 관리. Use when 채용공고/근태/급여계산/4대보험/직원온보딩/성과관리. Bersin, Ulrich, Bock, Lencioni, McCord, Scott 적용. 경계: 노무 법률 판단/근로자성/해고는 labor-consultant, 채용 평가/면접은 musk-hiring-evaluator.",
       "model": "opus",
       "tools": [
         "Read",
@@ -596,6 +1187,32 @@
       "category": "operations",
       "maxTurns": 30,
       "memory": "project"
+    },
+    {
+      "id": "identity-graph-operator",
+      "name": "Identity Graph Operator",
+      "description": "Operates a shared identity graph that multiple AI agents resolve against. Ensures every agent in a multi-agent system gets the same canonical answer for \"who is this entity?\" - deterministically, even under concurrent writes.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "impl-worker",
+      "name": "impl-worker",
+      "description": "Isolated TDD implementer dispatched by tdd-guide or dev-team-lead. Consumes a single phase of plan.md, writes failing test, implements minimum code to pass, then refactors. Commits per phase. Works ONLY in worktree. Runs in parallel with sibling impl-workers (distinct phases, no shared files). Not a top-level agent — always dispatched from a Hub.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "development",
+      "maxTurns": 25,
+      "memory": "project",
+      "isolation": "worktree"
     },
     {
       "id": "labor-consultant",
@@ -616,9 +1233,27 @@
       "memory": "project"
     },
     {
+      "id": "landing-page-team-lead",
+      "name": "landing-page-team-lead",
+      "description": "랜딩페이지 제작 팀의 Hub-and-Spoke 리더. 12 spoke를 7-stage 워크플로우(Discovery→Strategy→Content→Design→Build→Optimize→Iterate)로 조율. HARD-GATE 3개(Discovery SELECTED / plan APPROVED+DoD 서명 / Lighthouse ≥ 90 + WCAG AA + INP < 200ms 100%) 엄격 준수. mesh 금지 — spoke ↔ Hub ↔ main session만 허용. dev-team-lead·marketing-content-team·ad-optimizer-team Hub 패턴 재사용. 트리거: \"랜딩페이지 만들어\", \"랜딩 제작\", \"landing page 제작\", \"랜딩 팀으로\", \"12 직무 풀 팀\". 단순 키워드 출현은 spoke로 직접 라우팅, 본 Hub는 풀 팀 동원이 필요한 경우만.",
+      "model": "opus",
+      "tools": [
+        ""
+      ],
+      "category": "creative"
+    },
+    {
+      "id": "language-translator",
+      "name": "Language Translator",
+      "description": "Real-time Spanish ↔ English translation specialist with cultural context, regional dialect awareness, travel phrase guidance, and tone-appropriate communication for everyday, business, and emergency situations",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
       "id": "lead-scorer",
       "name": "lead-scorer",
-      "description": "QJC 자율 리드 스코어링 에이전트. 리드의 ICP 적합도 점수 산정, 우선순위 분류, 전환 가능성 예측을 자동 수행한다. Supabase os_customer_pipeline의 lead_score를 실제 데이터 기반으로 계산하고 업데이트한다. crm-manager가 관계 관리를 담당한다면, lead-scorer는 \"누구에게 먼저 연락할 것인가\"를 데이터로 판단하는 역할이다.",
+      "description": "QJC 자율 리드 스코어링. ICP 적합도 점수, 우선순위 분류, 전환 가능성 예측. Supabase B2B(os_outreach_leads.fit_score) / B2C(os_customer_pipeline.lead_score) UPDATE. 6차원 모델(Fit + Engagement) 100점. Use when 리드점수/리드스코어/ICP매칭/우선순위매겨/전환예측/HotLead/Score Decay. Lincoln Murphy, David Skok, Aaron Ross 적용. 관계 관리는 crm-manager, 전략적 ICP는 qjc-business.",
       "model": "opus",
       "tools": [
         "Read, Grep, Glob, Write, Edit, Bash, WebSearch, mcp__supabase__execute_sql, mcp__supabase__list_tables"
@@ -628,9 +1263,17 @@
       "memory": "user"
     },
     {
+      "id": "level-designer",
+      "name": "Level Designer",
+      "description": "Spatial storytelling and flow specialist - Masters layout theory, pacing architecture, encounter design, and environmental narrative across all game engines",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
       "id": "loan-advisor",
       "name": "loan-advisor",
-      "description": "정부 정책자금·보증부대출·1금융권 대출 전문 에이전트. 중소기업/소상공인/1인기업 대상 정책자금 탐색, 보증기관 활용 전략, 은행 대출 금리 비교, 대출 심사 준비, 상환 최적화를 수행한다. 10명의 구루 프레임워크(윤상민 5단계로드맵, 중진공 DSCR심사, 소진공 이원화체계, 슈카 금리메커니즘, 박곰희 절세통장, 기보 TCB기술평가, Dave Ramsey Baby Steps, Ramit Sethi 자동화금융, Suze Orman Can-I-Afford-It, 대한중소기업지원센터 역산전략)를 적용하여 체계적 자금조달 전략을 지원한다.",
+      "description": "정부 정책자금·보증부대출·1금융권 대출 전문. 중소기업/소상공인/1인기업 대상 자금 탐색, 보증기관 활용, 금리 비교, 심사 준비, 상환 최적화. Use when 정책자금/보증부대출/은행대출/금리비교/대출심사/노란우산대출/Avalanche/Snowball. 윤상민 5단계, 중진공 DSCR, 슈카 금리 메커니즘, Dave Ramsey 적용. 경계: 보조금/무상지원=gov-support-strategist, 예산/현금흐름=budget-analyst.",
       "model": "opus",
       "tools": [
         "Read",
@@ -644,6 +1287,22 @@
       "category": "investment",
       "maxTurns": 30,
       "memory": "project"
+    },
+    {
+      "id": "lsp-index-engineer",
+      "name": "LSP/Index Engineer",
+      "description": "Language Server Protocol specialist building unified code intelligence systems through LSP client orchestration and semantic indexing",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "macos-spatial-metal-engineer",
+      "name": "macOS Spatial/Metal Engineer",
+      "description": "Native Swift and Metal specialist building high-performance 3D rendering systems and spatial computing experiences for macOS and Vision Pro",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
     },
     {
       "id": "mail-scout",
@@ -661,9 +1320,153 @@
       "memory": "project"
     },
     {
+      "id": "marketing-app-store-optimizer",
+      "name": "App Store Optimizer",
+      "description": "Expert app store marketing specialist focused on App Store Optimization (ASO), conversion rate optimization, and app discoverability",
+      "model": "default",
+      "tools": [],
+      "category": "marketing"
+    },
+    {
+      "id": "marketing-book-co-author",
+      "name": "Book Co-Author",
+      "description": "Strategic thought-leadership book collaborator for founders, experts, and operators turning voice notes, fragments, and positioning into structured first-person chapters.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "marketing-carousel-growth-engine",
+      "name": "Carousel Growth Engine",
+      "description": "Autonomous TikTok and Instagram carousel generation specialist. Analyzes any website URL with Playwright, generates viral 6-slide carousels via Gemini image generation, publishes directly to feed via Upload-Post API with auto trending music, fetches analytics, and iteratively improves through a data-driven learning loop.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "marketing-content-team",
+      "name": "marketing-content-team",
+      "description": "통합 마케팅 콘텐츠 제작 4-에이전트 팀의 리더(Director). 하나의 주제를 블로그+카드뉴스+릴스+리서치 4채널 콘텐츠로 일관되게 확산. Phase 1 super-research(팩트 베이스) → Phase 2 copywriting/design-creator/remotion-creator 병렬 제작 → Phase 3 일관성 검증. Use when 통합콘텐츠/4채널확산/멀티채널발행/콘텐츠리퍼포즈/월간마케팅패키지.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob",
+        "Agent"
+      ],
+      "category": "marketing",
+      "maxTurns": 30,
+      "memory": "project"
+    },
+    {
+      "id": "marketing-growth-hacker",
+      "name": "Growth Hacker",
+      "description": "Expert growth strategist specializing in rapid user acquisition through data-driven experimentation. Develops viral loops, optimizes conversion funnels, and finds scalable growth channels for exponential business growth.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit"
+      ],
+      "category": "marketing"
+    },
+    {
+      "id": "marketing-instagram-curator",
+      "name": "Instagram Curator",
+      "description": "Expert Instagram marketing specialist focused on visual storytelling, community building, and multi-format content optimization. Masters aesthetic development and drives meaningful engagement.",
+      "model": "default",
+      "tools": [],
+      "category": "marketing"
+    },
+    {
+      "id": "marketing-linkedin-content-creator",
+      "name": "LinkedIn Content Creator",
+      "description": "Expert LinkedIn content strategist focused on thought leadership, personal brand building, and high-engagement professional content. Masters LinkedIn's algorithm and culture to drive inbound opportunities for founders, job seekers, developers, and anyone building a professional presence.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "marketing-livestream-commerce-coach",
+      "name": "Livestream Commerce Coach",
+      "description": "Veteran livestream e-commerce coach specializing in host training and live room operations across Douyin, Kuaishou, Taobao Live, and Channels, covering script design, product sequencing, paid-vs-organic traffic balancing, conversion closing techniques, and real-time data-driven optimization.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "marketing-podcast-strategist",
+      "name": "Podcast Strategist",
+      "description": "Content strategy and operations expert for the Chinese podcast market, with deep expertise in Xiaoyuzhou, Ximalaya, and other major audio platforms, covering show positioning, audio production, audience growth, multi-platform distribution, and monetization to help podcast creators build sticky audio content brands.",
+      "model": "default",
+      "tools": [],
+      "category": "marketing"
+    },
+    {
+      "id": "marketing-reddit-community-builder",
+      "name": "Reddit Community Builder",
+      "description": "Expert Reddit marketing specialist focused on authentic community engagement, value-driven content creation, and long-term relationship building. Masters Reddit culture navigation.",
+      "model": "default",
+      "tools": [],
+      "category": "marketing"
+    },
+    {
+      "id": "marketing-short-video-editing-coach",
+      "name": "Short-Video Editing Coach",
+      "description": "Hands-on short-video editing coach covering the full post-production pipeline, with mastery of CapCut Pro, Premiere Pro, DaVinci Resolve, and Final Cut Pro across composition and camera language, color grading, audio engineering, motion graphics and VFX, subtitle design, multi-platform export optimization, editing workflow efficiency, and AI-assisted editing.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "marketing-social-media-strategist",
+      "name": "Social Media Strategist",
+      "description": "Expert social media strategist for LinkedIn, Twitter, and professional platforms. Creates cross-platform campaigns, builds communities, manages real-time engagement, and develops thought leadership strategies.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit"
+      ],
+      "category": "development"
+    },
+    {
+      "id": "marketing-twitter-engager",
+      "name": "Twitter Engager",
+      "description": "Expert Twitter marketing specialist focused on real-time engagement, thought leadership building, and community-driven growth. Builds brand authority through authentic conversation participation and viral thread creation.",
+      "model": "default",
+      "tools": [],
+      "category": "marketing"
+    },
+    {
+      "id": "marketing-video-optimization-specialist",
+      "name": "Video Optimization Specialist",
+      "description": "Video marketing strategist specializing in YouTube algorithm optimization, audience retention, chaptering, thumbnail concepts, and cross-platform video syndication.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "mediation-negotiator",
+      "name": "mediation-negotiator",
+      "description": "조정/협상 전문 에이전트. 소송 전 ADR, B2B 가격/조건 재협상, 사적 조정 신청서 작성. Use when 조정/중재/협상전략/BATNA/ZOPA/대금분쟁/재협상/교착해결. Ury, Voss, Diamond, Malhotra, Mnookin 적용. 경계: 법원 절차는 civil-law-advisor, 계약 초안은 nda-generator, 검토는 contract-legal.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "Edit"
+      ],
+      "category": "legal",
+      "maxTurns": 30,
+      "memory": "project"
+    },
+    {
       "id": "meeting-prep",
       "name": "meeting-prep",
-      "description": "QJC 미팅 준비 전담 에이전트. 미팅 전 고객사 사전 리서치, 안건 정리, 과거 미팅 이력 요약, 제안 포인트 도출, 미팅 아젠다 생성을 자율적으로 수행한다. customer-index.json + Supabase CRM(os_customer_pipeline, os_deals, os_meetings) + Google Calendar + Notion을 통합 활용한다. 10명의 영업 미팅 구루 프레임워크를 적용하여 1인 기업 맞춤 미팅 준비를 자동화한다.",
+      "description": "QJC 미팅 준비 전담. 고객사 사전 리서치, 안건 정리, 과거 미팅 이력 요약, 제안 포인트 도출, 1-Page 브리핑 노트. Supabase os_outreach_leads + os_deals + os_meetings + customer-index.json + Google Calendar 통합. Use when 미팅준비/아젠다/브리핑/discovery call/SPICED/Challenger/사전리서치. SNAP Selling, Challenger Sale, SPICED 프레임워크 적용. 회의록 작성은 meeting-secretary.",
       "model": "opus",
       "tools": [
         "Read",
@@ -673,7 +1476,9 @@
         "Edit",
         "Bash",
         "WebSearch",
-        "AskUserQuestion"
+        "AskUserQuestion",
+        "mcp__supabase__execute_sql",
+        "mcp__supabase__list_tables"
       ],
       "category": "business",
       "maxTurns": 25,
@@ -682,9 +1487,17 @@
     {
       "id": "meeting-secretary",
       "name": "meeting-secretary",
-      "description": "QJC 회의록 자율 작성 에이전트. Use this agent proactively when the user mentions meeting transcription, meeting minutes, meeting notes, action item extraction, or post-meeting processing. 미팅 녹음 STT 변환, 화자 분리, 회의 요약, 결정 사항 추출, 액션 아이템 추출, 후속 태스크 자동 등록, 3분할 배포(GitHub/Supabase/GWS)를 자율 수행한다. ~/meeting-automation/ 파이프라인(VITO STT + pyannote 화자분리)을 오케스트레이션하고, Otter.ai/Fireflies.ai/Notion AI 등 10명의 회의록 자동화 구루 프레임워크를 적용한다.",
+      "description": "QJC 회의록 자율 작성. 미팅 녹음 STT 변환, 화자 분리, 회의 요약, 결정사항/액션 아이템 추출, 후속 태스크 자동 등록, 3분할 배포(GitHub/Supabase/GWS). Use when 회의록/녹음분석/STT/화자분리/미팅요약/액션아이템추출/미팅이력. ~/meeting-automation/ 파이프라인(VITO STT + pyannote 화자분리) 오케스트레이션. Otter.ai/Fireflies.ai/Notion AI 적용. 미팅 전 준비는 meeting-prep.",
       "model": "opus",
-      "tools": [],
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob",
+        "WebSearch"
+      ],
       "category": "operations",
       "maxTurns": 50,
       "memory": "user"
@@ -692,7 +1505,7 @@
     {
       "id": "musk-hiring-evaluator",
       "name": "musk-hiring-evaluator",
-      "description": "일론 머스크 채용 방식 기반 인재 평가 에이전트. 머스크의 \"The Algorithm\" 5단계(요구사항 의심→삭제→단순화→가속→자동화)와 비대칭 정보관리(AIM) 면접 기법을 적용하여 채용/프리랜서/외주 협력자 평가를 수행한다. 10명의 구루 프레임워크(Elon Musk, Walter Isaacson, Ashlee Vance, Reed Hastings, Ray Dalio, Patrick Collison, Steve Jobs, Jim Collins, Daniel Kahneman, 유정식)를 적용하여 1인 기업/소규모 기업에 최적화된 인재 선별 시스템을 운영한다.",
+      "description": "일론 머스크 채용 방식 인재 평가. 5단계 알고리즘(요구사항 의심→삭제→단순화→가속→자동화) + AIM 면접 기법으로 채용/프리랜서/외주 협력자 평가. Use when 면접질문/인재평가/프리랜서평가/Keeper Test/채용필요/Red Flag/3-Bullet검증/AIM면접. Musk, Isaacson, Vance, Hastings, Dalio 적용. 채용 공고/급여/4대보험은 hr-manager.",
       "model": "opus",
       "tools": [
         "Read",
@@ -708,9 +1521,17 @@
       "memory": "project"
     },
     {
+      "id": "narrative-designer",
+      "name": "Narrative Designer",
+      "description": "Story systems and dialogue architect - Masters GDD-aligned narrative design, branching dialogue, lore architecture, and environmental storytelling across all game engines",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
       "id": "nda-generator",
       "name": "nda-generator",
-      "description": "NDA/계약서 초안 자동 생성 전문 에이전트. 비밀유지계약(NDA), 용역계약, 강의계약, 파트너십 계약의 초안을 자동 생성하고 조항별 맞춤화를 수행한다. Ken Adams MSCD 5판 언어 표준, Tina Stark 6 Building Blocks + 5대 비즈니스 이슈, WorldCC Contracting Principles, Siedel/Haapio Proactive Law를 적용한다.",
+      "description": "NDA/용역계약/강의계약(출강)/파트너십 계약 초안 자동 생성. Ken Adams MSCD 5판 + Tina Stark 6 Building Blocks + WorldCC + Proactive Law 적용. Use when \"NDA 만들어줘\", \"비밀유지계약\", \"용역계약 초안\", \"강의계약\", \"출강계약\", \"파트너십 계약\" 요청 시. 계약 검토/리스크 분석은 contract-legal, 분쟁/조정은 mediation-negotiator.",
       "model": "opus",
       "tools": [
         "Read",
@@ -729,7 +1550,7 @@
     {
       "id": "onboarding-guide",
       "name": "onboarding-guide",
-      "description": "QJC 고객 온보딩 가이드 에이전트. 신규 고객 환영, 단계별 학습 가이드 생성, 학습 진도 체크, 첫 성과 달성 지원, 이탈 방지 넛지를 자율적으로 수행한다. Supabase(qjc-webapp users/subscriptions) + Notion 온보딩 DB + Gmail + SMS를 통합 활용한다. 10명의 구루 프레임워크(Lincoln Murphy Desired Outcome, Wes Bush Bowling Alley, Samuel Hulick Story of User, Ramli John EUREKA, Nick Mehta CS Maturity, April Dunford Positioning, Nir Eyal Hook Model, BJ Fogg Behavior Model, Teresa Torres OST, 최규철 QJC실무)를 적용하여 1인 교육 기업 맞춤 온보딩을 운영한다.",
+      "description": "QJC 고객 온보딩 가이드. 신규 고객 환영, 단계별 학습 가이드, 진도 체크, 첫 성과 달성 지원, 이탈 방지 넛지. Supabase qjc-webapp + Notion + Gmail 통합. Use when 신규고객/환영메시지/학습경로/진도확인/첫성과/이탈위험/온보딩가이드. Lincoln Murphy Desired Outcome, Wes Bush Bowling Alley, Ramli John EUREKA 적용. 경계: 직원 온보딩은 hr-manager, 교육 설계는 training-designer.",
       "model": "opus",
       "tools": [
         "Read",
@@ -743,6 +1564,49 @@
       "category": "operations",
       "maxTurns": 30,
       "memory": "project"
+    },
+    {
+      "id": "openai-image-creator",
+      "name": "openai-image-creator",
+      "description": "OpenAI gpt-image-2 모델 전용 이미지 생성 에이전트. 한국어/영문 텍스트가 들어간 단일 컷 이미지(포스터·청첩장·메뉴·인포그래픽·유튜브 썸네일·SNS 단일 카드)를 OpenAI Cookbook 5단 구조(Scene→Subject→Detail→Lighting→Constraint)로 정제하여 생성한다. gpt-image-2의 99% 텍스트 정확도(2026-04-21 LM Arena +242 Elo)를 정면 활용. PROACTIVELY 사용: \"OpenAI로 만들어줘\", \"gpt-image-2로\", \"포스터 한 장\", \"포토리얼 한 장\", \"한국어 텍스트 정확하게\", \"exact text\", \"단일 이미지\" 키워드 감지 시. Use NOT: 배너 세트/카드뉴스 5장+/광고 크리에이티브 GDN+Meta 세트/상세페이지 롱스크롤/HTML 합성 — 이들은 design-creator가 담당. Gemini 풍경/배경/추상은 generate-image 스킬 자동 라우팅이 처리. 본 에이전트는 단일 컷의 프롬프트 품질에만 집중.",
+      "model": "sonnet",
+      "tools": [
+        "Bash",
+        "Read",
+        "Glob"
+      ],
+      "category": "creative",
+      "maxTurns": 15
+    },
+    {
+      "id": "paid-media-creative-strategist",
+      "name": "Ad Creative Strategist",
+      "description": "Paid media creative specialist focused on ad copywriting, RSA optimization, asset group design, and creative testing frameworks across Google, Meta, Microsoft, and programmatic platforms. Bridges the gap between performance data and persuasive messaging.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit, Bash"
+      ],
+      "category": "review"
+    },
+    {
+      "id": "paid-media-programmatic-buyer",
+      "name": "Programmatic & Display Buyer",
+      "description": "Display advertising and programmatic media buying specialist covering managed placements, Google Display Network, DV360, trade desk platforms, partner media (newsletters, sponsored content), and ABM display strategies via platforms like Demandbase and 6Sense.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit, Bash"
+      ],
+      "category": "development"
+    },
+    {
+      "id": "paid-media-tracking-specialist",
+      "name": "Tracking & Measurement Specialist",
+      "description": "Expert in conversion tracking architecture, tag management, and attribution modeling across Google Tag Manager, GA4, Google Ads, Meta CAPI, LinkedIn Insight Tag, and server-side implementations. Ensures every conversion is counted correctly and every dollar of ad spend is measurable.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit, Bash"
+      ],
+      "category": "marketing"
     },
     {
       "id": "patent-attorney",
@@ -765,7 +1629,7 @@
     {
       "id": "performance-growth-marketer",
       "name": "performance-growth-marketer",
-      "description": "Use when making performance marketing strategy decisions, campaign planning, budget allocation, or growth marketing direction. Applies proven guru frameworks (Perry Marshall 80/20, Hormozi Value Equation, Depesh Mandalia CBO, Jon Loomer Testing, Charley T Olympic Ring) for evidence-based marketing decisions. For actual campaign data analysis and optimization execution, use ad-optimizer-team agent instead.",
+      "description": "Use when planning performance marketing strategy, campaign/budget allocation, growth direction, OR running Lighthouse/Core Web Vitals (LCP/INP/CLS) audits via chrome-devtools-mcp. Applies Perry Marshall 80/20, Hormozi Value Equation, Depesh Mandalia CBO, Charley T Olympic Ring. For campaign data analysis/execution, use ad-optimizer-team instead.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -773,32 +1637,90 @@
         "Bash",
         "Grep",
         "Glob",
-        "WebSearch"
+        "WebSearch",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__lighthouse_audit",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__performance_start_trace",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__performance_stop_trace",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__performance_analyze_insight",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_network_requests",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__emulate",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_screenshot"
       ],
       "category": "marketing",
       "maxTurns": 25,
       "memory": "project"
     },
     {
+      "id": "performance-reviewer",
+      "name": "performance-reviewer",
+      "description": "Core Web Vitals·Lighthouse·번들 크기·런타임 성능 측정 기반 리뷰. LCP/INP/CLS/TTI 수치 증거 필수. localhost URL 전용. Use proactively when \"성능 측정\", \"Lighthouse 감사\", \"LCP\", \"Core Web Vitals\", \"번들 최적화\" 요청 시, 또는 UI 변경 후 Stage 5b에서 a11y-reviewer와 병행. 코드 정확성은 code-reviewer 사용.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Bash",
+        "Grep",
+        "Glob",
+        "Write",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__lighthouse_audit",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__performance_start_trace",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__performance_stop_trace",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__performance_analyze_insight",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_memory_snapshot",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__emulate",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_network_requests"
+      ],
+      "category": "review",
+      "maxTurns": 20,
+      "memory": "project"
+    },
+    {
       "id": "planner",
       "name": "planner",
-      "description": "Use when creating implementation plans for complex features, architectural changes, or multi-step refactoring. Interviews user for preferences, researches codebase, produces 3-6 step actionable plans with acceptance criteria. Never implements -- only plans.",
+      "description": "복잡한 기능·아키텍처 변경·멀티스텝 리팩토링 구현 계획 전문. 요구사항 인터뷰 → 코드베이스 조사 → 3-6단계 plan.md 생성 + 인수 기준 포함. NEVER 구현. Use proactively when \"구현 계획\", \"설계해줘\", \"어떻게 만들지\", \"spec 작성\"처럼 코드 작성 전 계획이 필요한 시점. 발산 아이디어가 필요하면 dev-brainstormer 먼저, 아키텍처 판단은 architect 사용.",
       "model": "opus",
       "tools": [
         "Read",
         "Grep",
-        "Glob",
-        "Write",
-        "Edit"
+        "Glob"
       ],
       "category": "development",
       "maxTurns": 20,
       "memory": "project"
     },
     {
+      "id": "portfolio-architect",
+      "name": "portfolio-architect",
+      "description": "Specialized agent that converts a resume PDF (and optional headshot) into a 1-page editorial founder portfolio (5 PDFs, swiss-pure/red/cream/navy/seal). Use proactively when the user provides a resume/CV PDF and asks for a portfolio, profile sheet, executive bio, or 1-pager. Orchestrates the founder-portfolio skill pipeline end-to-end — extract → synthesize profile.yaml → optional AI portrait → render 5 PDFs.",
+      "model": "sonnet",
+      "tools": [
+        "Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion"
+      ],
+      "category": "creative"
+    },
+    {
+      "id": "product-behavioral-nudge-engine",
+      "name": "Behavioral Nudge Engine",
+      "description": "Behavioral psychology specialist that adapts software interaction cadences and styles to maximize user motivation and success.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "product-sprint-prioritizer",
+      "name": "Sprint Prioritizer",
+      "description": "Expert product manager specializing in agile sprint planning, feature prioritization, and resource allocation. Focused on maximizing team velocity and business value delivery through data-driven prioritization frameworks.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit"
+      ],
+      "category": "business"
+    },
+    {
       "id": "product-strategist",
       "name": "product-strategist",
-      "description": "제품/비즈니스/전략 기획 전문 에이전트. 12명의 구루 프레임워크(Cagan, Torres, Martin, Osterwalder, Kim, Rumelt, Biddle, Perri, Patton, Knapp, Ries, Singer)를 상황에 맞게 적용하고, 19개 PM 스킬을 오케스트레이션하여 체계적 기획 산출물을 생성한다. 코드 구현 계획(planner)이 아닌 비즈니스/제품 기획 전담.",
+      "description": "일반 PM 프레임워크 기반 제품/비즈니스/전략 기획 전문. 12 구루(Cagan, Torres, Martin, Osterwalder, Kim, Rumelt, Biddle, Perri, Patton, Knapp, Ries, Singer)를 상황 매칭하여 19 PM 스킬 오케스트레이션. Use when 신제품기획/PRD/로드맵/PM프레임워크/Discovery/OST/Strategy Cascade/DHM. 경계: QJC 특화 브랜드/포트폴리오/가격/GTM=qjc-business, 발산 옵션 비교=dev-brainstormer, 구현 계획=planner, 근본 재설계=first-principles-thinker.",
       "model": "opus",
       "tools": [
         "Read",
@@ -815,9 +1737,99 @@
       "memory": "project"
     },
     {
+      "id": "product-trend-researcher",
+      "name": "Trend Researcher",
+      "description": "Expert market intelligence analyst specializing in identifying emerging trends, competitive analysis, and opportunity assessment. Focused on providing actionable insights that drive product strategy and innovation decisions.",
+      "model": "default",
+      "tools": [
+        "WebFetch, WebSearch, Read, Write, Edit"
+      ],
+      "category": "development"
+    },
+    {
+      "id": "project-management-experiment-tracker",
+      "name": "Experiment Tracker",
+      "description": "Expert project manager specializing in experiment design, execution tracking, and data-driven decision making. Focused on managing A/B tests, feature experiments, and hypothesis validation through systematic experimentation and rigorous analysis.",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
+      "id": "project-management-jira-workflow-steward",
+      "name": "Jira Workflow Steward",
+      "description": "Expert delivery operations specialist who enforces Jira-linked Git workflows, traceable commits, structured pull requests, and release-safe branch strategy across software teams.",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
+      "id": "project-management-studio-producer",
+      "name": "Studio Producer",
+      "description": "Senior strategic leader specializing in high-level creative and technical project orchestration, resource allocation, and multi-project portfolio management. Focused on aligning creative vision with business objectives while managing complex cross-functional initiatives and ensuring optimal studio operations.",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
+      "id": "qa-evaluator",
+      "name": "qa-evaluator",
+      "description": "Browser QA 결과 평가 전용 Evaluator. /qa Generator와 분리된 독립 판정. 증거 기반 5축 채점.",
+      "model": "haiku",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write"
+      ],
+      "category": "review",
+      "maxTurns": 10
+    },
+    {
+      "id": "qa-planner",
+      "name": "qa-planner",
+      "description": "/qa Phase 1 Planner. PRD/sprint-contract/DoD에서 검증 범위를 추출하여 qa-checklist.json 생성. Generator/Evaluator가 '무엇을 검증할지'를 사전 봉인.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write"
+      ],
+      "category": "review",
+      "maxTurns": 12
+    },
+    {
+      "id": "qa-reconciler",
+      "name": "qa-reconciler",
+      "description": "/qa Phase 3 Reconciler. qa-evaluator(haiku)와 qa-skeptic(sonnet)의 판정이 불일치할 때만 호출되는 최종 판정자. opus 모델.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write"
+      ],
+      "category": "review",
+      "maxTurns": 10
+    },
+    {
+      "id": "qa-skeptic",
+      "name": "qa-skeptic",
+      "description": "/qa Phase 3 Adversarial Evaluator. qa-evaluator와 독립 컨텍스트에서 '기본 FAIL, 증거로 반증'하는 회의적 관점 판정. sonnet 모델.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write"
+      ],
+      "category": "review",
+      "maxTurns": 10
+    },
+    {
       "id": "qjc-business",
       "name": "qjc-business",
-      "description": "Use for QJC business strategy, sales planning, marketing strategy, and customer success analysis. Handles proposals, competitive analysis, pricing, GTM planning. For operational execution (consulting, education, finance) use qjc-operations instead.",
+      "description": "Use for **QJC 특화** business strategy, sales planning, marketing strategy, and customer success analysis. Handles QJC 브랜드·포트폴리오·가격·ICP·GTM·경쟁 분석·제안서. For operational execution (consulting, education, finance) use qjc-operations instead. For **generic PM 프레임워크(Cagan/Torres/Martin/Rumelt) on new product planning** use product-strategist instead. qjc-business=QJC 맥락 우선, product-strategist=일반 PM 프레임워크 우선.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -834,7 +1846,7 @@
     {
       "id": "qjc-content",
       "name": "qjc-content",
-      "description": "Use when creating YouTube scripts, planning video content, designing thumbnails, or optimizing content strategy. Data-driven content design with hook frameworks, SEO optimization, and repurpose planning. Delegates to /youtube for full pipeline.",
+      "description": "Use when creating YouTube scripts, planning video content, **thumbnail 기획(컨셉/문구)**, or optimizing content strategy. Data-driven content design with hook frameworks, SEO optimization, and repurpose planning. Delegates to /youtube for full pipeline. 경계: 썸네일·배너 **이미지 렌더링**은 design-creator, 전환 카피(헤드라인/CTA)는 copywriting, 브랜드 스토리·영상 내러티브 구조는 storyteller(후행 연계), 광고 퍼포먼스 전략은 performance-growth-marketer로 위임.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -850,7 +1862,7 @@
     {
       "id": "qjc-operations",
       "name": "qjc-operations",
-      "description": "QJC 회사운영 오케스트레이터. 1인 기업의 COO(최고운영책임자) 역할. 자동화 컨설팅(Make.com/n8n), 교육 설계(VOD/courses), 회사운영 총괄(세무 일정/노란우산/창업 혜택/고용지원/사업자 관리)을 담당한다. 전문 분석은 financial-accountant, gov-support-strategist, hr-manager 등으로 위임하고, 오케스트레이션과 운영 자동화를 직접 수행한다. 10명의 구루 프레임워크(Michalowicz Clockwork, Wickman EOS, Carpenter Work the System, Doerr OKR, Ferriss DEAL, Ries Lean, Warrillow Built to Sell, 이승환 1인기업, 신방수 세무, 김상미 정부사업)를 적용한다. For strategy and decision-making use qjc-business instead.",
+      "description": "QJC 회사운영 오케스트레이터 (1인기업 COO). 자동화 컨설팅(Make.com/n8n), 교육 설계 보조, 세무 일정/노란우산/창업 혜택/사업자 관리. Use when 회사운영/노란우산/창업혜택/운영리포트/월간체크리스트/자동화컨설팅. Michalowicz Clockwork, Wickman EOS, Doerr OKR 적용. 위임: 세무는 financial-accountant, 채용은 hr-manager, 지원사업은 gov-support-strategist, 대출은 loan-advisor. 전략은 qjc-business.",
       "model": "opus",
       "tools": [
         "Read",
@@ -859,16 +1871,36 @@
         "Grep",
         "Glob",
         "WebSearch",
-        "Edit"
+        "Edit",
+        "Agent"
       ],
       "category": "operations",
       "maxTurns": 30,
       "memory": "project"
     },
     {
+      "id": "qjc-orchestrator",
+      "name": "qjc-orchestrator",
+      "description": "QJC(퀀텀점프클럽) 메타-오케스트레이터 — 자율 비즈니스 이해도 누적 + 자가개선 + QJC 작업 진입 시 자동 발동. 다른 QJC 에이전트(qjc-business/operations/content)의 활동을 추적·학습·조율하며 분기 Dreaming Cycle로 SWOT/매출 비중/패턴을 자동 갱신. Anthropic Dreaming(2026-04) + Fowler Feedback Flywheel(2026-04-09) + Subagent Memory(v2.1.33) 통합 적용. Use proactively when QJC/퀀텀점프클럽/퀀텀점프/QuantumJumpClub 키워드 + 'business strategy / 매출 분석 / SKU 비중 / 분기 갱신 / 자가개선 / QJC 전체 / 메타 분석 / 비즈니스 상태' 요청 시. 단일 도메인(견적/콘텐츠/회의록)은 해당 전문 에이전트 직접 호출 권장.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "Bash",
+        "WebSearch",
+        "Agent"
+      ],
+      "category": "business",
+      "maxTurns": 35,
+      "memory": "user"
+    },
+    {
       "id": "quotation",
       "name": "quotation",
-      "description": "Use when creating B2B quotations, estimates, or pricing proposals for QJC automation consulting services. Applies pricing psychology from Ariely, Poundstone, Simon, Enns, and Voss. Generates professional quotation documents with 3-tier pricing, ROI justification, and value-based framing. For government proposals use /proposal skill instead. For marketing copy use copywriting agent.",
+      "description": "B2B 견적서/추정/가격 제안 작성 — QJC 자동화 컨설팅 서비스. 3-Tier 가격, ROI 정당화, value-based framing. Use when B2B견적서/Estimate/가격제안/3-Tier/ROI/가치기반가격산정/할인협상. Ariely, Poundstone, Simon, Enns, Voss 가격 심리학 적용. 경계: 정부 제안서는 /proposal 스킬, 마케팅 카피는 copywriting.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -881,6 +1913,30 @@
       "category": "business",
       "maxTurns": 30,
       "memory": "user"
+    },
+    {
+      "id": "rca-debugger",
+      "name": "rca-debugger",
+      "description": "Root-cause analyzer for complex multi-system failures. Escalation from systematic-debugger when bisect is inconclusive, CI-vs-local discrepancy, flaky intermittent bugs, or cross-layer regressions (frontend + backend + DB). Produces 5-why + fishbone diagram + fix proposal. Use PROACTIVELY on red signal from verify-agent or e2e-runner.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Bash",
+        "Edit",
+        "Write",
+        "Glob",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_console_messages",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_network_requests",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__get_console_message",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__get_network_request",
+        "mcp__plugin_playwright_playwright__browser_console_messages",
+        "mcp__plugin_playwright_playwright__browser_network_requests"
+      ],
+      "category": "review",
+      "maxTurns": 40,
+      "memory": "project",
+      "isolation": "worktree"
     },
     {
       "id": "real-estate-investor",
@@ -933,7 +1989,7 @@
     {
       "id": "refactor-cleaner",
       "name": "refactor-cleaner",
-      "description": "Use when cleaning up dead code, removing unused exports/dependencies, or consolidating duplicates. Uses knip/depcheck/ts-prune for detection, Grep for reference verification. Safety-first: never removes without tool confirmation. Works on feature branches only.",
+      "description": "데드 코드·미사용 exports·의존성 제거, 중복 통합 전문. knip/depcheck/ts-prune 감지 → Grep 참조 검증 → 안전 제거. 피처 브랜치에서만 동작. Use proactively when \"데드 코드\", \"미사용 코드\", \"정리해줘\", \"클린업\", \"리팩토링\" 요청 시. 빌드 에러 수정은 build-error-resolver, 새 기능은 tdd-guide 사용.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -946,7 +2002,7 @@
       "category": "development",
       "maxTurns": 20,
       "memory": "project",
-      "isolation": true
+      "isolation": "worktree"
     },
     {
       "id": "remotion-creator",
@@ -966,9 +2022,17 @@
       "memory": "project"
     },
     {
+      "id": "report-distribution-agent",
+      "name": "Report Distribution Agent",
+      "description": "AI agent that automates distribution of consolidated sales reports to representatives based on territorial parameters",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
       "id": "research-pi",
       "name": "research-pi",
-      "description": "범용 연구 오케스트레이터. 시장분석, 기술동향, 정책연구, 비즈니스 리서치 등 도메인 무관 체계적 연구를 수행.",
+      "description": "시장분석·기술동향·정책연구·비즈니스 리서치 체계적 수행. researcher + auto-experimenter 오케스트레이션. PRISMA·TAM/SAM/SOM·경쟁 매핑·Kitchenham SLR 프레임워크. Use proactively when \"시장 조사\", \"산업 분석\", \"동향 분석\", \"정책 연구\", \"비즈니스 리서치\", \"TAM/SAM/SOM 산정\" 요청 시. 단순 팩트체크는 researcher, 공식문서 교차검증은 super-research, AI 논문은 ai-researcher 분기.",
       "model": "opus",
       "tools": [
         "Read",
@@ -990,7 +2054,7 @@
     {
       "id": "researcher",
       "name": "researcher",
-      "description": "Use when gathering external information via web search, fact-checking, or competitive research. Produces structured reports with sources and confidence ratings. Escalation: jina-reader -> fetch -> scrapling.",
+      "description": "웹 검색·팩트체크·경쟁 조사 전문. jina-reader → fetch → scrapling 에스컬레이션으로 구조화 리포트와 신뢰도 등급 산출. Use proactively when \"조사해줘\", \"찾아봐\", \"확인해줘\", \"비교해줘\" 키워드가 포함된 외부 정보 요청 시. 법규/공식 문서 심층 조사는 super-research, 시장 규모/경쟁 분석은 research-pi 사용.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -1005,6 +2069,67 @@
       "category": "research",
       "maxTurns": 15,
       "memory": "project"
+    },
+    {
+      "id": "revenue-processor",
+      "name": "revenue-processor",
+      "description": "자율 매출 처리 에이전트. 매출 발생 시 3종 원장(로컬 PDF + Supabase + Notion) 동시 저장, 고객폴더 업무기록 자동 생성, NTS 매출 세금계산서 artifact 승인, 월간 매출 리포트 생성을 수행한다. 매입 처리(expense-processor)와 대칭 구조이나 수동 입력이 주 진입점이며, NTS 자동 감지는 artifact 경로로 분리된다. 세법 판단(부가세 신고, 수익 코드 해석)은 financial-accountant로 위임.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "Grep",
+        "Glob",
+        "Edit",
+        "mcp__supabase__execute_sql",
+        "mcp__supabase__list_tables",
+        "mcp__supabase-db__execute_sql",
+        "mcp__supabase-db__list_tables"
+      ],
+      "category": "operations",
+      "maxTurns": 25,
+      "memory": "project"
+    },
+    {
+      "id": "reviewer-team",
+      "name": "reviewer-team",
+      "description": "블로그/장문 콘텐츠 발행 전 편집장(데스크) 검토. 4-Tier 우선순위: 팩트(WebSearch 1차) → 구조 → 문체 → 독자 가치(So What/차별화). APPROVE 편향 교정을 위해 최소 3개 개선점 강제. Use when 블로그검토/발행전점검/팩트체크/톤일관성/구조검토/장문콘텐츠편집검토.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "category": "marketing",
+      "maxTurns": 15,
+      "memory": "user"
+    },
+    {
+      "id": "roblox-avatar-creator",
+      "name": "Roblox Avatar Creator",
+      "description": "Roblox UGC and avatar pipeline specialist - Masters Roblox's avatar system, UGC item creation, accessory rigging, texture standards, and the Creator Marketplace submission pipeline",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "roblox-experience-designer",
+      "name": "Roblox Experience Designer",
+      "description": "Roblox platform UX and monetization specialist - Masters engagement loop design, DataStore-driven progression, Roblox monetization systems (Passes, Developer Products, UGC), and player retention for Roblox experiences",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "roblox-systems-scripter",
+      "name": "Roblox Systems Scripter",
+      "description": "Roblox platform engineering specialist - Masters Luau, the client-server security model, RemoteEvents/RemoteFunctions, DataStore, and module architecture for scalable Roblox experiences",
+      "model": "default",
+      "tools": [],
+      "category": "review"
     },
     {
       "id": "saju-myeongri",
@@ -1025,9 +2150,55 @@
       "memory": "project"
     },
     {
+      "id": "sales-coach",
+      "name": "Sales Coach",
+      "description": "Expert sales coaching specialist focused on rep development, pipeline review facilitation, call coaching, deal strategy, and forecast accuracy. Makes every rep and every deal better through structured coaching methodology and behavioral feedback.",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
+      "id": "sales-discovery-coach",
+      "name": "Discovery Coach",
+      "description": "Coaches sales teams on elite discovery methodology — question design, current-state mapping, gap quantification, and call structure that surfaces real buying motivation.",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "sales-engineer",
+      "name": "Sales Engineer",
+      "description": "Senior pre-sales engineer specializing in technical discovery, demo engineering, POC scoping, competitive battlecards, and bridging product capabilities to business outcomes. Wins the technical decision so the deal can close.",
+      "model": "default",
+      "tools": [],
+      "category": "business"
+    },
+    {
+      "id": "sales-followup",
+      "name": "sales-followup",
+      "description": "영업 팔로업 자동화 에이전트. 콜드 아웃리치 / 미팅 / 제안서 발송 후 D+0·D+3·D+7 3-touch 시퀀스를 톤 차별화하여 발송한다. D+0=정중·가치 중심, D+3=가볍고 친근, D+7=시급성·마감 압박·대안 제시. Gmail(gws CLI) 발송, 시퀀스 상태는 로컬 JSON(`~/.claude/state/sales-followup/`)으로 관리, 답장 감지 시 자동 중단. Use when 영업팔로업/D+0/D+3/D+7/시퀀스이메일/3터치팔로업/콜드아웃리치팔로업/제안서팔로업/미팅후속/대안제시이메일/마감압박이메일. 경계: 첫 콜드 메시지는 copywriting/leads 스킬, 답장 후 응대는 cs-responder, 전반적 CRM은 crm-manager.",
+      "model": "opus",
+      "tools": [
+        "Read, Grep, Glob, Write, Edit, Bash, AskUserQuestion"
+      ],
+      "category": "business",
+      "maxTurns": 25,
+      "memory": "user"
+    },
+    {
+      "id": "scenario-visualizer",
+      "name": "scenario-visualizer",
+      "description": "시나리오/스토리보드 시각화 전문가. 시나리오 텍스트나 장면 설명을 받으면 컷으로 분해하고 OpenAI GPT Image-2 API를 호출하여 이미지를 생성한다. 캐릭터 일관성과 영화적 카메라/조명 문법을 유지한다. **사용자가 레퍼런스 이미지(파일 경로/URL/첨부)를 제공하면 자동으로 디자인 테마(팔레트·조명·구도·아트 디렉션·질감·분위기·시대감)를 7축으로 분석하여 모든 컷에 일관 적용한다.** Use proactively when user provides scenario text, scene description, or asks for storyboard/visualization. 트리거 키워드 — \"시나리오 시각화\", \"스토리보드\", \"장면 그려줘\", \"컷 분해\", \"캐릭터 시트\", \"GPT Image\", \"이미지 생성\", \"콘티\", \"레퍼런스 이미지\", \"이 스타일로\", \"이 톤으로\", \"이 분위기로\", \"style reference\", \"디자인 테마\".",
+      "model": "opus",
+      "tools": [
+        "Read, Write, Bash, Glob"
+      ],
+      "category": "creative"
+    },
+    {
       "id": "security-reviewer",
       "name": "security-reviewer",
-      "description": "Use when reviewing code that handles user input, authentication, API endpoints, or sensitive data. OWASP Top 10 analysis, secrets detection, dependency audit. Prioritizes by severity x exploitability x blast radius. Read-only.",
+      "description": "OWASP Top 10 분석·시크릿 탐지·의존성 감사. severity × exploitability × blast radius 우선순위. Read-only 검토. Use proactively when 사용자 입력 처리, 인증/인가, API 엔드포인트, 민감 데이터를 다루는 코드 변경 시 — 특히 \"보안 검토\", \"취약점\", \"auth 코드\" 요청. 코드 품질 전반은 code-reviewer 사용.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -1042,7 +2213,7 @@
     {
       "id": "seo-geo-aeo-strategist",
       "name": "seo-geo-aeo-strategist",
-      "description": "Use when making SEO, GEO, or AEO strategy decisions, performing content/technical SEO audits, optimizing for AI search engines, or improving search visibility. Applies proven guru frameworks (Lily Ray E-E-A-T, Rand Fishkin Brand SEO, Princeton GEO 9 Strategies, Kevin Indig Topical Authority) for evidence-based search optimization decisions.",
+      "description": "Use when making SEO/GEO/AEO strategy decisions, content/technical SEO audits, optimizing for AI search, OR running page-level Lighthouse SEO audits + JSON-LD extraction via chrome-devtools-mcp. Applies Lily Ray E-E-A-T, Rand Fishkin Brand SEO, Princeton GEO 9 Strategies, Kevin Indig Topical Authority.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -1050,11 +2221,79 @@
         "Bash",
         "Grep",
         "Glob",
-        "WebSearch"
+        "WebSearch",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__lighthouse_audit",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__evaluate_script",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__get_console_message",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_snapshot"
       ],
       "category": "marketing",
       "maxTurns": 25,
       "memory": "project"
+    },
+    {
+      "id": "slides-web-builder",
+      "name": "slides-web-builder",
+      "description": "웹 슬라이드(React + Tailwind + GSAP + Lucide) 단일 HTML 빌더. /slides-web 스킬 메인 오케스트레이터. data.json + assets → 1920×1080 16:9 letterbox + 9 layout + 10종 인터랙티브 액션 + Chrome headless 검증. Use proactively when \"웹 슬라이드 만들어\", \"react 슬라이드 생성\", \"강의 슬라이드덱 HTML로\", \"발표 슬라이드 빌드\" 요청 또는 /slides-web 진입 시. PPTX 빌드는 /lecture, 단일 랜딩은 /landing-build로 분기.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
+      "category": "development"
+    },
+    {
+      "id": "specialized-chief-of-staff",
+      "name": "Chief of Staff",
+      "description": "Master coordinator for founders and executives — filters noise, owns processes, enforces consistency, routes decisions, and positions outputs for impact so the boss can think clearly.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "specialized-cultural-intelligence-strategist",
+      "name": "Cultural Intelligence Strategist",
+      "description": "CQ specialist that detects invisible exclusion, researches global context, and ensures software resonates authentically across intersectional identities.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "specialized-developer-advocate",
+      "name": "Developer Advocate",
+      "description": "Expert developer advocate specializing in building developer communities, creating compelling technical content, optimizing developer experience (DX), and driving platform adoption through authentic engineering engagement. Bridges product and engineering teams with external developers.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "specialized-mcp-builder",
+      "name": "MCP Builder",
+      "description": "Expert Model Context Protocol developer who designs, builds, and tests MCP servers that extend AI agent capabilities with custom tools, resources, and prompts.",
+      "model": "default",
+      "tools": [],
+      "category": "review"
+    },
+    {
+      "id": "specialized-salesforce-architect",
+      "name": "Salesforce Architect",
+      "description": "Solution architecture for Salesforce platform — multi-cloud design, integration patterns, governor limits, deployment strategy, and data model governance for enterprise-scale orgs",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "specialized-workflow-architect",
+      "name": "Workflow Architect",
+      "description": "Workflow design specialist who maps complete workflow trees for every system, user journey, and agent interaction — covering happy paths, all branch conditions, failure modes, recovery paths, handoff contracts, and observable states to produce build-ready specs that agents can implement against and QA can test against.",
+      "model": "default",
+      "tools": [],
+      "category": "review"
     },
     {
       "id": "stock-investment-advisor",
@@ -1077,7 +2316,7 @@
     {
       "id": "storyteller",
       "name": "storyteller",
-      "description": "자율 스토리텔링 전문 에이전트. 비즈니스 내러티브, 브랜드 스토리, 고객 성공 사례, 프레젠테이션 스토리, 콘텐츠 스토리 구조, 피치덱 내러티브를 설계한다. 12명의 구루 프레임워크(McKee, Campbell, Miller, Duarte, Hall, Dicks, Pixar, Vonnegut, Snyder, Gottschall, Zak, Storr)를 상황에 맞게 적용하고, copywriting·content-creator·qjc-content와 연계하여 스토리 중심 산출물을 생성한다.",
+      "description": "자율 스토리텔링 전문. 비즈니스 내러티브, 브랜드 스토리, 고객 성공 사례, 프레젠테이션 스토리, 피치덱 내러티브 설계. Use when 스토리/내러티브 구조/브랜드스토리/고객사례스토리화/피치덱/Hero's Journey/SB7/Storynomics. McKee, Campbell, Miller(SB7), Duarte, Hall 적용. 경계: 카피는 copywriting, 영상 스크립트 초안은 qjc-content, 정적 이미지는 design-creator. 본 에이전트는 내러티브 구조 설계만.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -1091,9 +2330,50 @@
       "memory": "user"
     },
     {
+      "id": "super-research",
+      "name": "super-research",
+      "description": "Tier 0-4 도메인 신뢰도 등급 + 출처 교차검증 + 할루시네이션 방지 내장 고신뢰도 리서치. yt-dlp 자막 추출, GitHub reactions 임계값 검증, 격리 워크스페이스(git worktree/tmp 폴백) 자동 확보. Use proactively when 공신력·법규·제품 공식 사양·팩트체크·유튜브 영상 분석·정책·EU AI Act 등 정확성 결정적 조사 요청 시. 단순 웹 검색은 researcher, 시장분석은 research-pi. 호출 시 isolation 파라미터 절대 명시 금지.",
+      "model": "opus",
+      "tools": [
+        "Read, Write, Edit, Bash, Grep, Glob, WebSearch, Agent, mcp__exa__web_search_exa, mcp__jina-reader__jina_reader, mcp__fetch__fetch, mcp__plugin_context7_context7__resolve-library-id, mcp__plugin_context7_context7__query-docs, mcp__plugin_playwright_playwright__browser_navigate, mcp__plugin_playwright_playwright__browser_snapshot, mcp__plugin_playwright_playwright__browser_wait_for, mcp__plugin_playwright_playwright__browser_evaluate, mcp__plugin_playwright_playwright__browser_close"
+      ],
+      "category": "research",
+      "maxTurns": 50,
+      "memory": "user"
+    },
+    {
+      "id": "supply-chain-strategist",
+      "name": "Supply Chain Strategist",
+      "description": "Expert supply chain management and procurement strategy specialist — skilled in supplier development, strategic sourcing, quality control, and supply chain digitalization. Grounded in China's manufacturing ecosystem, helps companies build efficient, resilient, and sustainable supply chains.",
+      "model": "default",
+      "tools": [],
+      "category": "development"
+    },
+    {
+      "id": "systematic-debugger",
+      "name": "systematic-debugger",
+      "description": "재현 가능하지만 원인 불명 버그 전문. reproduce → bisect → hypothesize → verify 4단계 프로토콜. 실패 테스트 없이 추측 절대 금지. Use proactively when 버그가 재현되지만 원인을 모를 때 — \"왜 이렇게 되지\", \"이상하게 동작해\", \"간헐적 버그\", \"5-why\" 요청 시. 빌드/컴파일 에러는 build-error-resolver, 런타임 성능은 performance-reviewer 사용.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob",
+        "Write",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_console_messages",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__get_network_request",
+        "mcp__plugin_playwright_playwright__browser_console_messages"
+      ],
+      "category": "review",
+      "maxTurns": 30,
+      "memory": "project",
+      "isolation": "worktree"
+    },
+    {
       "id": "tdd-guide",
       "name": "tdd-guide",
-      "description": "Use when writing new features, fixing bugs, or refactoring code to enforce Red-Green-Refactor TDD cycle. Writes tests first, implements minimal code to pass, then refactors. Targets 80%+ coverage with edge case analysis.",
+      "description": "Red-Green-Refactor TDD 사이클 강제. 테스트 먼저 작성 → 최소 코드 구현 → 리팩토링. 커버리지 80%+ 엣지 케이스 분석 포함. Use proactively when 새 기능 구현, 버그 수정, 리팩토링을 시작할 때 — 특히 \"TDD로\", \"테스트 먼저\", \"테스트 작성\"이 포함된 요청. 빌드 에러 수정은 build-error-resolver, E2E는 e2e-runner 사용.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -1106,12 +2386,36 @@
       "category": "review",
       "maxTurns": 20,
       "memory": "project",
-      "isolation": true
+      "isolation": "worktree"
+    },
+    {
+      "id": "technical-artist",
+      "name": "Technical Artist",
+      "description": "Art-to-engine pipeline specialist - Masters shaders, VFX systems, LOD pipelines, performance budgeting, and cross-engine asset optimization",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "terminal-integration-specialist",
+      "name": "Terminal Integration Specialist",
+      "description": "Terminal emulation, text rendering optimization, and SwiftTerm integration for modern Swift applications",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "testing-evidence-collector",
+      "name": "Evidence Collector",
+      "description": "Screenshot-obsessed, fantasy-allergic QA specialist - Default to finding 3-5 issues, requires visual proof for everything",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
     },
     {
       "id": "training-designer",
       "name": "training-designer",
-      "description": "QJC 교육 설계 전문 에이전트. 커리큘럼 설계, 학습 목표 수립, 교안/자료 자동 생성, 퀴즈/과제 설계, 학습 효과 측정을 자율적으로 수행한다. NotebookLM MCP(오디오/노트북 생성), Notion MCP(커리큘럼 DB), Remotion(영상 자막/템플릿)을 통합 활용한다. 14명의 구루 프레임워크(Bloom Taxonomy, ADDIE, Kirkpatrick 4단계, Josh Bersin Flow of Work, Gagné 9 Events, Merrill First Principles, SAM, Backward Design, Mayer Multimedia, Cathy Moore Action Mapping, 70-20-10, Niels Floor LXD, Philippa Hardman DOMS, 최규철 QJC실무)를 적용하여 1인 교육 기업 맞춤 교육 설계를 운영한다.",
+      "description": "QJC 교육 설계 전문. 커리큘럼 설계, 학습 목표, 교안/자료 자동 생성, 퀴즈/과제 설계, 학습 효과 측정. NotebookLM MCP + Notion + Remotion 통합. Use when 커리큘럼/학습목표/교안/퀴즈설계/교육효과/VOD강의구조/Bloom/ADDIE/Kirkpatrick. Bloom Taxonomy, ADDIE, Kirkpatrick 4단계, Gagné 9 Events 적용. 경계: 교육 운영은 qjc-operations, 고객 온보딩은 onboarding-guide.",
       "model": "opus",
       "tools": [
         "Read",
@@ -1148,9 +2452,73 @@
       "memory": "project"
     },
     {
+      "id": "unity-architect",
+      "name": "Unity Architect",
+      "description": "Data-driven modularity specialist - Masters ScriptableObjects, decoupled systems, and single-responsibility component design for scalable Unity projects",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
+      "id": "unity-editor-tool-developer",
+      "name": "Unity Editor Tool Developer",
+      "description": "Unity editor automation specialist - Masters custom EditorWindows, PropertyDrawers, AssetPostprocessors, ScriptedImporters, and pipeline automation that saves teams hours per week",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "unity-multiplayer-engineer",
+      "name": "Unity Multiplayer Engineer",
+      "description": "Networked gameplay specialist - Masters Netcode for GameObjects, Unity Gaming Services (Relay/Lobby), client-server authority, lag compensation, and state synchronization",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "unity-shader-graph-artist",
+      "name": "Unity Shader Graph Artist",
+      "description": "Visual effects and material specialist - Masters Unity Shader Graph, HLSL, URP/HDRP rendering pipelines, and custom pass authoring for real-time visual effects",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "unreal-multiplayer-architect",
+      "name": "Unreal Multiplayer Architect",
+      "description": "Unreal Engine networking specialist - Masters Actor replication, GameMode/GameState architecture, server-authoritative gameplay, network prediction, and dedicated server setup for UE5",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "unreal-systems-engineer",
+      "name": "Unreal Systems Engineer",
+      "description": "Performance and hybrid architecture specialist - Masters C++/Blueprint continuum, Nanite geometry, Lumen GI, and Gameplay Ability System for AAA-grade Unreal Engine projects",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "unreal-technical-artist",
+      "name": "Unreal Technical Artist",
+      "description": "Unreal Engine visual pipeline specialist - Masters the Material Editor, Niagara VFX, Procedural Content Generation, and the art-to-engine pipeline for UE5 projects",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "unreal-world-builder",
+      "name": "Unreal World Builder",
+      "description": "Open-world and environment specialist - Masters UE5 World Partition, Landscape, procedural foliage, HLOD, and large-scale level streaming for seamless open-world experiences",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
       "id": "verify-agent",
       "name": "verify-agent",
-      "description": "Use for fresh-context post-implementation verification. Runs typecheck -> lint -> build -> test pipeline independently. Auto-fixes simple errors (imports, types), classifies non-fixable ones. Spawned by /handoff-verify.",
+      "description": "구현 완료 후 fresh-context 검증 전용. typecheck → lint → build → test 파이프라인 독립 실행. 단순 에러(import·타입) 자동 수정, 비수정 가능 에러 분류 보고. Use proactively when 구현 완료 직후 \"검증해줘\", \"빌드 확인\", \"테스트 돌려봐\" 요청 시, 또는 /handoff-verify 스킬에서 자동 스폰. 구현 자체는 tdd-guide나 impl-worker 사용.",
       "model": "haiku",
       "tools": [
         "Read",
@@ -1165,9 +2533,17 @@
       "memory": "project"
     },
     {
+      "id": "visionos-spatial-engineer",
+      "name": "visionOS Spatial Engineer",
+      "description": "Native visionOS spatial computing, SwiftUI volumetric interfaces, and Liquid Glass design implementation",
+      "model": "default",
+      "tools": [],
+      "category": "creative"
+    },
+    {
       "id": "web-designer",
       "name": "web-designer",
-      "description": "Use when creating or redesigning UI/UX: landing pages, dashboards, component libraries. 7-phase workflow from requirements to QA. Requires ui-ux-pro-max skill for design system generation.",
+      "description": "UI/UX 설계·구현 7단계 워크플로우 (요구사항 → 디자인 시스템 → 레퍼런스 → 컴포넌트 → 프로토타입 → 구현 → QA). chrome-devtools-mcp로 375/768/1440px 반응형 검증. Use proactively when 랜딩페이지, 대시보드, 홈페이지, 컴포넌트 라이브러리, 웹 디자인 요청 시. 이미지·배너 제작은 design-creator, 마케팅 카피는 copywriting 사용.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -1175,14 +2551,72 @@
         "Edit",
         "Bash",
         "Grep",
-        "Glob"
+        "Glob",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__resize_page",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_screenshot",
+        "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_snapshot",
+        "mcp__plugin_lazyweb_lazyweb__lazyweb_search",
+        "mcp__plugin_lazyweb_lazyweb__lazyweb_compare_image",
+        "mcp__plugin_lazyweb_lazyweb__lazyweb_find_similar"
       ],
       "category": "creative",
       "maxTurns": 20,
       "memory": "project"
+    },
+    {
+      "id": "writer-team",
+      "name": "writer-team",
+      "description": "리서처가 생성한 조사 리포트를 고급 독자용 테크 블로그 초안으로 변환. 새 조사 수행하지 않으며, 입력 리포트(.claude/artifacts/research_report.md)의 자료만 근거로 트레이드오프 중심 4단 구조로 작성. Use when 리서치 리포트→블로그 초안 변환/테크 블로그 초안. 경계: 새 조사는 researcher/research-pi/super-research, 카피는 copywriting, 유튜브 스크립트는 qjc-content, 4채널 통합 발행은 marketing-content-team.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write"
+      ],
+      "category": "marketing",
+      "maxTurns": 8
+    },
+    {
+      "id": "xr-cockpit-interaction-specialist",
+      "name": "XR Cockpit Interaction Specialist",
+      "description": "Specialist in designing and developing immersive cockpit-based control systems for XR environments",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "xr-immersive-developer",
+      "name": "XR Immersive Developer",
+      "description": "Expert WebXR and immersive technology developer with specialization in browser-based AR/VR/XR applications",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "xr-interface-architect",
+      "name": "XR Interface Architect",
+      "description": "Spatial interaction designer and interface strategist for immersive AR/VR/XR environments",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
+    },
+    {
+      "id": "zk-steward",
+      "name": "ZK Steward",
+      "description": "Knowledge-base steward in the spirit of Niklas Luhmann's Zettelkasten. Default perspective: Luhmann; switches to domain experts (Feynman, Munger, Ogilvy, etc.) by task. Enforces atomic notes, connectivity, and validation loops. Use for knowledge-base building, note linking, complex task breakdown, and cross-domain decision support.",
+      "model": "default",
+      "tools": [],
+      "category": "operations"
     }
   ],
   "skills": [
+    {
+      "id": ".DS_Store",
+      "name": ".DS_Store",
+      "description": "\u0000\u0000\u0000\u0001Bud1\u0000\u0000\u0018\u0000\u0000\u0000\b\u0000\u0000\u0000\u0018\u0000\u0000\u0000\u0010\u000b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\b\u0000\u0000\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000\u0010\u0000\u0000-\u0000r\u0000e\u0000s\u0000e\u0000a\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\b\u000b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000 \u0000\u0000\u0000\u0001\u0000\u0000\u0000@\u0000\u0000\u0000\u0001\u0000\u0000\u0000�\u0000\u0000\u0000\u0001\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0002\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0004\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0010\u0000\u0000\u0000\u0000\u0001\u0000\u0000 \u0000\u0000\u0000\u0000\u0001\u0000\u0000@\u0000\u0000\u0000\u0000\u0001\u0000\u0000�\u0000\u0000\u0000\u0000\u0001\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0002\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0004\u0000\u0000\u0000\u0000\u0000\u0001\u0000\b\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0010\u0000\u0000\u0000\u0000\u0000\u0001\u0000 \u0000\u0000\u0000\u0000\u0000\u0001\u0000@\u0000\u0000\u0000\u0000\u0000\u0001\u0000�\u0000\u0000\u0000\u0000\u0000\u0001\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0004\u0000\u0000\u0000\u0000\u0000\u0000\u0001\b\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0001 \u0000\u0000\u0000\u0000\u0000\u0000\u0001@\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0004\u0000\u0000\u0000\r\u0000d\u0000a\u0000t\u0000a\u0000-\u0000r\u0000e\u0000s\u0000e\u0000a\u0000r\u0000c\u0000hbwspblob\u0000\u0000\u0000�bplist00�\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b\b\b\u000b\b]ShowStatusBar[ShowToolbar[ShowTabView_\u0010\u0014ContainerShowSidebar\\WindowBounds[ShowSidebar\b\t\t\t_\u0010\u0018{{281, 719}, {920, 436}}\t\b\u0015#/;R_klmno�\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\r\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000\r\u0000d\u0000a\u0000t\u0000a\u0000-\u0000r\u0000e\u0000s\u0000e\u0000a\u0000r\u0000c\u0000hlsvCblob\u0000\u0000\u0003Cbplist00�\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
     {
       "id": "ab-test-setup",
       "name": "ab-test-setup",
@@ -1193,7 +2627,28 @@
     {
       "id": "agent-router",
       "name": "agent-router",
-      "description": "전문 에이전트 자동 라우팅. 법률, 재무, 특허, SEO, 마케팅, 기획, 코드리뷰, 아키텍처, 견적, CRM, HR/인사, 노무(노동법/해고/산재/취업규칙), 리서치, 데이터 분석, 제1원칙 사고, 주식 투자, 부동산 투자, 명리학, 회사운영(노란우산/창업혜택/고용지원/세무일정), 디자인 제작(배너/카드뉴스/SNS/광고/인포그래픽), FAQ/지식베이스(KCS/셀프서비스/아티클), 고객지원(CS응답/에스컬레이션) 등 50 에이전트",
+      "description": "전문 에이전트 자동 라우팅. 법률, 재무, 특허, SEO, 마케팅, 기획, BM 설계(BMC/Lean/JTBD/Wardley/Blue Ocean/Lightning Sprint), 코드리뷰, 아키텍처, 견적, CRM, HR/인사, 노무(노동법/해고/산재/취업규칙), 리서치, 데이터 분석, 제1원칙 사고, 주식 투자, 부동산 투자, 명리학, 회사운영(노란우산/창업혜택/고용지원/세무일정), 디자인 제작(배너/카드뉴스/SNS/광고/인포그래픽), FAQ/지식베이스(KCS/셀프서비스/아티클), 고객지원(CS응답/에스컬레이션) 등 50+ 에이전트",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "agent-router.bak-20260520_105820",
+      "name": "agent-router",
+      "description": "전문 에이전트 자동 라우팅. 법률, 재무, 특허, SEO, 마케팅, 기획, BM 설계(BMC/Lean/JTBD/Wardley/Blue Ocean/Lightning Sprint), 코드리뷰, 아키텍처, 견적, CRM, HR/인사, 노무(노동법/해고/산재/취업규칙), 리서치, 데이터 분석, 제1원칙 사고, 주식 투자, 부동산 투자, 명리학, 회사운영(노란우산/창업혜택/고용지원/세무일정), 디자인 제작(배너/카드뉴스/SNS/광고/인포그래픽), FAQ/지식베이스(KCS/셀프서비스/아티클), 고객지원(CS응답/에스컬레이션) 등 50+ 에이전트",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "agent-router.bak-tier2-20260520_112009",
+      "name": "agent-router",
+      "description": "전문 에이전트 자동 라우팅. 법률, 재무, 특허, SEO, 마케팅, 기획, BM 설계(BMC/Lean/JTBD/Wardley/Blue Ocean/Lightning Sprint), 코드리뷰, 아키텍처, 견적, CRM, HR/인사, 노무(노동법/해고/산재/취업규칙), 리서치, 데이터 분석, 제1원칙 사고, 주식 투자, 부동산 투자, 명리학, 회사운영(노란우산/창업혜택/고용지원/세무일정), 디자인 제작(배너/카드뉴스/SNS/광고/인포그래픽), FAQ/지식베이스(KCS/셀프서비스/아티클), 고객지원(CS응답/에스컬레이션) 등 50+ 에이전트",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "api-design",
+      "name": "API & Interface Design",
+      "description": "API와 인터페이스 설계 원칙. Supabase RPC/Edge Function/REST API 설계 시 사용. Use when designing APIs or data interfaces.",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -1216,6 +2671,27 @@
       "name": "/auto - 원스톱 자동 워크플로우 (v7)",
       "description": "계획부터 PR까지 원버튼 자동 실행. 중간에 멈추지 않습니다.",
       "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "b2b-mvp-launch",
+      "name": "b2b-mvp-launch",
+      "description": "B2B 문의가 들어온 고객을 위한 MVP 제작·계약까지의 10단계 자동 체인. 입력은 inquiry_id 하나. feasibility 이후·PRD 작성 후 2개 지점에서 대표 승인 게이트로 중단. 리드스코어 60점 미만은 즉시 중단하고 자동 견적만 발송. 각 단계 산출물을 os_deals.artifacts_urls에 저장.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "bizcard",
+      "name": "명함 자동화 파이프라인",
+      "description": "명함 이미지 → OCR → Notion 저장 → 인삿말 이메일",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "bizmodel-quality",
+      "name": "bizmodel-quality",
+      "description": "",
+      "type": "skill-dir",
       "hasSubcommands": false
     },
     {
@@ -1261,6 +2737,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "cert-pipeline",
+      "name": "cert-pipeline",
+      "description": "특이점 빌더스 수료증 발급 자동화 스킬. 최종 프로젝트 평가 → 등급 승인 → PDF 생성 → 이메일 발송 → plaque_* UPDATE까지 end-to-end 처리.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "checkin",
       "name": "/checkin - 출근 체크인",
       "description": "출근 체크인 — Supabase 기록 + TODAY.md 표시 + Discord 알림",
@@ -1289,6 +2772,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "civil-dispute",
+      "name": "/civil-dispute — 민사 분쟁 해결 도우미",
+      "description": "민사 분쟁 해결 도우미 — 내용증명/소장/지급명령 초안, 손해배상 분석, 비용 계산",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "code-review",
       "name": "Code Review",
       "description": "방금 작성한 코드를 보안+품질 검사합니다.",
@@ -1297,8 +2787,8 @@
     },
     {
       "id": "codex-review",
-      "name": "Codex 크로스모델 코드 리뷰",
-      "description": "Codex CLI로 크로스모델 코드 리뷰를 실행합니다. (커밋 전 사용 권장)",
+      "name": "Codex 크로스모델 코드 리뷰 (옵션 B — gpt-5.5 + profile + JSON Schema)",
+      "description": "Codex CLI(GPT-5.5) 크로스모델 코드 리뷰. profile + JSON Schema 기반 안정 파싱. (커밋 전 사용 권장)",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -1314,6 +2804,13 @@
       "name": "community-converter",
       "description": "무료 커뮤니티 멤버를 유료 고객으로 전환하는 파이프라인 설계. 세그먼트화, 가치 사다리, 전환 트리거, 업셀 시퀀스. QJC 앰버서더 모델 최적화.",
       "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "company-sync",
+      "name": "/company-sync — 회사 하네스 동기화",
+      "description": "QJC 회사 하네스 동기화 (어디서든 호출, role 기반 자동 분기 — admin: 양방향, member: pull-only)",
+      "type": "skill-file",
       "hasSubcommands": false
     },
     {
@@ -1338,9 +2835,23 @@
       "hasSubcommands": true
     },
     {
+      "id": "context-engineering",
+      "name": "/context-engineering - 에이전트 컨텍스트 큐레이션",
+      "description": "에이전트에게 전달할 컨텍스트를 큐레이션하여 토큰 예산을 최적화. Use when preparing context for agents or managing token budget.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "contract-draft",
       "name": "/contract-draft — 계약서 초안 작성",
       "description": "AI 보조 계약서 초안 작성. 계약 유형과 조건을 입력하면 구조화된 계약서 초안을 생성한다. NDA/용역/강의/파트너십 4대 모드 지원.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "contract-law-daily",
+      "name": "계약법 일일 리포트 (Contract Law Daily)",
+      "description": "계약법 일일 자동 수집 → 입법동향/판례/계약기한 분석 → QJC 맞춤 리포트 생성 전자동 파이프라인",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -1356,6 +2867,13 @@
       "name": "copywriting",
       "description": "마케팅 카피 전문 (홈페이지, 랜딩페이지, 가격, 기능, 소개 페이지, 광고, 이메일). Seven Sweeps 편집 + 14명의 마케팅 구루 프레임워크 (Schwartz 인식수준, Hormozi Value Equation, Cialdini 설득, Sugarman Slippery Slide, StoryBrand SB7, Wiebe VoC 마이닝, Dunford 포지셔닝, PASTOR) + 뉴로카피라이팅. 블로그/아티클/뉴스레터 등 장문 콘텐츠는 content-creator 스킬 사용.",
       "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "daily-report",
+      "name": "/daily-report — 일일 업무 리포트 (Command 버전)",
+      "description": "일일 업무 리포트 — 완료 태스크 + 체크인/아웃 + 한 줄 평을 콘솔/Discord 출력 (사용자 트리거)",
+      "type": "skill-file",
       "hasSubcommands": false
     },
     {
@@ -1391,6 +2909,13 @@
       "name": "dependency-upgrade",
       "description": "Manage major dependency version upgrades with compatibility analysis, staged rollout, and comprehensive testing. Use when upgrading framework versions, updating major dependencies, or managing breaking changes in libraries.",
       "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "detail-page",
+      "name": "/detail-page — 상세페이지 자동 생성",
+      "description": "상품/강의 이미지 1장으로 상세페이지 10~15장 자동 생성 (gpt-image-2, 13개 언어, 비율 자동 매핑)",
+      "type": "skill-file",
       "hasSubcommands": false
     },
     {
@@ -1501,7 +3026,7 @@
     {
       "id": "generate-image",
       "name": "generate-image",
-      "description": "This skill should be used when the user asks to \"generate image\", \"create image\", \"이미지 생성해줘\", \"이미지 만들어줘\", \"사진 생성\", \"그림 그려줘\", \"썸네일 만들어줘\", \"배너 만들어줘\", \"로고 만들어줘\", \"일러스트 그려줘\", \"포스터 만들어줘\", or \"아이콘 만들어줘\". Generates images using Gemini API with flash/pro/budget models, 512px~4K resolution, reference images, and text rendering.",
+      "description": "This skill should be used when the user asks to \"generate image\", \"create image\", \"이미지 생성해줘\", \"이미지 만들어줘\", \"사진 생성\", \"그림 그려줘\", \"썸네일 만들어줘\", \"배너 만들어줘\", \"로고 만들어줘\", \"일러스트 그려줘\", \"포스터 만들어줘\", or \"아이콘 만들어줘\". Single-default policy (2026-05-02): ALL requests default to OpenAI gpt-image-2 medium ($0.041/16:9). Override only via --openai-quality high|low or --provider gemini / -m pro. Auto-routing analyzes prompt for content type (single-cut/poster/thumbnail/landscape/icon) and adjusts size·aspect, but quality always defaults to medium unless user explicitly requests otherwise.",
       "type": "skill-dir",
       "hasSubcommands": false
     },
@@ -1528,8 +3053,22 @@
     },
     {
       "id": "handoff-verify",
-      "name": "/handoff-verify - 핸드오프 + 자동 검증 통합 (v6)",
-      "description": "빌드/테스트/린트를 한 번에 자동 검증합니다.",
+      "name": "/handoff-verify — Parallel Fan-out (8 reviewers)",
+      "description": "8 reviewer 병렬 fan-out 검증 (code/verify/security/db/a11y/perf/codex/gemini, Anthropic dispatching-parallel-agents 패턴)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "hometax-sync",
+      "name": "hometax-sync",
+      "description": "홈택스 발급 알림 이메일(from hometaxadmin@hometax.go.kr) 자동 감지 + 보안메일 복호화(사업자번호 자동 입력) + 라인 아이템 분해 + 재무폴더/고객폴더 PDF·HTML 저장 + revenue-processor 위임으로 Supabase/Notion 3종 원장 동시 기록.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "incremental-implementation",
+      "name": "/incremental-implementation - 점진적 구현",
+      "description": "한 번에 한 가지만 변경. 원자적 커밋과 ~5파일/태스크 원칙으로 점진적 구현. Use when implementing features incrementally.",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -1537,6 +3076,27 @@
       "id": "init-project",
       "name": "/init-project - 프로젝트 초기화 (v6)",
       "description": "프로젝트 초기 설정 (v6)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "instagram-dm-status",
+      "name": "/instagram-dm-status",
+      "description": "인스타그램 DM 자동화 전체 헬스 체크. Chrome CDP, 세션, 발송 성공률, 워밍업, 크론 상태를 한눈에.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "karpathy-check",
+      "name": "karpathy-check",
+      "description": "최근 코드 변경을 Karpathy 4원칙 기준으로 감사. 과잉 엔지니어링, 불필요한 변경, 모호한 가정을 탐지. 트리거: \"카파시 체크\", \"코드 과잉 점검\", \"simplicity check\", \"수술적 변경 점검\", \"karpathy check\"",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "labor-consultant",
+      "name": "노무/고용법 전문 자문",
+      "description": "노무/고용법 전문 자문 — 법령 모니터링, 컴플라이언스 진단, 근로계약/해고/산재/근로자성 자문",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -1608,6 +3168,13 @@
       "name": "market-sizing-analysis",
       "description": "This skill should be used when the user asks to \"calculate TAM\", \"determine SAM\", \"estimate SOM\", \"size the market\", \"calculate market opportunity\", \"what's the total addressable market\", or requests market sizing analysis for a startup or business opportunity.",
       "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "marketing-content",
+      "name": "marketing-content",
+      "description": "통합 마케팅 콘텐츠 팀 호출. 한 주제로 블로그+카드뉴스+릴스+리서치를 동시 제작.",
+      "type": "skill-file",
       "hasSubcommands": false
     },
     {
@@ -1828,6 +3395,34 @@
       "hasSubcommands": false
     },
     {
+      "id": "project-launch",
+      "name": "/project-launch — 프로젝트 + PRD 통합 런칭",
+      "description": "프로젝트 + PRD + 문서(CLAUDE.md/spec.md/prompt_plan.md) + GitHub PR 한 번에 생성. Supabase 3분할 동기화. --minimal로 구버전(Phase 0-8) 호환.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "project-status-snapshot",
+      "name": "/project-status-snapshot — 프로젝트 상태 자동 삽입",
+      "description": "프로젝트 상태 스냅샷을 README auto-status 블록에 삽입 (os_projects + os_tasks + os_prds Supabase 조회)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "project-update",
+      "name": "/project-update — 프로젝트 진행 업데이트 (3대 원툴)",
+      "description": "프로젝트 진행 업데이트 — os_project_updates INSERT + notifyTeam + 조건부 advance-stage",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "project-upload",
+      "name": "/project-upload — `/project-launch`로 통합됨",
+      "description": "[DEPRECATED] /project-launch로 통합됨. 자동 위임.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "project",
       "name": "/project - 프로젝트 관리",
       "description": "프로젝트 관리 — 대시보드, 상세 조회, 추가, 태스크 연결, 아카이브, 워크플로우 단계, PRD, 미팅",
@@ -1842,6 +3437,41 @@
       "hasSubcommands": false
     },
     {
+      "id": "pull-main",
+      "name": "pull-main",
+      "description": "개발 브랜치에서 main의 최신 내용을 충돌 없이 가져온다. 충돌 시 main 측 변경이 우선(-X theirs). main 브랜치에서 실행 시 거부. 사전 backup 브랜치 자동 생성 + 미커밋 변경 자동 stash.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "qa",
+      "name": "qa",
+      "description": "개발 완료 후 브라우저 기반 QA. 기본 browser-use CLI + 옵션 --playwright(Playwright MCP) / --chrome-devtools. Generator-Evaluator 패턴.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "qa.bak-2026-04-20",
+      "name": "qa",
+      "description": "개발 완료 후 브라우저 기반 QA. localhost(Playwright MCP) + 외부 URL(browser-use) 자동 라우팅. Generator-Evaluator 패턴.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "qa.bak-2026-04-20-v4-pre",
+      "name": "qa",
+      "description": "개발 완료 후 브라우저 기반 QA. 기본 browser-use CLI + 옵션 --playwright(Playwright MCP) / --chrome-devtools. Generator-Evaluator 패턴.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "qjc",
+      "name": "/qjc — QJC Meta-Orchestrator 빠른 진입점",
+      "description": "QJC 자율 메타-에이전트 빠른 진입점 — status/dream/context/learn/okr/map 6 subcommand. qjc-orchestrator 메모리 8종 활용.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "quick-commit",
       "name": "/quick-commit - 빠른 커밋 (v6)",
       "description": "간단한 수정용 빠른 커밋 (v6)",
@@ -1850,8 +3480,8 @@
     },
     {
       "id": "quotation",
-      "name": "견적서 작성 스킬",
-      "description": "QJC B2B 견적서 작성. 가격 심리학(Ariely/Hormozi/Voss)과 3-Tier 가격 구조, ROI 분석 적용.",
+      "name": "견적서 스킬 (서버 거버넌스 모드)",
+      "description": "QJC B2B 견적서 작성 (Supabase 거버넌스 풀스택). 가격 결정은 quotation-api 서버에서 수행하며,",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -1877,6 +3507,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "relay",
+      "name": "/relay — 세션 릴레이 바통 생성",
+      "description": "세션 이어가기 프롬프트 생성. 컨텍스트 70%+ 소진 시 또는 작업 중단 전 다음 세션용 릴레이 바통 제작.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "remotion-best-practices",
       "name": "remotion-best-practices",
       "description": "Best practices for Remotion - Video creation in React",
@@ -1891,9 +3528,16 @@
       "hasSubcommands": false
     },
     {
+      "id": "revenue",
+      "name": "revenue",
+      "description": "매출 처리 자동화 스킬. 매출 3종 원장(로컬 PDF + Supabase + Notion) 동시 저장, 고객폴더 업무기록 자동 생성, 매출 세금계산서 파싱, 월간 매출 리포트 생성.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "save-work",
       "name": "save-work",
-      "description": "세션 종료 시 업무 기록 저장 + QJC 파일 자동 정리가 필요할 때",
+      "description": "세션 종료 시 업무 기록 저장 + QJC 파일 자동 정리 + GitHub/Supabase 3분할 동기화",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -1933,6 +3577,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "shell-cmd",
+      "name": "/shell-cmd — 프로젝트 바로가기 alias 관리",
+      "description": "프로젝트 바로가기 셸 alias 생성/삭제/목록 (cqjc, 한예종 같은 것). 별칭 추가, shortcut, 터미널 단축 명령어 만들기",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "show-setup",
       "name": "/show-setup - Claude Forge 설치 현황",
       "description": "현재 Claude Forge 설치 상태와 프로젝트 정보를 보여줍니다.",
@@ -1942,7 +3593,7 @@
     {
       "id": "social-slide-marketing",
       "name": "social-slide-marketing",
-      "description": "소셜 미디어 슬라이드쇼 마케팅 자동화. 6장 세로 이미지 생성(Gemini 3 Pro) → 텍스트 오버레이 → TikTok/Instagram 게시(Postiz) → 성과 추적 → 자동 최적화. Use when: TikTok 마케팅, 슬라이드쇼, 소셜 미디어 자동화, 인스타 릴스, 바이럴 콘텐츠, social media marketing, slideshow ads, TikTok growth, viral content.",
+      "description": "소셜 미디어 슬라이드쇼 마케팅 자동화. 6장 세로 이미지 생성 (default openai-medium, 9:16 portrait, 2026-05-02 정책) → 텍스트 오버레이 → TikTok/Instagram 게시(Postiz) → 성과 추적 → 자동 최적화. 사용자가 -m pro 명시 시 Gemini Pro로 override. Use when: TikTok 마케팅, 슬라이드쇼, 소셜 미디어 자동화, 인스타 릴스, 바이럴 콘텐츠, social media marketing, slideshow ads, TikTok growth, viral content.",
       "type": "skill-dir",
       "hasSubcommands": false
     },
@@ -2017,6 +3668,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "sync-all",
+      "name": "sync-all",
+      "description": "업무 후 프로젝트 메타(PRD/spec/CLAUDE.md/rules/README/회의록/업데이트/CHANGELOG)를 \"빠짐없이\" 동기화하는 원툴. 기존 작은 skill들을 체이닝하는 얇은 오케스트레이터. Phase 16부터 CLAUDE.md 마커 자동 갱신 + MEMORY.md 프로젝트 기록 + spec/prompt_plan 스캐폴드 지원. dry-run 기본, --apply로 적용. 훅 자동 트리거 없음, 수동 호출 전용. 상세 파이프라인은 references/pipeline.md에서 lazy load.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "sync-docs",
       "name": "/sync-docs - 문서 동기화 (v7)",
       "description": "prompt_plan.md, spec.md, CLAUDE.md + rules/ 문서 동기화 (v7)",
@@ -2048,6 +3706,13 @@
       "id": "team-patterns",
       "name": "팀 워크플로우 패턴",
       "description": "Agent Teams 구성 방법, 패턴 선택이 필요할 때",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "team-sync",
+      "name": "/team-sync - 팀 양방향 동기화",
+      "description": "팀 전체 동기화 — push + pull + Discord 알림 + command_queue + 팀 현황",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -2122,6 +3787,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "wiki-lint",
+      "name": "/wiki-lint - 위키 위생 점검 (Phase 1)",
+      "description": "rules/ 위키 위생 점검 — 스테일·고아·토픽후보 자동 감지. Karpathy LLM Wiki 채택 Phase 1. 자동 수정 없음, 사용자 검토 후 수동 정리.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "worktree-cleanup",
       "name": "워크트리 제거",
       "description": "PR 완료 후 Git Worktree 정리 (v6)",
@@ -2162,6 +3834,13 @@
       "description": "Zdog pseudo-3D 엔진 가이드 - 도형, 애니메이션, 인터랙션, Remotion 연동",
       "type": "skill-dir",
       "hasSubcommands": false
+    },
+    {
+      "id": "팀-업데이트",
+      "name": "/팀-업데이트 — 팀 상태 브로드캐스트",
+      "description": "팀 상태/마일스톤/결정사항을 대시보드 + Discord로 브로드캐스트",
+      "type": "skill-file",
+      "hasSubcommands": false
     }
   ],
   "hooks": [
@@ -2170,38 +3849,8 @@
       "matcher": "Bash",
       "commands": [
         {
-          "command": "~/.claude/hooks/supabase-mcp-reminder.sh",
-          "timeout": 5000,
-          "async": false
-        },
-        {
-          "command": "~/.claude/hooks/remote-command-guard.sh",
-          "timeout": 5000,
-          "async": false
-        },
-        {
-          "command": "~/.claude/hooks/gws-auth-check.sh",
-          "timeout": 5000,
-          "async": false
-        },
-        {
-          "command": "~/.claude/hooks/image-prompt-enhancer.sh",
-          "timeout": 5000,
-          "async": false
-        },
-        {
-          "command": "~/.claude/hooks/ads-guard.sh",
-          "timeout": 5000,
-          "async": false
-        },
-        {
-          "command": "~/qjc-office/dotclaude/hooks/email-mime-validate.sh",
-          "timeout": 5000,
-          "async": false
-        },
-        {
-          "command": "~/.claude/hooks/email-guard.sh",
-          "timeout": 5000,
+          "command": "~/.claude/hooks/smart-auto-approve.sh",
+          "timeout": 3000,
           "async": false
         },
         {
@@ -2217,6 +3866,11 @@
         {
           "command": "~/.claude/hooks/gov-api-key-check.sh",
           "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "HOOK_EVENT=PreToolUse $HOME/.claude/hooks/_lib/error-monitor.sh ~/.claude/hooks/outbound-data-guard.sh",
+          "timeout": 5,
           "async": false
         }
       ]
@@ -2234,7 +3888,7 @@
     },
     {
       "event": "PreToolUse",
-      "matcher": "mcp__supabase__(execute_sql|apply_migration)",
+      "matcher": "mcp__(supabase|plugin_supabase_supabase)__(execute_sql|apply_migration)",
       "commands": [
         {
           "command": "~/.claude/hooks/db-guard.sh",
@@ -2304,6 +3958,17 @@
     },
     {
       "event": "PreToolUse",
+      "matcher": "Task",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/qa-evidence-validator.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
       "matcher": "Write|Edit",
       "commands": [
         {
@@ -2322,12 +3987,17 @@
           "async": false
         },
         {
-          "command": "~/qjc-office/dotclaude/hooks/never-do-enforcer.sh",
+          "command": "~/.claude/hooks/never-do-enforcer.sh",
           "timeout": 5000,
           "async": false
         },
         {
           "command": "~/.claude/hooks/skill-inject-universal.sh",
+          "timeout": 3000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/file-lock-notify.sh",
           "timeout": 3000,
           "async": false
         }
@@ -2337,6 +4007,11 @@
       "event": "SessionStart",
       "matcher": "*",
       "commands": [
+        {
+          "command": "~/.claude/hooks/member-auto-bootstrap.sh",
+          "timeout": 3000,
+          "async": false
+        },
         {
           "command": "~/.claude/hooks/tdl-session-start.sh",
           "timeout": 8000,
@@ -2353,6 +4028,36 @@
           "async": true
         },
         {
+          "command": "~/.claude/hooks/changelog-briefing.sh",
+          "timeout": 8000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/platform-version-check.sh",
+          "timeout": 8000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/gws-version-check.sh",
+          "timeout": 30000,
+          "async": true
+        },
+        {
+          "command": "~/.claude/hooks/gws-session-check.sh",
+          "timeout": 10000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/project-sync-check.sh",
+          "timeout": 8000,
+          "async": true
+        },
+        {
+          "command": "~/.claude/hooks/poll-commands.sh",
+          "timeout": 8000,
+          "async": true
+        },
+        {
           "command": "~/.claude/hooks/sound-notify.sh session-start",
           "timeout": 5000,
           "async": true
@@ -2365,6 +4070,11 @@
         {
           "command": "~/.claude/hooks/telegram-notify.sh start",
           "timeout": 5000,
+          "async": true
+        },
+        {
+          "command": "~/.claude/hooks/discord-notify.sh start",
+          "timeout": 8000,
           "async": true
         },
         {
@@ -2441,6 +4151,11 @@
           "command": "~/.claude/hooks/arch-daily-report.sh",
           "timeout": 30000,
           "async": true
+        },
+        {
+          "command": "~/.claude/hooks/instagram-dm-health-check.sh",
+          "timeout": 10000,
+          "async": true
         }
       ]
     },
@@ -2452,6 +4167,16 @@
           "command": "~/.claude/hooks/work-tracker-prompt.sh",
           "timeout": 5000,
           "async": true
+        },
+        {
+          "command": "~/.claude/hooks/bizmodel-trigger-detector.sh",
+          "timeout": 3000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/qjc-trigger-detector.sh",
+          "timeout": 5000,
+          "async": false
         }
       ]
     },
@@ -2500,12 +4225,33 @@
     },
     {
       "event": "PostToolUse",
+      "matcher": "Bash",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/push-sync-notify.sh",
+          "timeout": 8000,
+          "async": true
+        }
+      ]
+    },
+    {
+      "event": "PostToolUse",
       "matcher": "Edit|Write",
       "commands": [
         {
           "command": "~/.claude/hooks/post-edit-write.sh",
           "timeout": 5000,
           "async": false
+        },
+        {
+          "command": "~/.claude/hooks/bizmodel-post-edit-sync.sh",
+          "timeout": 3000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/dotclaude-auto-push-on-edit.sh",
+          "timeout": 3000,
+          "async": true
         },
         {
           "command": "~/.claude/hooks/ui-ux-qa-gate.sh",
@@ -2529,6 +4275,21 @@
         },
         {
           "command": "~/.claude/hooks/auto-verify-fix.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/qjc-office/dotclaude/hooks/qa-trigger.sh",
+          "timeout": 5000,
+          "async": true
+        },
+        {
+          "command": "~/.claude/hooks/qa-checklist-validator.sh",
+          "timeout": 5000,
+          "async": false
+        },
+        {
+          "command": "~/.claude/hooks/qa-report-gate.sh",
           "timeout": 5000,
           "async": false
         },
@@ -2605,17 +4366,27 @@
         {
           "command": "~/.claude/hooks/dotclaude-auto-push.sh",
           "timeout": 15000,
-          "async": false
+          "async": true
         },
         {
           "command": "~/.claude/hooks/session-summary-writer.sh",
           "timeout": 5000,
-          "async": false
+          "async": true
+        },
+        {
+          "command": "~/.claude/hooks/session-end-ingest.sh",
+          "timeout": 5000,
+          "async": true
         },
         {
           "command": "~/.claude/hooks/telegram-notify.sh stop",
           "timeout": 5000,
-          "async": false
+          "async": true
+        },
+        {
+          "command": "~/.claude/hooks/discord-notify.sh stop",
+          "timeout": 8000,
+          "async": true
         }
       ]
     },
@@ -2637,6 +4408,11 @@
           "command": "~/.claude/hooks/telegram-notify.sh task-completed",
           "timeout": 5000,
           "async": false
+        },
+        {
+          "command": "~/.claude/hooks/discord-notify.sh task-completed",
+          "timeout": 8000,
+          "async": true
         }
       ]
     },
@@ -2648,6 +4424,16 @@
           "command": "~/.claude/hooks/telegram-notify.sh notification",
           "timeout": 10000,
           "async": false
+        },
+        {
+          "command": "~/.claude/hooks/discord-notify.sh notification",
+          "timeout": 8000,
+          "async": true
+        },
+        {
+          "command": "~/.claude/hooks/notification-queue-check.sh",
+          "timeout": 8000,
+          "async": true
         }
       ]
     },
@@ -2656,7 +4442,7 @@
       "matcher": "*",
       "commands": [
         {
-          "command": "~/.claude/hooks/pre-compact-snapshot.sh",
+          "command": "~/.claude/hooks/smart-pre-compact.sh",
           "timeout": 10000,
           "async": false
         }
@@ -2674,6 +4460,28 @@
       ]
     },
     {
+      "event": "SubagentStop",
+      "matcher": "*",
+      "commands": [
+        {
+          "command": "~/qjc-office/dotclaude/hooks/teammate-context-handoff.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
+      "event": "SubagentStop",
+      "matcher": "*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/qjc-subagent-stop.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
+    },
+    {
       "event": "TeammateIdle",
       "matcher": "*",
       "commands": [
@@ -2683,9 +4491,26 @@
           "async": false
         }
       ]
+    },
+    {
+      "event": "PostCompact",
+      "matcher": "*",
+      "commands": [
+        {
+          "command": "~/.claude/hooks/post-compact-restore.sh",
+          "timeout": 5000,
+          "async": false
+        }
+      ]
     }
   ],
   "rules": [
+    {
+      "id": "aeo-geo-9strategies",
+      "name": "AEO/GEO 9 Strategies (Princeton/KDD 2024)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/aeo-geo-9strategies.md",
+      "priority": "normal"
+    },
     {
       "id": "agents-v2",
       "name": "Agent Orchestration",
@@ -2696,24 +4521,42 @@
       "id": "ai-research",
       "name": "AI Research 규칙",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/ai-research.md",
-      "priority": "normal"
-    },
-    {
-      "id": "browser-automation",
-      "name": "브라우저 자동화 라우팅 규칙 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/browser-automation.md",
       "priority": "critical"
     },
     {
-      "id": "budget-analysis",
-      "name": "예산 분석(Budget Analyst) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/budget-analysis.md",
+      "id": "answer-provenance",
+      "name": "답변 출처 추적 정책 (Answer Provenance, IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/answer-provenance.md",
       "priority": "critical"
     },
     {
-      "id": "ci-bi-intelligence",
-      "name": "CI/BI 인텔리전스 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/ci-bi-intelligence.md",
+      "id": "bizcard-auto-detect",
+      "name": "명함 자동 감지 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/bizcard-auto-detect.md",
+      "priority": "important"
+    },
+    {
+      "id": "business-model-design",
+      "name": "비즈니스 모델 설계(BizModel) 거버넌스 규칙 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/business-model-design.md",
+      "priority": "critical"
+    },
+    {
+      "id": "cert-pipeline",
+      "name": "/cert-pipeline 자동화 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/cert-pipeline.md",
+      "priority": "critical"
+    },
+    {
+      "id": "chrome-devtools",
+      "name": "Chrome DevTools MCP 라우팅·거버넌스 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/chrome-devtools.md",
+      "priority": "critical"
+    },
+    {
+      "id": "civil-law",
+      "name": "Civil Law (민사) 에이전트 트리거 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/civil-law.md",
       "priority": "critical"
     },
     {
@@ -2723,27 +4566,39 @@
       "priority": "critical"
     },
     {
+      "id": "cli-tools",
+      "name": "CLI Tools 활용 규칙 (Phase 1: jc / hyperfine / gitleaks / atuin)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/cli-tools.md",
+      "priority": "normal"
+    },
+    {
       "id": "coding-style",
       "name": "Coding Style",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/coding-style.md",
       "priority": "normal"
     },
     {
-      "id": "compliance-checker",
-      "name": "규정 준수 체커(Compliance Checker) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/compliance-checker.md",
+      "id": "context-sync-lead",
+      "name": "context-sync-lead 라우팅 + 자동/수동 경계 (2026-05-08 신설)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/context-sync-lead.md",
       "priority": "critical"
     },
     {
-      "id": "contract-drafting",
-      "name": "계약서 초안 생성(NDA Generator) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/contract-drafting.md",
+      "id": "contract-engineering",
+      "name": "컨트랙트 엔지니어링 (Contract Engineering, IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/contract-engineering.md",
       "priority": "critical"
     },
     {
-      "id": "cs-responder",
-      "name": "고객 응대(CS Responder) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/cs-responder.md",
+      "id": "contract-legal",
+      "name": "계약법/민사법률 자동 라우팅",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/contract-legal.md",
+      "priority": "critical"
+    },
+    {
+      "id": "dark-mode-audit",
+      "name": "다크 모드 양방향 검토 의무 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/dark-mode-audit.md",
       "priority": "critical"
     },
     {
@@ -2753,9 +4608,45 @@
       "priority": "critical"
     },
     {
-      "id": "design-creator",
-      "name": "디자인 제작(Design Creator) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/design-creator.md",
+      "id": "design-doc-governance",
+      "name": "DESIGN.md 거버넌스 규칙 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/design-doc-governance.md",
+      "priority": "critical"
+    },
+    {
+      "id": "design-engineer",
+      "name": "Design Engineer 룰 (web-designer 확장)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/design-engineer.md",
+      "priority": "normal"
+    },
+    {
+      "id": "design-extract",
+      "name": "design-extract 스킬 트리거 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/design-extract.md",
+      "priority": "critical"
+    },
+    {
+      "id": "detail-page",
+      "name": "상세페이지 자동 제작 (detail-page-creator) 라우팅 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/detail-page.md",
+      "priority": "critical"
+    },
+    {
+      "id": "dev-team",
+      "name": "Dev Team Routing Rules",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/dev-team.md",
+      "priority": "normal"
+    },
+    {
+      "id": "discord-notify",
+      "name": "Discord 팀 알림 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/discord-notify.md",
+      "priority": "critical"
+    },
+    {
+      "id": "doc-sync",
+      "name": "프로젝트 문서 동기화 정책 (전역, Phase 11)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/doc-sync.md",
       "priority": "critical"
     },
     {
@@ -2771,21 +4662,9 @@
       "priority": "critical"
     },
     {
-      "id": "expense-processing",
-      "name": "경비 처리(Expense Processor) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/expense-processing.md",
-      "priority": "critical"
-    },
-    {
-      "id": "faq-knowledge-management",
-      "name": "FAQ/지식베이스 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/faq-knowledge-management.md",
-      "priority": "critical"
-    },
-    {
-      "id": "feedback-analysis",
-      "name": "고객 피드백 분석 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/feedback-analysis.md",
+      "id": "fastcampus-qa-bot",
+      "name": "패스트캠퍼스 수강생 Q&A 봇 운영 규칙 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/fastcampus-qa-bot.md",
       "priority": "critical"
     },
     {
@@ -2807,6 +4686,12 @@
       "priority": "normal"
     },
     {
+      "id": "goal-hook-condition",
+      "name": "/goal Hook Condition 작성 규칙 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/goal-hook-condition.md",
+      "priority": "critical"
+    },
+    {
       "id": "golden-principles",
       "name": "Golden Principles",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/golden-principles.md",
@@ -2816,12 +4701,30 @@
       "id": "gws",
       "name": "Google Workspace CLI (gws) 사용 규칙",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/gws.md",
-      "priority": "normal"
+      "priority": "critical"
+    },
+    {
+      "id": "hermes-pm-instance",
+      "name": "QJC PM 전용 Hermes Profile (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/hermes-pm-instance.md",
+      "priority": "critical"
+    },
+    {
+      "id": "hometax-sync",
+      "name": "홈택스 매출 동기화 규칙 (`/hometax-sync` + hometax-processor)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/hometax-sync.md",
+      "priority": "critical"
     },
     {
       "id": "image-generation",
       "name": "이미지 생성 규칙 (IMPORTANT)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/image-generation.md",
+      "priority": "critical"
+    },
+    {
+      "id": "image-provider-routing",
+      "name": "이미지 프로바이더 자동 라우팅",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/image-provider-routing.md",
       "priority": "critical"
     },
     {
@@ -2831,87 +4734,75 @@
       "priority": "critical"
     },
     {
-      "id": "lead-scoring",
-      "name": "리드 스코어링 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/lead-scoring.md",
+      "id": "labor-consultant",
+      "name": "노무사(Labor Consultant) 에이전트 자동 트리거 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/labor-consultant.md",
       "priority": "critical"
     },
     {
-      "id": "loan-advisor",
-      "name": "대출 전문가(Loan Advisor) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/loan-advisor.md",
+      "id": "launchctl-hygiene",
+      "name": "launchctl 에이전트 위생 정책 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/launchctl-hygiene.md",
       "priority": "critical"
     },
     {
-      "id": "meeting-prep",
-      "name": "미팅 준비 에이전트(Meeting-Prep) 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/meeting-prep.md",
+      "id": "lazyweb-mcp",
+      "name": "Lazyweb MCP 통합 정책 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/lazyweb-mcp.md",
       "priority": "critical"
     },
     {
-      "id": "meeting-secretary",
-      "name": "회의록 작성(Meeting Secretary) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/meeting-secretary.md",
+      "id": "ledger-sync-protocol",
+      "name": "5곳 동기 저장 프로토콜 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/ledger-sync-protocol.md",
       "priority": "critical"
     },
     {
-      "id": "musk-hiring",
-      "name": "일론 머스크 채용 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/musk-hiring.md",
+      "id": "mcp-token-policy",
+      "name": "MCP 토큰 정책 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/mcp-token-policy.md",
       "priority": "critical"
     },
     {
-      "id": "never-do-1기-감사-섹션-모바일-최적화",
-      "name": "NEVER DO: 1기-감사-섹션-모바일-최적화",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/never-do-1기-감사-섹션-모바일-최적화.md",
-      "priority": "normal"
+      "id": "mediation-negotiation",
+      "name": "조정/협상(Mediation-Negotiation) 에이전트 트리거 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/mediation-negotiation.md",
+      "priority": "critical"
     },
     {
-      "id": "never-do-None",
-      "name": "NEVER DO: None",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/never-do-None.md",
-      "priority": "normal"
+      "id": "mediation",
+      "name": "Mediation/Negotiation 에이전트 트리거 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/mediation.md",
+      "priority": "critical"
     },
     {
-      "id": "never-do-fix-in-CatchUpGuaranteeSection",
-      "name": "NEVER DO: fix-in-CatchUpGuaranteeSection",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/never-do-fix-in-CatchUpGuaranteeSection.md",
-      "priority": "normal"
+      "id": "memory-aware-hub",
+      "name": "Memory-Aware Hub 운영 표준 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/memory-aware-hub.md",
+      "priority": "critical"
     },
     {
-      "id": "never-do-fix-in-auth-find-idtest",
-      "name": "NEVER DO: fix-in-auth-find-idtest",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/never-do-fix-in-auth-find-idtest.md",
-      "priority": "normal"
+      "id": "memory-policy",
+      "name": "메모리 정책 (Memory Policy, IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/memory-policy.md",
+      "priority": "critical"
     },
     {
-      "id": "never-do-fix-in-index",
-      "name": "NEVER DO: fix-in-index",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/never-do-fix-in-index.md",
-      "priority": "normal"
+      "id": "meta-improvement",
+      "name": "Meta Improvement Loop",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/meta-improvement.md",
+      "priority": "critical"
     },
     {
-      "id": "never-do-fix-in-nav-links",
-      "name": "NEVER DO: fix-in-nav-links",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/never-do-fix-in-nav-links.md",
-      "priority": "normal"
+      "id": "notification-hooks",
+      "name": "알림 훅 작성 표준 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/notification-hooks.md",
+      "priority": "critical"
     },
     {
-      "id": "never-do-fix-in-page",
-      "name": "NEVER DO: fix-in-page",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/never-do-fix-in-page.md",
-      "priority": "normal"
-    },
-    {
-      "id": "never-do-fix-in-route",
-      "name": "NEVER DO: fix-in-route",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/never-do-fix-in-route.md",
-      "priority": "normal"
-    },
-    {
-      "id": "onboarding",
-      "name": "고객 온보딩 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/onboarding.md",
+      "id": "notion-idempotency",
+      "name": "Notion 멱등성 정책 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/notion-idempotency.md",
       "priority": "critical"
     },
     {
@@ -2927,6 +4818,12 @@
       "priority": "critical"
     },
     {
+      "id": "pipeline-metrics",
+      "name": "파이프라인 메트릭 (Pipeline Metrics, IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/pipeline-metrics.md",
+      "priority": "critical"
+    },
+    {
       "id": "project-architect",
       "name": "프로젝트 아키텍처(Architect) 에이전트 트리거 규칙 (IMPORTANT)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/project-architect.md",
@@ -2939,16 +4836,16 @@
       "priority": "critical"
     },
     {
+      "id": "qjc-reporting-protocol",
+      "name": "QJC 보고 체계 프로토콜 (Claude Code 하네스 룰)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/qjc-reporting-protocol.md",
+      "priority": "critical"
+    },
+    {
       "id": "ralph-loop",
       "name": "Ralph Loop (다중 턴 자율 작업)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/ralph-loop.md",
       "priority": "normal"
-    },
-    {
-      "id": "real-estate",
-      "name": "한국 부동산 에이전트 시스템 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/real-estate.md",
-      "priority": "critical"
     },
     {
       "id": "reasoning-sandwich",
@@ -2969,6 +4866,12 @@
       "priority": "critical"
     },
     {
+      "id": "revenue-processing",
+      "name": "매출 처리 규칙 (revenue-processor + /revenue)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/revenue-processing.md",
+      "priority": "critical"
+    },
+    {
       "id": "saju-file-management",
       "name": "사주 문서 저장 규칙 (CRITICAL)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/saju-file-management.md",
@@ -2981,15 +4884,33 @@
       "priority": "important"
     },
     {
+      "id": "skill-routing-daily-report",
+      "name": "daily-report Skill 즉시 호출 규칙 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/skill-routing-daily-report.md",
+      "priority": "critical"
+    },
+    {
+      "id": "slides-web",
+      "name": "slides-web 디자인 거버넌스 룰",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/slides-web.md",
+      "priority": "normal"
+    },
+    {
       "id": "supabase-mcp",
       "name": "Supabase MCP (CRITICAL)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/supabase-mcp.md",
       "priority": "critical"
     },
     {
-      "id": "training-designer",
-      "name": "교육 설계(Training Designer) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/training-designer.md",
+      "id": "sync-all",
+      "name": "/sync-all 사용 규칙",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/sync-all.md",
+      "priority": "critical"
+    },
+    {
+      "id": "sync-drift-scanner",
+      "name": "sync-drift-scan.sh 공유 진단 엔진 계약 (Phase 15)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/sync-drift-scanner.md",
       "priority": "critical"
     },
     {
@@ -3678,6 +5599,12 @@
       "projectPath": "/Users/sangrok/.claude.backup.20260220_003519"
     },
     {
+      "name": "google-analytics",
+      "command": "/Users/sangrok/.local/bin/analytics-mcp",
+      "args": [],
+      "projectPath": "/Users/sangrok/GA4"
+    },
+    {
       "name": "google-calendar",
       "command": "npx",
       "args": [
@@ -3842,33 +5769,6 @@
       "command": "npx",
       "args": [
         "@fabriqa.ai/youtube-transcript-mcp@latest"
-      ],
-      "projectPath": "/Users/sangrok/instructor-automation"
-    },
-    {
-      "name": "stitch",
-      "command": "npx",
-      "args": [
-        "-y",
-        "stitch-mcp"
-      ],
-      "projectPath": "/Users/sangrok/instructor-automation"
-    },
-    {
-      "name": "remotion",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@remotion/mcp"
-      ],
-      "projectPath": "/Users/sangrok/instructor-automation"
-    },
-    {
-      "name": "google-calendar",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@cocal/google-calendar-mcp@latest"
       ],
       "projectPath": "/Users/sangrok/instructor-automation"
     },
@@ -4081,14 +5981,39 @@
   "memory": {
     "autoMemory": {
       "path": "/Users/sangrok/.claude/projects/-Users-sangrok/memory",
-      "fileCount": 7,
+      "fileCount": 32,
       "files": [
         "MEMORY.md",
         "experiences.jsonl",
+        "feedback_auto_classifier_self_modify_block.md",
         "feedback_cc_auth_setup.md",
+        "feedback_goal_hook_deadlock_20260522.md",
+        "feedback_harness_resync_20260521.md",
         "feedback_hook_output.md",
+        "feedback_image_immediate_execution.md",
+        "feedback_image_single_default_policy.md",
+        "feedback_naming_confusion.md",
+        "feedback_no_bias.md",
+        "feedback_orchestrator_self_call_loop.md",
+        "feedback_skill_reference_autoload.md",
+        "feedback_skill_trigger_collision_resolution.md",
+        "feedback_subagent_mcp_inheritance.md",
+        "feedback_system_reminder_not_user_command.md",
         "project_customer_index.md",
+        "project_youmind_pattern_integration.md",
+        "reference_chrome_devtools_mcp_integration.md",
+        "reference_dev_team_20260422.md",
+        "reference_gws_official_cli.md",
+        "reference_handoff_verify_v7.md",
+        "reference_hook_error_monitor_20260505.md",
         "reference_karpathy_knowledge_wiki.md",
+        "reference_landing_review_skeptical_20260512.md",
+        "reference_lazyweb_mcp_integration.md",
+        "reference_mcp_token_setup_20260422.md",
+        "reference_permission_audit_20260512.md",
+        "reference_supabase_mcp_singleton_20260427.md",
+        "reference_super_research_isolation_refactor.md",
+        "reference_typeui_integration_20260421.md",
         "user_qjc_website.md"
       ]
     },
@@ -4096,28 +6021,24 @@
       "path": "/Users/sangrok/.claude/agent-memory",
       "agents": [
         {
-          "name": "ad-optimizer-team",
-          "fileCount": 0
+          "name": "ad-scout-google",
+          "fileCount": 2
         },
         {
-          "name": "ad-scout-meta",
-          "fileCount": 3
+          "name": "ai-researcher",
+          "fileCount": 0
         },
         {
           "name": "architect",
-          "fileCount": 0
+          "fileCount": 3
         },
         {
-          "name": "budget-analyst",
-          "fileCount": 0
+          "name": "bizmodel-architect",
+          "fileCount": 1
         },
         {
-          "name": "build-error-resolver",
-          "fileCount": 0
-        },
-        {
-          "name": "ci-bi-strategist",
-          "fileCount": 0
+          "name": "cd-lead",
+          "fileCount": 1
         },
         {
           "name": "code-reviewer",
@@ -4128,80 +6049,48 @@
           "fileCount": 0
         },
         {
-          "name": "compliance-checker",
-          "fileCount": 0
-        },
-        {
-          "name": "contract-legal",
-          "fileCount": 0
-        },
-        {
           "name": "copywriting",
-          "fileCount": 1
-        },
-        {
-          "name": "crm-manager",
-          "fileCount": 0
+          "fileCount": 2
         },
         {
           "name": "cs-responder",
-          "fileCount": 0
+          "fileCount": 2
         },
         {
-          "name": "database-reviewer",
-          "fileCount": 0
+          "name": "data-analyst",
+          "fileCount": 2
         },
         {
           "name": "design-creator",
-          "fileCount": 0
+          "fileCount": 2
         },
         {
-          "name": "doc-updater",
+          "name": "dev-brainstormer",
           "fileCount": 0
-        },
-        {
-          "name": "e2e-runner",
-          "fileCount": 0
-        },
-        {
-          "name": "expense-processor",
-          "fileCount": 3
         },
         {
           "name": "feedback-analyst",
-          "fileCount": 1
+          "fileCount": 2
         },
         {
           "name": "financial-accountant",
-          "fileCount": 2
+          "fileCount": 1
         },
         {
-          "name": "gemini-reviewer",
+          "name": "first-principles-thinker",
           "fileCount": 0
         },
         {
-          "name": "hr-manager",
-          "fileCount": 0
+          "name": "gov-support-strategist",
+          "fileCount": 3
         },
         {
-          "name": "labor-consultant",
-          "fileCount": 0
-        },
-        {
-          "name": "musk-hiring-evaluator",
-          "fileCount": 0
-        },
-        {
-          "name": "nda-generator",
-          "fileCount": 2
-        },
-        {
-          "name": "planner",
+          "name": "meeting-prep",
           "fileCount": 0
         },
         {
           "name": "product-strategist",
-          "fileCount": 0
+          "fileCount": 2
         },
         {
           "name": "qjc-business",
@@ -4209,27 +6098,11 @@
         },
         {
           "name": "qjc-content",
-          "fileCount": 0
+          "fileCount": 2
         },
         {
-          "name": "qjc-operations",
-          "fileCount": 0
-        },
-        {
-          "name": "quotation",
-          "fileCount": 0
-        },
-        {
-          "name": "real-estate-investor",
-          "fileCount": 6
-        },
-        {
-          "name": "refactor-cleaner",
-          "fileCount": 0
-        },
-        {
-          "name": "remotion-creator",
-          "fileCount": 0
+          "name": "qjc-orchestrator",
+          "fileCount": 9
         },
         {
           "name": "research-pi",
@@ -4237,10 +6110,14 @@
         },
         {
           "name": "researcher",
-          "fileCount": 36
+          "fileCount": 2
         },
         {
-          "name": "saju-myeongri",
+          "name": "reviewer-team",
+          "fileCount": 0
+        },
+        {
+          "name": "sales-followup",
           "fileCount": 0
         },
         {
@@ -4248,20 +6125,28 @@
           "fileCount": 0
         },
         {
+          "name": "seo-geo-aeo-strategist",
+          "fileCount": 3
+        },
+        {
           "name": "stock-investment-advisor",
-          "fileCount": 0
+          "fileCount": 2
         },
         {
           "name": "storyteller",
+          "fileCount": 3
+        },
+        {
+          "name": "super-research",
+          "fileCount": 3
+        },
+        {
+          "name": "systematic-debugger",
           "fileCount": 0
         },
         {
-          "name": "tdd-guide",
-          "fileCount": 0
-        },
-        {
-          "name": "verify-agent",
-          "fileCount": 2
+          "name": "test",
+          "fileCount": 3
         },
         {
           "name": "web-designer",
@@ -4271,15 +6156,22 @@
     },
     "personalOS": {
       "path": "/Users/sangrok/qjc-office/personal-os",
-      "directories": []
+      "directories": [
+        "content",
+        "identity",
+        "llm-wiki",
+        "memory",
+        "network",
+        "operations"
+      ]
     }
   },
   "stats": {
-    "agentCount": 67,
-    "skillCount": 140,
-    "hookCount": 75,
-    "ruleCount": 53,
+    "agentCount": 201,
+    "skillCount": 176,
+    "hookCount": 97,
+    "ruleCount": 70,
     "pipelineCount": 18,
-    "mcpServerCount": 48
+    "mcpServerCount": 46
   }
 }

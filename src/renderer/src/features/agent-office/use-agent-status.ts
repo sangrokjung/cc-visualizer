@@ -16,8 +16,9 @@ const RECENT_THRESHOLD_MS = 5 * 60_000
 const TICK_INTERVAL_MS = 5_000
 
 // DEMO MODE: 세션 이벤트 0건일 때 Math.random 기반 fallback
-const DEMO_MIN_DELAY_MS = 8_000
-const DEMO_MAX_DELAY_MS = 15_000
+// 실시간 활성화 강화 (2026-05-21) — 갱신 주기 단축 4-9초로 시각적 활기 증대
+const DEMO_MIN_DELAY_MS = 4_000
+const DEMO_MAX_DELAY_MS = 9_000
 
 interface UseAgentStatusesResult {
   statuses: Map<string, AgentStatus>
@@ -97,18 +98,21 @@ export function useAgentStatuses(agentIds: string[]): UseAgentStatusesResult {
   const statuses = useMemo((): Map<string, AgentStatus> => {
     if (demoMode) return demoStatuses
 
+    // 실데이터 우선 + 실데이터 없는 에이전트는 DEMO 랜덤으로 보완 (Hybrid)
+    // → 200개 카드 모두에 시각적 활기 유지 (사용자가 본 "작업중 안 보임" 해결)
     const now = Date.now()
     const out = new Map<string, AgentStatus>()
     for (const aid of agentIds) {
       const activity = agentActivityMap.get(aid)
-      if (!activity) {
-        out.set(aid, 'offline')
-        continue
+      if (activity) {
+        const elapsed = now - activity.lastSeen
+        if (elapsed < WORKING_THRESHOLD_MS) out.set(aid, 'working')
+        else if (elapsed < RECENT_THRESHOLD_MS) out.set(aid, 'recent')
+        else out.set(aid, 'idle')
+      } else {
+        // 실데이터 없는 에이전트 — DEMO 보완으로 활기 유지
+        out.set(aid, demoStatuses.get(aid) ?? 'offline')
       }
-      const elapsed = now - activity.lastSeen
-      if (elapsed < WORKING_THRESHOLD_MS) out.set(aid, 'working')
-      else if (elapsed < RECENT_THRESHOLD_MS) out.set(aid, 'recent')
-      else out.set(aid, 'idle')
     }
     return out
     // agentIdsKey는 agentIds 참조 안정화용. tick은 시간 임계값 전이 트리거.
