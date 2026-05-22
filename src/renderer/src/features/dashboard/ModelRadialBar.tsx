@@ -31,7 +31,7 @@ export function ModelRadialBar() {
 
   return (
     <div style={{ backgroundColor: '#1C2127', borderColor: '#404854' }} className="rounded-xl border p-5">
-      <h3 style={{ color: '#F6F7F9' }} className="text-sm font-semibold mb-3">모델 분포</h3>
+      <h3 style={{ color: '#F6F7F9' }} className="text-base font-semibold mb-3">모델 분포</h3>
       <ResponsiveContainer width="100%" height={280}>
         <RadialBarChart
           innerRadius="20%"
@@ -40,7 +40,7 @@ export function ModelRadialBar() {
           data={chartData}
         >
           <RadialBar
-            label={{ position: 'insideStart', fill: '#fff', fontSize: 11 }}
+            label={{ position: 'insideStart', fill: '#fff', fontSize: 12 }}
             background={{ fill: '#252A31' }}
             dataKey="value"
           />
@@ -58,7 +58,7 @@ export function ModelRadialBar() {
             textAnchor="middle"
             dominantBaseline="middle"
             fill="#F6F7F9"
-            fontSize={24}
+            fontSize={28}
             fontWeight="bold"
           >
             {totalAgents}
@@ -68,7 +68,7 @@ export function ModelRadialBar() {
             y="58%"
             textAnchor="middle"
             fill="#ABB3BF"
-            fontSize={10}
+            fontSize={12}
           >
             에이전트
           </text>

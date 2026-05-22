@@ -75,7 +75,7 @@ function Bubble({
         x={position.cx}
         y={position.cy - 4}
         textAnchor="middle"
-        fontSize={Math.max(16, radius * 0.45)}
+        fontSize={Math.max(18, radius * 0.45)}
         fontWeight="800"
         fill="#F6F7F9"
         style={{ filter: `drop-shadow(0 0 4px ${color})` }}
@@ -86,7 +86,7 @@ function Bubble({
         x={position.cx}
         y={position.cy + radius * 0.4}
         textAnchor="middle"
-        fontSize={11}
+        fontSize={13}
         fill="#ABB3BF"
         letterSpacing="0.05em"
       >
@@ -175,15 +175,15 @@ export function SystemPulse() {
 
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-sm font-semibold" style={{ color: '#F6F7F9' }}>
+          <h3 className="text-base font-semibold" style={{ color: '#F6F7F9' }}>
             System Constellation
           </h3>
-          <p className="text-[11px]" style={{ color: '#738091' }}>
+          <p className="text-[13px]" style={{ color: '#738091' }}>
             6개 도메인 카운트 비례 펄스 · hover로 상세
           </p>
         </div>
         <span
-          className="text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full"
+          className="text-xs uppercase tracking-[0.2em] px-2 py-0.5 rounded-full"
           style={{ backgroundColor: 'rgba(41,166,52,0.15)', color: '#29A634' }}
         >
           ● Pulsing

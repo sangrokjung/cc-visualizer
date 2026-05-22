@@ -1,7 +1,7 @@
 /**
- * gamification.ts — Claude Code 사용 게임화 순수 로직
+ * gamification.ts — Claude Code 사용 활동 현황 순수 로직
  *
- * 비유: RPG 게임의 "스탯 계산기". UI 없이 순수하게 레벨/XP/스트릭/업적을 계산.
+ * 비유: 활동 점수 "스탯 계산기". UI 없이 순수하게 레벨/XP/스트릭/업적을 계산.
  * 입력: ccusage daily 배열 + system-data 통계
  * 출력: 레벨, XP, 스트릭, 업적 목록 (불변 객체)
  */
@@ -27,7 +27,7 @@ export const DailyEntrySchema = z.object({
 })
 export type DailyEntry = z.infer<typeof DailyEntrySchema>
 
-/** system-data 통계 스키마 (게임화에 필요한 필드만) */
+/** system-data 통계 스키마 (활동 현황에 필요한 필드만) */
 export const SystemStatsSchema = z.object({
   agentCount: z.number().nonnegative(),
   skillCount: z.number().nonnegative(),
@@ -75,7 +75,7 @@ export const LevelInfoSchema = z.object({
 })
 export type LevelInfo = z.infer<typeof LevelInfoSchema>
 
-/** 게임화 전체 결과 */
+/** 활동 현황 전체 결과 */
 export const GamificationResultSchema = z.object({
   levelInfo: LevelInfoSchema,
   streak: StreakInfoSchema,
@@ -428,7 +428,7 @@ export function calcAchievements(
 // ─────────────────────────────────────────────
 
 /**
- * ccusage daily 배열 + system stats를 받아 게임화 결과 전체를 반환한다.
+ * ccusage daily 배열 + system stats를 받아 활동 현황 결과 전체를 반환한다.
  * 순수 함수: 동일 입력 → 동일 출력.
  */
 export function calcGamification(

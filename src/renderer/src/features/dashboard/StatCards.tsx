@@ -34,21 +34,21 @@ function StatCard({
       }}
     >
       <div className="flex items-center gap-2">
-        <span className="text-lg" style={{ color: accentColor }}>
+        <span className="text-xl" style={{ color: accentColor }}>
           {icon}
         </span>
-        <span className="text-sm" style={{ color: '#ABB3BF' }}>
+        <span className="text-base" style={{ color: '#ABB3BF' }}>
           {label}
         </span>
       </div>
 
       <div className="mt-2">
-        <span className="text-4xl font-bold" style={{ color: '#F6F7F9' }}>
+        <span className="text-5xl font-bold" style={{ color: '#F6F7F9' }}>
           {animatedValue}
         </span>
       </div>
 
-      <p className="text-xs mt-2" style={{ color: '#738091' }}>
+      <p className="text-sm mt-2" style={{ color: '#738091' }}>
         {subMetric}
       </p>
     </div>

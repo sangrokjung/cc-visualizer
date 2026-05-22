@@ -25,7 +25,7 @@ export function PipelineCards() {
       className="rounded-xl border p-5"
       style={{ backgroundColor: '#1C2127', borderColor: '#404854' }}
     >
-      <h3 className="text-sm font-semibold mb-4" style={{ color: '#F6F7F9' }}>
+      <h3 className="text-base font-semibold mb-4" style={{ color: '#F6F7F9' }}>
         파이프라인
       </h3>
 
@@ -39,13 +39,13 @@ export function PipelineCards() {
             {/* 상단: 파이프라인명 + step 수 */}
             <div className="flex items-center justify-between mb-3">
               <span
-                className="text-sm font-medium truncate mr-2"
+                className="text-base font-medium truncate mr-2"
                 style={{ color: '#F6F7F9' }}
               >
                 {pipeline.name}
               </span>
               <span
-                className="text-xs rounded-full px-2 shrink-0"
+                className="text-sm rounded-full px-2 shrink-0"
                 style={{
                   backgroundColor: 'rgba(45,114,210,0.2)',
                   color: '#2D72D2'
@@ -64,13 +64,13 @@ export function PipelineCards() {
                     {step.from && i === 0 && (
                       <>
                         <span
-                          className="text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap"
+                          className="text-[11px] rounded px-1.5 py-0.5 whitespace-nowrap"
                           style={stepStyle(step.auto)}
                         >
                           {step.from}
                         </span>
                         <span
-                          className="text-[10px]"
+                          className="text-[11px]"
                           style={{ color: '#404854' }}
                         >
                           &rarr;
@@ -79,7 +79,7 @@ export function PipelineCards() {
                     )}
                     {/* to 뱃지 */}
                     <span
-                      className="text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap"
+                      className="text-[11px] rounded px-1.5 py-0.5 whitespace-nowrap"
                       style={stepStyle(step.auto)}
                     >
                       {step.to}
@@ -87,7 +87,7 @@ export function PipelineCards() {
                     {/* 화살표 (마지막이 아닐 때) */}
                     {i < pipeline.steps.length - 1 && (
                       <span
-                        className="text-[10px]"
+                        className="text-[11px]"
                         style={{ color: '#404854' }}
                       >
                         &rarr;
