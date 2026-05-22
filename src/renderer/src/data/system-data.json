@@ -1,5 +1,5 @@
 {
-  "scanTimestamp": "2026-05-21T12:25:12.165Z",
+  "scanTimestamp": "2026-05-22T01:25:36.984Z",
   "agents": [
     {
       "id": "a11y-reviewer",
@@ -4608,6 +4608,12 @@
       "priority": "critical"
     },
     {
+      "id": "design-doc-governance",
+      "name": "DESIGN.md 거버넌스 규칙 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/design-doc-governance.md",
+      "priority": "critical"
+    },
+    {
       "id": "design-engineer",
       "name": "Design Engineer 룰 (web-designer 확장)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/design-engineer.md",
@@ -4678,6 +4684,12 @@
       "name": "Git Workflow",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/git-workflow-v2.md",
       "priority": "normal"
+    },
+    {
+      "id": "goal-hook-condition",
+      "name": "/goal Hook Condition 작성 규칙 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/goal-hook-condition.md",
+      "priority": "critical"
     },
     {
       "id": "golden-principles",
@@ -5969,16 +5981,18 @@
   "memory": {
     "autoMemory": {
       "path": "/Users/sangrok/.claude/projects/-Users-sangrok/memory",
-      "fileCount": 30,
+      "fileCount": 32,
       "files": [
         "MEMORY.md",
         "experiences.jsonl",
         "feedback_auto_classifier_self_modify_block.md",
         "feedback_cc_auth_setup.md",
+        "feedback_goal_hook_deadlock_20260522.md",
         "feedback_harness_resync_20260521.md",
         "feedback_hook_output.md",
         "feedback_image_immediate_execution.md",
         "feedback_image_single_default_policy.md",
+        "feedback_naming_confusion.md",
         "feedback_no_bias.md",
         "feedback_orchestrator_self_call_loop.md",
         "feedback_skill_reference_autoload.md",
@@ -6156,7 +6170,7 @@
     "agentCount": 201,
     "skillCount": 176,
     "hookCount": 97,
-    "ruleCount": 68,
+    "ruleCount": 70,
     "pipelineCount": 18,
     "mcpServerCount": 46
   }
