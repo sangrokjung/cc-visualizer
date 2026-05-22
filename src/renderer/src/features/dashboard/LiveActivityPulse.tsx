@@ -45,7 +45,7 @@ const ToolBar = memo(function ToolBar({
   return (
     <div className="flex items-center gap-2">
       <span
-        className="text-[10px] tabular-nums w-32 truncate"
+        className="text-[11px] tabular-nums w-32 truncate"
         style={{ color: '#ABB3BF' }}
         title={name}
       >
@@ -65,7 +65,7 @@ const ToolBar = memo(function ToolBar({
         />
       </div>
       <span
-        className="text-[10px] tabular-nums w-6 text-right"
+        className="text-[11px] tabular-nums w-6 text-right"
         style={{ color: '#F6F7F9' }}
       >
         {count}
@@ -134,17 +134,17 @@ export const LiveActivityPulse = memo(function LiveActivityPulse() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <LivePulse active={isActive} />
-          <h3 className="text-sm font-semibold" style={{ color: '#F6F7F9' }}>
+          <h3 className="text-base font-semibold" style={{ color: '#F6F7F9' }}>
             Live Activity
           </h3>
           <span
-            className="text-[10px] uppercase tracking-wider"
+            className="text-xs uppercase tracking-wider"
             style={{ color: isActive ? '#29A634' : '#5F6B7C' }}
           >
             {isActive ? 'streaming' : 'idle'}
           </span>
         </div>
-        <span className="text-[10px] font-mono" style={{ color: '#738091' }}>
+        <span className="text-xs font-mono" style={{ color: '#738091' }}>
           {sessionId ? sessionId.slice(0, 8) : 'no-session'}
         </span>
       </div>
@@ -153,7 +153,7 @@ export const LiveActivityPulse = memo(function LiveActivityPulse() {
         {/* 좌측: 이벤트 종류별 미니 카운터 */}
         <div>
           <p
-            className="text-[10px] uppercase tracking-wider mb-2"
+            className="text-xs uppercase tracking-wider mb-2"
             style={{ color: '#5F6B7C' }}
           >
             세션 이벤트 ({totalEvents})
@@ -175,7 +175,7 @@ export const LiveActivityPulse = memo(function LiveActivityPulse() {
                     {meta.icon}
                   </span>
                   <span
-                    className="text-[10px] flex-1 truncate"
+                    className="text-[11px] flex-1 truncate"
                     style={{ color: '#ABB3BF' }}
                   >
                     {meta.label}
@@ -193,10 +193,10 @@ export const LiveActivityPulse = memo(function LiveActivityPulse() {
 
           {/* 활성 에이전트 수 */}
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-wider" style={{ color: '#5F6B7C' }}>
+            <span className="text-xs uppercase tracking-wider" style={{ color: '#5F6B7C' }}>
               활성 에이전트
             </span>
-            <span className="text-base font-bold tabular-nums" style={{ color: '#F6F7F9' }}>
+            <span className="text-lg font-bold tabular-nums" style={{ color: '#F6F7F9' }}>
               {activeAgents.length}
             </span>
           </div>
@@ -205,13 +205,13 @@ export const LiveActivityPulse = memo(function LiveActivityPulse() {
         {/* 우측: 도구 사용 빈도 Top 3 + 최근 이벤트 */}
         <div>
           <p
-            className="text-[10px] uppercase tracking-wider mb-2"
+            className="text-xs uppercase tracking-wider mb-2"
             style={{ color: '#5F6B7C' }}
           >
             Top Tools
           </p>
           {recentTools.length === 0 ? (
-            <p className="text-[10px]" style={{ color: '#5F6B7C' }}>
+            <p className="text-xs" style={{ color: '#5F6B7C' }}>
               데이터 수집 중...
             </p>
           ) : (
@@ -234,7 +234,7 @@ export const LiveActivityPulse = memo(function LiveActivityPulse() {
       {recentEvents.length > 0 && (
         <div className="mt-4 pt-3 border-t" style={{ borderColor: '#252A31' }}>
           <p
-            className="text-[10px] uppercase tracking-wider mb-2"
+            className="text-xs uppercase tracking-wider mb-2"
             style={{ color: '#5F6B7C' }}
           >
             최근 이벤트
@@ -253,7 +253,7 @@ export const LiveActivityPulse = memo(function LiveActivityPulse() {
               return (
                 <li
                   key={`${flashKey}-${ev.id}`}
-                  className={`flex items-center gap-2 text-[11px] px-1.5 py-0.5 rounded ${
+                  className={`flex items-center gap-2 text-[13px] px-1.5 py-0.5 rounded ${
                     isLatest ? 'animate-flash-once' : ''
                   }`}
                   style={{ color: '#ABB3BF' }}
@@ -262,7 +262,7 @@ export const LiveActivityPulse = memo(function LiveActivityPulse() {
                   <span className="flex-1 truncate" title={label}>
                     {label}
                   </span>
-                  <span className="text-[10px]" style={{ color: '#5F6B7C' }}>
+                  <span className="text-[11px]" style={{ color: '#5F6B7C' }}>
                     {relativeTime(ev.timestamp, nowMs)}
                   </span>
                 </li>

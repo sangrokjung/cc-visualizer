@@ -108,7 +108,7 @@ export default function DashboardView() {
         {/* 1. 히어로 섹션 (메가 카운트 + 도메인 칩) */}
         <HeroSection />
 
-        {/* 1.5 게임화 패널 (레벨/XP/스트릭/업적) — 현재 상태 + 동기부여 */}
+        {/* 1.5 활동 현황 패널 (레벨/XP/스트릭/업적) — 현재 상태 + 동기부여 */}
         <GamificationPanel />
 
         {/* 2. 라이브 활동 (현재 작동 중인 Claude Code) + 토큰/비용 흐름 — 신규 */}

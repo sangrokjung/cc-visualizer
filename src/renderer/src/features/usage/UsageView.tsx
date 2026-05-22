@@ -4,6 +4,7 @@ import {
   Tooltip, ResponsiveContainer, Cell, CartesianGrid
 } from 'recharts'
 import { useSystemDataContext } from '../../lib/DataProvider'
+import { useGlobalTokenStats } from '../../lib/hooks/use-global-token-stats'
 
 const C = {
   bg: '#111418', card: '#1C2127', cardSub: '#252A31',
@@ -13,8 +14,23 @@ const C = {
 
 const PALETTE = ['#2D72D2', '#7961DB', '#00A396', '#29A634', '#D1980B', '#DB2C6F', '#D33D17', '#147EB3', '#8ABBFF', '#62D96B']
 
+const POS = '#D33D17' // 증가(빨강)
+const NEG = '#29A634' // 감소(초록)
+
 function fmt(n: number): string {
   return n.toLocaleString('ko-KR')
+}
+
+// 토큰 축약: 1.2M / 340K / 980
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`
+  return String(n)
+}
+
+// 비용: $X.XX
+function fmtCost(n: number): string {
+  return `$${n.toFixed(2)}`
 }
 
 function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
@@ -30,6 +46,9 @@ export default function UsageView() {
   const { usageData, refreshUsage, loading: refreshing } = useSystemDataContext()
   const { summary, projects, toolUsage, agentSpawns, hookEvents, dailyActivity } = usageData
 
+  // 오늘/주간/전체 토큰·비용 (ccusage 기반) — 공유 훅
+  const tokenStats = useGlobalTokenStats()
+
   const handleRefreshUsage = async () => {
     await refreshUsage()
   }
@@ -41,6 +60,12 @@ export default function UsageView() {
     ...d,
     date: d.date.slice(5), // MM-DD
   })), [])
+
+  // 14일 토큰 추이 (날짜 오름차순) — period(YYYY-MM-DD) → MM-DD
+  const tokenTrendData = useMemo(
+    () => tokenStats.recentDaily.map((d) => ({ ...d, date: d.period.slice(5) })),
+    [tokenStats.recentDaily],
+  )
 
   return (
     <div className="h-full overflow-y-auto" style={{ backgroundColor: C.bg }}>
@@ -66,6 +91,82 @@ export default function UsageView() {
             >
               {refreshing ? '스캔 중...' : '⟳ 데이터 새로고침'}
             </button>
+          </div>
+        </div>
+
+        {/* 오늘 사용량 (ccusage 토큰·비용) */}
+        <div className="rounded-2xl p-5" style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold" style={{ color: C.text }}>오늘 사용량</h2>
+            {tokenStats.loading && (
+              <span className="text-[10px]" style={{ color: C.textDim }}>불러오는 중…</span>
+            )}
+            {tokenStats.error && !tokenStats.loading && (
+              <span className="text-[10px]" style={{ color: POS }}>데이터 없음</span>
+            )}
+          </div>
+
+          {/* 상단: 오늘 토큰/비용(강조) + 주간/전체(보조) */}
+          <div className="grid grid-cols-4 gap-4">
+            {/* 오늘 토큰 */}
+            <div className="rounded-xl p-4" style={{ backgroundColor: C.cardSub, border: `1px solid ${C.border}` }}>
+              <p className="text-[10px] mb-1" style={{ color: C.textWeak }}>오늘 토큰</p>
+              {tokenStats.today ? (
+                <p className="text-3xl font-bold" style={{ color: '#2D72D2' }}>{fmtTokens(tokenStats.today.tokens)}</p>
+              ) : (
+                <p className="text-xl font-bold" style={{ color: C.textDim }}>오늘 사용 기록 없음</p>
+              )}
+            </div>
+
+            {/* 오늘 비용 + 어제 대비 */}
+            <div className="rounded-xl p-4" style={{ backgroundColor: C.cardSub, border: `1px solid ${C.border}` }}>
+              <p className="text-[10px] mb-1" style={{ color: C.textWeak }}>오늘 비용</p>
+              <div className="flex items-end gap-2">
+                <p className="text-3xl font-bold" style={{ color: '#00A396' }}>
+                  {tokenStats.today ? fmtCost(tokenStats.today.cost) : '$0.00'}
+                </p>
+                {tokenStats.todayVsYesterday != null && (
+                  <span
+                    className="text-xs font-semibold mb-1"
+                    style={{ color: tokenStats.todayVsYesterday >= 0 ? POS : NEG }}
+                  >
+                    {tokenStats.todayVsYesterday >= 0 ? '▲' : '▼'} {Math.abs(tokenStats.todayVsYesterday).toFixed(0)}%
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] mt-1" style={{ color: C.textDim }}>어제 대비</p>
+            </div>
+
+            {/* 주간 누적 */}
+            <div className="rounded-xl p-4" style={{ backgroundColor: C.cardSub, border: `1px solid ${C.border}` }}>
+              <p className="text-[10px] mb-1" style={{ color: C.textWeak }}>최근 7일</p>
+              <p className="text-2xl font-bold" style={{ color: '#7961DB' }}>{fmtCost(tokenStats.weekly.cost)}</p>
+              <p className="text-[10px] mt-1" style={{ color: C.textDim }}>{fmtTokens(tokenStats.weekly.tokens)} 토큰</p>
+            </div>
+
+            {/* 전체 누적 */}
+            <div className="rounded-xl p-4" style={{ backgroundColor: C.cardSub, border: `1px solid ${C.border}` }}>
+              <p className="text-[10px] mb-1" style={{ color: C.textWeak }}>전체 누적 ({fmt(tokenStats.allTime.days)}일)</p>
+              <p className="text-2xl font-bold" style={{ color: '#D1980B' }}>{fmtCost(tokenStats.allTime.cost)}</p>
+              <p className="text-[10px] mt-1" style={{ color: C.textDim }}>{fmtTokens(tokenStats.allTime.tokens)} 토큰</p>
+            </div>
+          </div>
+
+          {/* 14일 토큰 추이 */}
+          <div className="mt-5">
+            <h3 className="text-xs font-semibold mb-3" style={{ color: C.textSub }}>최근 14일 토큰 추이</h3>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={tokenTrendData} margin={{ left: 0, right: 10 }}>
+                <CartesianGrid stroke={C.border} strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" tick={{ fill: C.textWeak, fontSize: 10 }} axisLine={{ stroke: C.border }} tickLine={false} />
+                <YAxis tick={{ fill: C.textWeak, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => fmtTokens(v)} />
+                <Tooltip
+                  contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }}
+                  formatter={(v: number) => [fmtTokens(v), '토큰']}
+                />
+                <Bar dataKey="tokens" radius={[4, 4, 0, 0]} fill="#2D72D2" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 

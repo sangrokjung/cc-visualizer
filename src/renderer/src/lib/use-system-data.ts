@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { AgentNode, AgentCategory, HookEvent, McpServer, RuleFile, PipelineEdge } from './types'
 import { CATEGORY_COLORS } from './types'
+import { api } from './api'
 import staticSystemData from '../data/system-data.json'
 
 export type SystemData = {
@@ -68,8 +69,8 @@ export function useSystemData(): SystemData & { reload: () => void } {
     setData((prev) => ({ ...prev, loading: true, error: null }))
 
     try {
-      // Tauri api를 dynamic import로 로드 (Vite dev에서 번들 실패 방지)
-      const { api } = await import('./api')
+      // 파서는 dynamic import로 로드 (Vite dev에서 큰 번들 회피 + 코드 스플리팅).
+      // api는 DataProvider와 동일하게 top-level import — 모듈 1회 평가 + 테스트 안정성.
       const { parseAgents } = await import('./parsers/agent-parser')
       const { parseHooks } = await import('./parsers/hook-parser')
       const { parseMcpServers } = await import('./parsers/mcp-parser')
@@ -135,6 +136,44 @@ export function useSystemData(): SystemData & { reload: () => void } {
 
   useEffect(() => {
     load()
+  }, [load])
+
+  // ~/.claude 디렉토리(또는 SSOT) 변경 감지 시 자동 reload.
+  // DataProvider의 동일 패턴 이식 — agent-office 같은 useSystemData 소비자도
+  // file_watcher가 emit하는 claude-system-changed 이벤트를 받아 실시간 갱신된다.
+  // Vite dev/브라우저 환경(window.__TAURI_INTERNALS__ 부재)에서는 silent skip.
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      !(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__
+    ) {
+      return
+    }
+
+    let unlisten: (() => void) | null = null
+    let cancelled = false
+
+    api
+      .onClaudeSystemChanged(() => {
+        // 언마운트 이후 도착한 이벤트는 무시
+        if (!cancelled) load()
+      })
+      .then((fn) => {
+        if (cancelled) {
+          // 등록 도중 언마운트되었으면 즉시 unlisten
+          fn()
+          return
+        }
+        unlisten = fn
+      })
+      .catch(() => {
+        // listen 실패는 dev 환경 등 — 조용히 무시
+      })
+
+    return () => {
+      cancelled = true
+      if (unlisten) unlisten()
+    }
   }, [load])
 
   return { ...data, reload: load }

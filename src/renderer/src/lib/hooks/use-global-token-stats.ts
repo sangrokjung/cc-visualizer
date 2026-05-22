@@ -17,12 +17,23 @@ export type DailyEntry = {
   metadata?: { agents?: string[] }
 }
 
+// 일자별 추이 포인트 — 토큰 추이 차트(TokenFlowMini / UsageView)에서 공유 소비
+export type DailyPoint = {
+  period: string // 'YYYY-MM-DD'
+  tokens: number
+  cost: number
+  inputTokens: number
+  outputTokens: number
+}
+
 export type GlobalTokenStats = {
   today: { tokens: number; cost: number } | null
   yesterday: { tokens: number; cost: number } | null
   weekly: { tokens: number; cost: number; days: number }
   allTime: { tokens: number; cost: number; days: number }
   todayVsYesterday: number | null // 변화율 (% — 양수면 오늘 더 씀)
+  // 최근 14일 일자별 추이 (날짜 오름차순, 오늘 포함). 추이 차트 공유 소스.
+  recentDaily: DailyPoint[]
   loading: boolean
   error: string | null
   refresh: () => void
@@ -65,6 +76,7 @@ const EMPTY_STATS: Omit<GlobalTokenStats, 'refresh'> = {
   weekly: { tokens: 0, cost: 0, days: 0 },
   allTime: { tokens: 0, cost: 0, days: 0 },
   todayVsYesterday: null,
+  recentDaily: [],
   loading: false,
   error: null,
 }
@@ -108,12 +120,25 @@ export function useGlobalTokenStats(): GlobalTokenStats {
         ? ((today.cost - yesterday.cost) / yesterday.cost) * 100
         : null
 
+      // 최근 14일 추이 — period 오름차순 정렬 후 마지막 14개
+      const recentDaily: DailyPoint[] = [...daily]
+        .sort((a, b) => a.period.localeCompare(b.period))
+        .slice(-14)
+        .map((e) => ({
+          period: e.period,
+          tokens: e.totalTokens,
+          cost: e.totalCost,
+          inputTokens: e.inputTokens,
+          outputTokens: e.outputTokens,
+        }))
+
       setStats({
         today,
         yesterday,
         weekly: { tokens: weeklyT, cost: weeklyC, days: weekDays },
         allTime: { tokens: allT, cost: allC, days: daily.length },
         todayVsYesterday,
+        recentDaily,
         loading: false,
         error: null,
       })

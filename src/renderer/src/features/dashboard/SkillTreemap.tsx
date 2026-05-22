@@ -29,7 +29,7 @@ function CustomContent(props: any) {
         y={y + height / 2 - 8}
         textAnchor="middle"
         fill="#fff"
-        fontSize={12}
+        fontSize={13}
         fontWeight="bold"
       >
         {name}
@@ -39,7 +39,7 @@ function CustomContent(props: any) {
         y={y + height / 2 + 10}
         textAnchor="middle"
         fill="#d1d5db"
-        fontSize={10}
+        fontSize={12}
       >
         {size}
       </text>
@@ -67,7 +67,7 @@ export function SkillTreemap() {
 
   return (
     <div style={{ backgroundColor: '#1C2127', borderColor: '#404854' }} className="rounded-xl border p-5">
-      <h3 style={{ color: '#F6F7F9' }} className="text-sm font-semibold mb-3">스킬 분류 트리맵</h3>
+      <h3 style={{ color: '#F6F7F9' }} className="text-base font-semibold mb-3">스킬 분류 트리맵</h3>
       <ResponsiveContainer width="100%" height={300}>
         <Treemap
           data={treemapData}

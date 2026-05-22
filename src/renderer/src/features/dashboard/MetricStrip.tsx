@@ -55,7 +55,7 @@ export function MetricStrip() {
           />
         </span>
         <span
-          className="text-[10px] font-bold tracking-wider"
+          className="text-xs font-bold tracking-wider"
           style={{ color: '#29A634' }}
         >
           시스템 온라인
@@ -68,13 +68,13 @@ export function MetricStrip() {
           <div key={m.key} className="flex items-center">
             <div className="flex flex-col items-center px-4 py-1 rounded transition-colors hover:bg-[#252A31]">
               <span
-                className="text-sm font-mono font-bold leading-tight"
+                className="text-base font-mono font-bold leading-tight"
                 style={{ color: '#F6F7F9' }}
               >
                 {systemData.stats[m.key]}
               </span>
               <span
-                className="text-[10px] leading-tight"
+                className="text-xs leading-tight"
                 style={{ color: '#ABB3BF' }}
               >
                 {m.label}
@@ -93,7 +93,7 @@ export function MetricStrip() {
 
       {/* 우측: 스캔 타임스탬프 */}
       <span
-        className="text-[10px] font-mono ml-4"
+        className="text-xs font-mono ml-4"
         style={{ color: '#ABB3BF' }}
       >
         {timestamp}

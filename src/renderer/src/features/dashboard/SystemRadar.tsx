@@ -41,11 +41,11 @@ export function SystemRadar() {
 
   return (
     <div style={{ backgroundColor: '#1C2127', borderColor: '#404854' }} className="rounded-xl border p-5">
-      <h3 style={{ color: '#F6F7F9' }} className="text-sm font-semibold mb-3">에이전트 카테고리 레이더</h3>
+      <h3 style={{ color: '#F6F7F9' }} className="text-base font-semibold mb-3">에이전트 카테고리 레이더</h3>
       <ResponsiveContainer width="100%" height={280}>
         <RadarChart data={radarData}>
           <PolarGrid stroke="#404854" />
-          <PolarAngleAxis dataKey="category" tick={{ fill: '#ABB3BF', fontSize: 12 }} />
+          <PolarAngleAxis dataKey="category" tick={{ fill: '#ABB3BF', fontSize: 13 }} />
           <Radar
             dataKey="count"
             fill="#2D72D2"

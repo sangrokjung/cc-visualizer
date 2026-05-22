@@ -1,7 +1,7 @@
 /**
- * GamificationPanel.tsx — Claude Code 사용 게임화 UI
+ * GamificationPanel.tsx — Claude Code 활동 현황 UI
  *
- * 비유: RPG 캐릭터 시트. 레벨/XP/스트릭/업적을 Palantir 다크 테마로 표시.
+ * 비유: 활동 대시보드. 레벨/XP/스트릭/업적을 Palantir 다크 테마로 표시.
  * 자급자족 컴포넌트 — 내부에서 ccusage + system-data를 가져온다.
  */
 
@@ -87,10 +87,10 @@ function LevelSection({ result }: { result: GamificationResult }) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <div
-            className="flex items-center justify-center rounded-lg font-black text-2xl"
+            className="flex items-center justify-center rounded-lg font-black text-3xl"
             style={{
-              width: 52,
-              height: 52,
+              width: 60,
+              height: 60,
               background: `linear-gradient(135deg, ${accent}44, ${accent}22)`,
               border: `2px solid ${accent}66`,
               color: accent,
@@ -100,13 +100,13 @@ function LevelSection({ result }: { result: GamificationResult }) {
           </div>
           <div className="flex flex-col">
             <span
-              className="text-xs uppercase tracking-widest font-semibold"
+              className="text-sm uppercase tracking-widest font-semibold"
               style={{ color: COLORS.textMuted }}
             >
               LEVEL {levelInfo.level}
             </span>
             <span
-              className="text-lg font-bold"
+              className="text-xl font-bold"
               style={{
                 background: `linear-gradient(135deg, ${COLORS.textBright}, ${accent})`,
                 WebkitBackgroundClip: 'text',
@@ -118,10 +118,10 @@ function LevelSection({ result }: { result: GamificationResult }) {
           </div>
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-xs" style={{ color: COLORS.textMuted }}>
+          <span className="text-sm" style={{ color: COLORS.textMuted }}>
             총 XP
           </span>
-          <span className="text-xl font-bold tabular-nums" style={{ color: COLORS.textBright }}>
+          <span className="text-2xl font-bold tabular-nums" style={{ color: COLORS.textBright }}>
             {levelInfo.xp.toLocaleString()}
           </span>
         </div>
@@ -130,10 +130,10 @@ function LevelSection({ result }: { result: GamificationResult }) {
       {/* XP 진행 바 */}
       <XpProgressBar progressPercent={levelInfo.progressPercent} accentColor={accent} />
       <div className="flex justify-between mt-1.5">
-        <span className="text-[11px]" style={{ color: COLORS.textMuted }}>
+        <span className="text-[13px]" style={{ color: COLORS.textMuted }}>
           {levelInfo.xpForCurrentLevel.toLocaleString()} XP
         </span>
-        <span className="text-[11px]" style={{ color: COLORS.textMuted }}>
+        <span className="text-[13px]" style={{ color: COLORS.textMuted }}>
           {levelInfo.progressPercent}% → Lv{levelInfo.level + 1} (
           {levelInfo.xpForNextLevel.toLocaleString()} XP)
         </span>
@@ -156,15 +156,15 @@ function StreakCard({ result }: { result: GamificationResult }) {
       }}
     >
       <div className="flex items-center gap-2">
-        <span className="text-base" style={{ color: COLORS.gold }}>
+        <span className="text-lg" style={{ color: COLORS.gold }}>
           {isOnFire ? '🔥' : '📅'}
         </span>
-        <span className="text-xs uppercase tracking-widest font-semibold" style={{ color: COLORS.textMuted }}>
+        <span className="text-sm uppercase tracking-widest font-semibold" style={{ color: COLORS.textMuted }}>
           스트릭
         </span>
         {streak.todayUsed && (
           <span
-            className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full"
+            className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full"
             style={{ backgroundColor: `${COLORS.green}22`, color: COLORS.green }}
           >
             오늘 사용
@@ -174,18 +174,18 @@ function StreakCard({ result }: { result: GamificationResult }) {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col">
-          <span className="text-3xl font-black tabular-nums" style={{ color: COLORS.textBright }}>
+          <span className="text-4xl font-black tabular-nums" style={{ color: COLORS.textBright }}>
             {streak.current}
           </span>
-          <span className="text-[11px]" style={{ color: COLORS.textMuted }}>
+          <span className="text-[13px]" style={{ color: COLORS.textMuted }}>
             현재 연속 일수
           </span>
         </div>
         <div className="flex flex-col">
-          <span className="text-3xl font-black tabular-nums" style={{ color: COLORS.gold }}>
+          <span className="text-4xl font-black tabular-nums" style={{ color: COLORS.gold }}>
             {streak.longest}
           </span>
-          <span className="text-[11px]" style={{ color: COLORS.textMuted }}>
+          <span className="text-[13px]" style={{ color: COLORS.textMuted }}>
             최장 기록
           </span>
         </div>
@@ -212,7 +212,7 @@ function UsageSummaryCard({ result }: { result: GamificationResult }) {
         border: `1px solid ${COLORS.border}`,
       }}
     >
-      <span className="text-xs uppercase tracking-widest font-semibold" style={{ color: COLORS.textMuted }}>
+      <span className="text-sm uppercase tracking-widest font-semibold" style={{ color: COLORS.textMuted }}>
         사용 현황
       </span>
       <div className="grid grid-cols-3 gap-3 mt-3">
@@ -220,11 +220,11 @@ function UsageSummaryCard({ result }: { result: GamificationResult }) {
           <div key={item.label} className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
               <span style={{ color: item.color }}>{item.icon}</span>
-              <span className="text-[11px]" style={{ color: COLORS.textMuted }}>
+              <span className="text-[13px]" style={{ color: COLORS.textMuted }}>
                 {item.label}
               </span>
             </div>
-            <span className="text-lg font-bold tabular-nums" style={{ color: COLORS.textBright }}>
+            <span className="text-2xl font-bold tabular-nums" style={{ color: COLORS.textBright }}>
               {item.value}
             </span>
           </div>
@@ -250,18 +250,18 @@ function AchievementItem({ achievement }: { achievement: Achievement }) {
     >
       {/* 아이콘 + 이름 */}
       <div className="flex items-start gap-2">
-        <span className="text-lg leading-none mt-0.5">
+        <span className="text-xl leading-none mt-0.5">
           {achievement.unlocked ? achievement.icon : '🔒'}
         </span>
         <div className="flex flex-col min-w-0">
           <span
-            className="text-xs font-semibold leading-snug"
+            className="text-sm font-semibold leading-snug"
             style={{ color: achievement.unlocked ? COLORS.textBright : COLORS.textMuted }}
           >
             {achievement.name}
           </span>
           <span
-            className="text-[10px] mt-0.5 leading-snug"
+            className="text-xs mt-0.5 leading-snug"
             style={{ color: COLORS.textMuted, opacity: 0.85 }}
           >
             {achievement.description}
@@ -284,7 +284,7 @@ function AchievementItem({ achievement }: { achievement: Achievement }) {
               }}
             />
           </div>
-          <span className="text-[10px] mt-0.5" style={{ color: COLORS.textMuted }}>
+          <span className="text-xs mt-0.5" style={{ color: COLORS.textMuted }}>
             {Math.round(achievement.progress * 100)}%
           </span>
         </div>
@@ -293,7 +293,7 @@ function AchievementItem({ achievement }: { achievement: Achievement }) {
       {/* 티어 배지 */}
       <div className="flex justify-end">
         <span
-          className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded"
+          className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
           style={{
             backgroundColor: `${tierColor}22`,
             color: tierColor,
@@ -327,11 +327,11 @@ function AchievementsGrid({ achievements }: { achievements: Achievement[] }) {
       }}
     >
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs uppercase tracking-widest font-semibold" style={{ color: COLORS.textMuted }}>
+        <span className="text-sm uppercase tracking-widest font-semibold" style={{ color: COLORS.textMuted }}>
           업적
         </span>
         <span
-          className="text-xs font-bold px-2 py-0.5 rounded-full"
+          className="text-sm font-bold px-2 py-0.5 rounded-full"
           style={{
             backgroundColor: `${COLORS.gold}22`,
             color: COLORS.gold,
@@ -409,14 +409,14 @@ const GamificationPanel = memo(function GamificationPanel() {
       >
         <div className="flex flex-col items-center gap-3">
           <span
-            className="inline-block text-2xl"
+            className="inline-block text-3xl"
             style={{ animation: 'spin 1.2s linear infinite' }}
           >
             ⟳
           </span>
           <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-          <span className="text-sm" style={{ color: COLORS.textMuted }}>
-            게임 데이터 로딩 중...
+          <span className="text-base" style={{ color: COLORS.textMuted }}>
+            활동 데이터 로딩 중...
           </span>
         </div>
       </div>
@@ -435,14 +435,14 @@ const GamificationPanel = memo(function GamificationPanel() {
       >
         <div className="flex items-center gap-2 mb-2">
           <span style={{ color: COLORS.red }}>⚠</span>
-          <span className="text-sm font-semibold" style={{ color: COLORS.textBright }}>
-            게임화 데이터 로드 실패
+          <span className="text-base font-semibold" style={{ color: COLORS.textBright }}>
+            활동 데이터 로드 실패
           </span>
         </div>
-        <p className="text-xs" style={{ color: COLORS.textMuted }}>
+        <p className="text-sm" style={{ color: COLORS.textMuted }}>
           ccusage 데이터를 가져오지 못했어요. Tauri 환경에서만 동작합니다.
         </p>
-        <p className="text-xs mt-1 font-mono" style={{ color: COLORS.red }}>
+        <p className="text-sm mt-1 font-mono" style={{ color: COLORS.red }}>
           {state.message}
         </p>
       </div>
@@ -456,17 +456,17 @@ const GamificationPanel = memo(function GamificationPanel() {
     <div className="flex flex-col gap-4">
       {/* 헤더 */}
       <div className="flex items-center gap-2">
-        <span className="text-base" style={{ color: COLORS.gold }}>
-          🎮
+        <span className="text-lg" style={{ color: COLORS.gold }}>
+          📊
         </span>
         <span
-          className="text-xs uppercase tracking-[0.18em] font-semibold"
+          className="text-sm uppercase tracking-[0.18em] font-semibold"
           style={{ color: COLORS.textMuted }}
         >
-          Claude Code 게임화
+          Claude Code 활동 현황
         </span>
         <div
-          className="ml-auto text-[10px] px-2 py-0.5 rounded-full"
+          className="ml-auto text-xs px-2 py-0.5 rounded-full"
           style={{
             backgroundColor: `${COLORS.green}22`,
             color: COLORS.green,
