@@ -1,10 +1,10 @@
 {
-  "scanTimestamp": "2026-05-22T08:15:14.463Z",
+  "scanTimestamp": "2026-05-26T14:26:58.188Z",
   "agents": [
     {
       "id": "a11y-reviewer",
       "name": "a11y-reviewer",
-      "description": "WCAG 2.1 AA 자동 접근성 감사. chrome-devtools take_snapshot + Playwright browser_snapshot으로 axe-core 호환 violations JSON 산출. Use proactively when UI 변경 완료 후 — 특히 \"접근성\", \"WCAG\", \"a11y\", \"스크린리더\" 요청 시, 또는 Stage 5b에서 performance-reviewer와 병행 필수. 성능 측정은 performance-reviewer, 코드 품질은 code-reviewer 사용.",
+      "description": "WCAG 2.1 AA 자동 접근성 감사. chrome-devtools take_snapshot + Playwright browser_snapshot으로 axe-core 호환 violations JSON 산출.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -98,7 +98,7 @@
     {
       "id": "ad-optimizer-team",
       "name": "ad-optimizer-team",
-      "description": "Use when optimizing ad campaigns across Google Ads, Meta Ads, and GA4, including mobile vs desktop Lighthouse audits of ad landing pages via chrome-devtools-mcp (lighthouse_audit + emulate + take_screenshot) for landing-experience diagnostics. Leads a 4-agent opus team (Scout/Pixel/Compass/Strategist) using Agent Teams for parallel analysis. Generates prioritized, evidence-based optimization recommendations.",
+      "description": "Use when optimizing ad campaigns across Google Ads, Meta Ads, and GA4, including mobile vs desktop Lighthouse audits via chrome-devtools-mcp. Leads a 4-agent team (Scout/Pixel/Compass/Strategist) for parallel analysis.",
       "model": "opus",
       "tools": [
         "Read",
@@ -227,7 +227,7 @@
     {
       "id": "bizmodel-architect",
       "name": "bizmodel-architect",
-      "description": "자율 BM 설계 전담. BMC/Lean Canvas/JTBD/Wardley Map/Blue Ocean 5모드 + 16구루 + 정량평가(score 85%) + Mermaid·DOCX·PDF 산출. Use proactively when 사업 모델 설계/BMC/Lean Canvas/JTBD/Wardley/Build vs Buy/Blue Ocean/ERRC/수익 모델/BM 피벗 요청 시. QJC 자체 브랜드/포트폴리오는 qjc-business, 일반 PM PRD/OST는 product-strategist 분기.",
+      "description": "자율 BM 설계 전담. BMC/Lean Canvas/JTBD/Wardley Map/Blue Ocean 5모드 + 16구루 + 정량평가(score 85%) + Mermaid·DOCX·PDF 산출. Use proactively when 사업 모델 설계/BMC/Lean Canvas/JTBD/Wardley/Build vs Buy/Blue Ocean/ERRC/수익 모델/BM 피벗 요청 시.",
       "model": "opus",
       "tools": [
         "Read",
@@ -279,7 +279,7 @@
     {
       "id": "budget-analyst",
       "name": "budget-analyst",
-      "description": "1인 기업/소규모 비즈니스의 자율 예산 분석 에이전트. 예산 대비 실적 분석, 이상 지출 감지, 현금흐름 예측, 손익계산서 자동 생성, 재무 건전성 KPI 모니터링을 수행한다. 10명의 구루 프레임워크(Damodaran Narratives-Numbers/Goldratt TOC Throughput/Charan Business Acumen/Michalowicz Profit First/Crabtree Simple Numbers/Berman-Knight Financial Intelligence/Bogsnes Beyond Budgeting/Pyhrr ZBB/Morlidge Future-Ready Finance/한국 1인기업 재무)를 적용하여 재무 의사결정을 지원한다.",
+      "description": "1인 기업/소규모 비즈니스 자율 예산 분석. 예산 대비 실적, 이상 지출 감지, 현금흐름 예측, 손익계산서 자동 생성, 재무 KPI 모니터링. 10 구루 프레임워크 적용.",
       "model": "opus",
       "tools": [
         "Read",
@@ -314,7 +314,7 @@
     {
       "id": "business-team-lead",
       "name": "business-team-lead",
-      "description": "Memory-Aware Hub for QJC business domain. ONLY invoke when user explicitly requests '비즈니스팀으로', '사업 풀사이클', 'B2B 영업 사이클', '고객 온보딩 전체', OR when 3+ business spokes need orchestration (e.g., lead-scorer + crm-manager + meeting-prep). Dispatches 5-stage cycle: brainstorm → plan → execute → verify → learn. Calls load-agent-memory.sh BEFORE each spoke + save-agent-memory.sh AFTER. Never writes business artifacts directly. Hub-and-Spoke + mesh 금지. Single spoke calls (1-2 spokes) → main session calls spoke directly, NOT via this Hub.",
+      "description": "Memory-Aware Hub for QJC business domain. ONLY invoke when user explicitly requests '비즈니스팀으로', '사업 풀사이클', 'B2B 영업 사이클', OR when 3+ business spokes need orchestration. Hub-and-Spoke + mesh 금지. Single spoke calls → main session calls spoke directly.",
       "model": "opus",
       "tools": [
         "Read",
@@ -332,7 +332,7 @@
     {
       "id": "cert-grader",
       "name": "cert-grader",
-      "description": "특이점 빌더스 최종 프로젝트 평가 추정 에이전트. final_project_details의 demo_url·project_description·ai_tools_used·automated_tasks를 분석하여 5축 점수(lesson 10 + assignment 10 + project 50 + presentation 15 + participation 15 = 100)를 추정하고, 대표 승인을 받은 후 Supabase UPDATE한다. 학생 평가는 외부 클레임 위험 영역이라 절대 자동 합리화 금지 — 추정만 하고 승인은 반드시 사용자.",
+      "description": "특이점 빌더스 최종 프로젝트 평가 추정 에이전트. final_project_details의 demo_url·project_description·ai_tools_used·automated_tasks를 분석하여 5축 점수(lesson 10 + assignment 10 + project 50 + presentation 15 + participation 15 = 100)를 추정하고, 대표 승인을 받",
       "model": "opus",
       "tools": [
         "Read",
@@ -370,7 +370,7 @@
     {
       "id": "ci-bi-strategist",
       "name": "ci-bi-strategist",
-      "description": "QJC CI/BI(Competitive/Business Intelligence) 전략. 경쟁사 모니터링, 시장 인텔리전스, 비즈니스 인사이트 도출, 배틀카드 생성, KPI 대시보드. Use when 경쟁사분석/시장인텔리전스/배틀카드/KPI벤치마킹/CEW/Porter Five Forces. Gilad CEPC, Fuld, Porter, Marr, Eckerson 적용. 경계: 외부 경쟁=본 에이전트, 내부 VoC/NPS=feedback-analyst, 특허=patent-attorney.",
+      "description": "QJC CI/BI(Competitive/Business Intelligence) 전략. 경쟁사 모니터링, 시장 인텔리전스, 비즈니스 인사이트 도출, 배틀카드 생성, KPI 대시보드. Use when 경쟁사분석/시장인텔리전스/배틀카드/KPI벤치마킹/CEW/Porter Five Forces. Gilad CEPC, Fuld, Porter, Marr, Eckerson 적용.",
       "model": "opus",
       "tools": [
         "Read",
@@ -389,7 +389,7 @@
     {
       "id": "civil-law-advisor",
       "name": "civil-law-advisor",
-      "description": "한국 민사 법률 전문. 손해배상, 채권추심, 소액소송, 민사조정(법원), 내용증명, 부당이득, 지급명령, 임대차 분쟁, 소비자 피해 구제. Use when 손해배상/채권추심/소액소송/지급명령/내용증명/부당이득/임대차분쟁/소비자피해. 양창수, 지원림, 송덕수, 이은영, Susskind 적용. 경계: 계약 검토=contract-legal, 초안 생성=nda-generator, 협상=mediation-negotiator, 노동법=labor-consultant.",
+      "description": "한국 민사 법률 전문. 손해배상, 채권추심, 소액소송, 민사조정(법원), 내용증명, 부당이득, 지급명령, 임대차 분쟁, 소비자 피해 구제. Use when 손해배상/채권추심/소액소송/지급명령/내용증명/부당이득/임대차분쟁/소비자피해. 양창수, 지원림, 송덕수, 이은영, Susskind 적용.",
       "model": "opus",
       "tools": [
         "Read",
@@ -427,7 +427,7 @@
     {
       "id": "codex-reviewer",
       "name": "codex-reviewer",
-      "description": "Use for cross-model second opinion code review via OpenAI Codex (gpt-5.5). Complements code-reviewer by catching Claude-specific blind spots. Sends diffs to Codex CLI with --profile review + --output-schema (stdin-only) for structured analysis. Requires ChatGPT subscription + ~/.codex/config.toml [profiles.review] + ~/.codex/AGENTS.md.",
+      "description": "Cross-model second opinion code review via OpenAI Codex (gpt-5.5). Complements code-reviewer by catching Claude-specific blind spots. Requires ChatGPT subscription.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -460,32 +460,22 @@
     {
       "id": "context-sync-lead",
       "name": "context-sync-lead",
-      "description": "프로젝트 맥락(CLAUDE.md/spec/PRD/회의록/rules) 동기화 단일 책임자. /sync-docs, /sync-all, /context-sync, /harness-sync, /project-status-snapshot, doc-updater, gws drive를 hub-and-spoke 오케스트레이션. dry-run default + 사용자 승인 게이트 + 매 단계 structured result 검증. Use proactively when \"맥락 동기화\", \"팀 공유 문서 갱신\", \"GitHub + Drive에 올려\", \"프로젝트 메타 정합성\", \"산출물 동기화\" 등 2개+ 스킬 체이닝 또는 GDrive 통합 필요 시. 단일 스킬(/sync-docs만)이면 직접 호출.",
+      "description": "프로젝트 맥락 동기화 Hub-and-Spoke 오케스트레이터 (2026-05-26 v2 슬림화). 5 spoke 에이전트(sync-detector, sync-github-publisher, sync-gdrive-publisher, sync-harness-updater, sync-notifier)를 dispatching-parallel-agents 패턴으로 조율.",
       "model": "opus",
       "tools": [
         "Read",
-        "Write",
-        "Edit",
         "Bash",
-        "Grep",
-        "Glob",
-        "Skill",
         "Agent",
-        "AskUserQuestion",
-        "mcp__plugin_supabase_supabase__execute_sql",
-        "mcp__plugin_supabase_supabase__list_tables",
-        "mcp__claude_ai_Google_Drive__search_files",
-        "mcp__claude_ai_Google_Drive__create_file",
-        "mcp__claude_ai_Google_Drive__get_file_metadata"
+        "AskUserQuestion"
       ],
       "category": "operations",
-      "maxTurns": 25,
+      "maxTurns": 15,
       "memory": "project"
     },
     {
       "id": "contract-legal",
       "name": "contract-legal",
-      "description": "한국 계약/법률 검토·분석 전문. 계약서 검토/리스크 분석, 법령 조회(국가법령정보 Open API 191개), 판례 검색, 입법예고 모니터링, 계약 해지/위약금/약관 검토. Use when 계약서검토/리스크분석/법령조회/판례검색/입법예고/위약금/약관/전자계약. Adams MSCD, Stark, WorldCC, Susskind, 양창수 적용. 경계: 초안 생성=nda-generator, 민사 분쟁=civil-law-advisor, 노무=labor-consultant.",
+      "description": "한국 계약/법률 검토·분석 전문. 계약서 검토/리스크 분석, 법령 조회(국가법령정보 Open API 191개), 판례 검색, 입법예고 모니터링, 계약 해지/위약금/약관 검토. Use when 계약서검토/리스크분석/법령조회/판례검색/입법예고/위약금/약관/전자계약. Adams MSCD, Stark, WorldCC, Susskind, 양창수 적용.",
       "model": "opus",
       "tools": [
         "Read",
@@ -520,7 +510,7 @@
     {
       "id": "crm-manager",
       "name": "crm-manager",
-      "description": "QJC CRM 전담. 리드 관리, 파이프라인 추적, 팔로업 자동화, 고객 건강 점수, 이탈 방지, 활동 로그. Supabase B2B(os_outreach_leads + os_deals + os_pipeline_activities) / B2C(os_customer_pipeline) + Gmail + Calendar 통합. Use when 리드/파이프라인/팔로업/고객건강/이탈/활동로그/B2B영업. Lincoln Murphy, David Skok, Aaron Ross 적용. 리드 스코어링은 lead-scorer.",
+      "description": "QJC CRM 전담. 리드 관리, 파이프라인 추적, 팔로업 자동화, 고객 건강 점수, 이탈 방지, 활동 로그. Supabase B2B(os_outreach_leads + os_deals + os_pipeline_activities) / B2C(os_customer_pipeline) + Gmail + Calendar 통합.",
       "model": "opus",
       "tools": [
         "Read",
@@ -541,7 +531,7 @@
     {
       "id": "cs-responder",
       "name": "cs-responder",
-      "description": "QJC 자율 고객 문의 응대. Gmail/채널톡/카카오 통합, 문의 8종 자동 분류, 답변 초안 + 에스컬레이션 판단. Supabase os_cs_tickets/templates/knowledge_base 활용. Use when 고객문의/CS처리/답변초안/불만/클레임/환불요청/에스컬레이션. Jay Baer Hug Your Haters, Shep Hyken, Zendesk AI 적용. 경계: 반복문의 FAQ화는 faq-builder, VoC NPS는 feedback-analyst.",
+      "description": "QJC 자율 고객 문의 응대. Gmail/채널톡/카카오 통합, 문의 8종 자동 분류, 답변 초안 + 에스컬레이션 판단. Supabase os_cs_tickets/templates/knowledge_base 활용. Use when 고객문의/CS처리/답변초안/불만/클레임/환불요청/에스컬레이션. Jay Baer Hug Your Haters, Shep Hyken, Zendesk AI 적용.",
       "model": "opus",
       "tools": [
         "Read, Grep, Glob, Write, Edit, Bash, WebSearch, AskUserQuestion"
@@ -553,7 +543,7 @@
     {
       "id": "data-analyst",
       "name": "data-analyst",
-      "description": "QJC 데이터 분석가. 공공 API(KOSIS/ECOS/data.go.kr/DART) 수집, 정규화·분석·시각화하여 비즈니스 인사이트. Use when 공공데이터수집/KOSIS/ECOS/시계열분석/데이터시각화/KPI대시보드/Storytelling with Data/Decision Intelligence. Knaflic, Tufte, Kozyrkov, Cairo 적용. 경계: 외부 경쟁/시장은 ci-bi-strategist, 내부 VoC는 feedback-analyst, 예산/현금흐름은 budget-analyst.",
+      "description": "QJC 데이터 분석가. 공공 API(KOSIS/ECOS/data.go.kr/DART) 수집, 정규화·분석·시각화하여 비즈니스 인사이트. Use when 공공데이터수집/KOSIS/ECOS/시계열분석/데이터시각화/KPI대시보드/Storytelling with Data/Decision Intelligence. Knaflic, Tufte, Kozyrkov, Cairo 적용.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -602,7 +592,7 @@
     {
       "id": "design-creator",
       "name": "design-creator",
-      "description": "배너·카드뉴스·SNS 이미지·광고 크리에이티브·인포그래픽·썸네일·상세페이지 디자인 자율 제작. 이미지 생성 default = OpenAI gpt-image-2 medium ($0.041/장). HTML/CSS 렌더링 + chrome-devtools-mcp 스크린샷 파이프라인. Use proactively when 배너, 카드뉴스, SNS 이미지, 광고 크리에이티브, 썸네일, 인포그래픽 제작 요청 시. 웹 코드 구현은 web-designer, 단일 컷 프롬프트 정제는 openai-image-creator 사용.",
+      "description": "배너·카드뉴스·SNS 이미지·광고 크리에이티브·인포그래픽·썸네일·상세페이지 디자인 자율 제작. 이미지 생성 default = OpenAI gpt-image-2 medium ($0.041/장). HTML/CSS 렌더링 + chrome-devtools-mcp 스크린샷 파이프라인.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -624,7 +614,7 @@
     {
       "id": "design-image-prompt-engineer",
       "name": "Image Prompt Engineer",
-      "description": "Expert photography prompt engineer specializing in crafting detailed, evocative prompts for AI image generation. Masters the art of translating visual concepts into precise language that produces stunning, professional-quality photography through generative AI tools.",
+      "description": "Expert photography prompt engineer specializing in crafting detailed, evocative prompts for AI image generation.",
       "model": "default",
       "tools": [],
       "category": "creative"
@@ -648,7 +638,7 @@
     {
       "id": "design-visual-storyteller",
       "name": "Visual Storyteller",
-      "description": "Expert visual communication specialist focused on creating compelling visual narratives, multimedia content, and brand storytelling through design. Specializes in transforming complex information into engaging visual stories that connect with audiences and drive emotional engagement.",
+      "description": "Expert visual communication specialist focused on creating compelling visual narratives, multimedia content, and brand storytelling through design.",
       "model": "default",
       "tools": [],
       "category": "creative"
@@ -664,7 +654,7 @@
     {
       "id": "detail-page-creator",
       "name": "detail-page-creator",
-      "description": "상세페이지 자동 제작 오케스트레이터. 사용자가 제공한 상품/강의 이미지 1장과 텍스트 정보(상품명·가격·핵심특징)에서 product_info JSON을 합성하고, OpenAI gpt-image-2 (image-to-image edits)로 헤더부터 CTA까지 10~15장을 다국어·정확한 비율·패키지 보존 보장하에 일괄 생성한다. PROACTIVELY 사용: \"상세페이지 만들어줘\", \"디테일페이지\", \"detail page 자동\", \"상세페이지 자동화\", \"쇼핑몰 상세 이미지 15장\", \"강의 상세페이지\", \"다국어 상세페이지\", \"헤더부터 CTA까지\", \"상세페이지 일괄 생성\" 키워드 감지 시. NOT 사용: 단일 컷 포스터(openai-image-creator), 카드뉴스/광고 세트(design-creator), 유튜브 썸네일(youtube-thumbnail-maker), 풍경/배경(generate-image), 마켓플레이스 리스팅 카드(higgsfield-marketplace-cards).",
+      "description": "상세페이지 자동 제작 오케스트레이터. 상품/강의 이미지+텍스트에서 gpt-image-2 image-to-image로 헤더~CTA 10~15장을 다국어·정확 비율·패키지 보존하에 일괄 생성. 트리거: \"상세페이지 만들어줘\", \"디테일페이지\", \"detail page\", \"쇼핑몰 상세 이미지\", \"강의 상세페이지\". 단일 컷은 design-creator.",
       "model": "sonnet",
       "tools": [
         "Bash",
@@ -697,7 +687,7 @@
     {
       "id": "dev-team-lead",
       "name": "dev-team-lead",
-      "description": "풀사이클 개발 Hub-and-Spoke 리더. brainstorm → architect → plan → TDD → 5-way review → perf/a11y → verify 8단계 파이프라인 오케스트레이션. 직접 코드 작성 없음. HARD-GATE 3개 준수. Use proactively when \"풀사이클\", \"개발팀으로\", \"팀으로 개발\", \"Dev Team\" 요청 시, 또는 변경 파일 3개 이상 + 독립 페이즈 복수인 경우. 단일 기능 구현은 tdd-guide, 계획만 필요하면 planner 사용.",
+      "description": "풀사이클 개발 Hub-and-Spoke 리더. brainstorm → architect → plan → TDD → 5-way review → perf/a11y → verify 8단계 파이프라인 오케스트레이션. 직접 코드 작성 없음. HARD-GATE 3개 준수.",
       "model": "opus",
       "tools": [
         "Read",
@@ -732,7 +722,7 @@
     {
       "id": "e2e-runner",
       "name": "e2e-runner",
-      "description": "Use when creating, maintaining, or running E2E tests for critical user journeys (auth, payments, core features), or diagnosing memory leaks (V8 heap snapshot), console error traces, and network waterfalls in flaky tests. Uses Vercel Agent Browser (preferred), browser-use CLI (complex auth/RPA), Playwright (deterministic tests), plus chrome-devtools-mcp (take_memory_snapshot / list_console_messages / list_network_requests) for deep debugging. Page Object Model pattern, data-testid selectors, flaky test management.",
+      "description": "Use when creating, maintaining, or running E2E tests for critical user journeys (auth, payments, core features), or diagnosing memory leaks, console errors, and network waterfalls in flaky tests.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -768,7 +758,7 @@
     {
       "id": "engineering-ai-data-remediation-engineer",
       "name": "AI Data Remediation Engineer",
-      "description": "Specialist in self-healing data pipelines — uses air-gapped local SLMs and semantic clustering to automatically detect, classify, and fix data anomalies at scale. Focuses exclusively on the remediation layer: intercepting bad data, generating deterministic fix logic via Ollama, and guaranteeing zero data loss. Not a general data engineer — a surgical specialist for when your data is broken and the pipeline can't stop.",
+      "description": "Self-healing data pipeline specialist — air-gapped local SLMs and semantic clustering to detect, classify, and fix data anomalies at scale.",
       "model": "default",
       "tools": [],
       "category": "development"
@@ -776,7 +766,7 @@
     {
       "id": "engineering-ai-engineer",
       "name": "AI Engineer",
-      "description": "Expert AI/ML engineer specializing in machine learning model development, deployment, and integration into production systems. Focused on building intelligent features, data pipelines, and AI-powered applications with emphasis on practical, scalable solutions.",
+      "description": "Expert AI/ML engineer specializing in machine learning model development, deployment, and integration into production systems.",
       "model": "default",
       "tools": [],
       "category": "development"
@@ -808,7 +798,7 @@
     {
       "id": "engineering-data-engineer",
       "name": "Data Engineer",
-      "description": "Expert data engineer specializing in building reliable data pipelines, lakehouse architectures, and scalable data infrastructure. Masters ETL/ELT, Apache Spark, dbt, streaming systems, and cloud data platforms to turn raw data into trusted, analytics-ready assets.",
+      "description": "Expert data engineer specializing in building reliable data pipelines, lakehouse architectures, and scalable data infrastructure.",
       "model": "default",
       "tools": [],
       "category": "development"
@@ -928,7 +918,7 @@
     {
       "id": "engineering-voice-ai-integration-engineer",
       "name": "Voice AI Integration Engineer",
-      "description": "Expert in building end-to-end speech transcription pipelines using Whisper-style models and cloud ASR services — from raw audio ingestion through preprocessing, transcript cleanup, subtitle generation, speaker diarization, and structured downstream integration into apps, APIs, and CMS platforms.",
+      "description": "Expert in building end-to-end speech transcription pipelines using Whisper-style models and cloud ASR services — from raw audio ingestion through preprocessing, transcript cleanup, subtitle generation, speaker diarizatio",
       "model": "default",
       "tools": [],
       "category": "development"
@@ -991,7 +981,7 @@
     {
       "id": "feedback-analyst",
       "name": "feedback-analyst",
-      "description": "QJC 고객 피드백 분석. 리뷰 수집, 감정 분석, 토픽 분류, NPS 산정, 이탈 원인 분석, 개선 우선순위. Use when 피드백분석/리뷰분석/감정분석/NPS/이탈분석/PMF/VoC/유튜브댓글분석/Language Mining. Nick Mehta VoC Loop, Teresa Torres OST, Sean Ellis PMF Survey 적용. 경계: 외부 경쟁/시장은 ci-bi-strategist, 실시간 CS는 cs-responder, FAQ화는 faq-builder.",
+      "description": "QJC 고객 피드백 분석. 리뷰 수집, 감정 분석, 토픽 분류, NPS 산정, 이탈 원인 분석, 개선 우선순위. Use when 피드백분석/리뷰분석/감정분석/NPS/이탈분석/PMF/VoC/유튜브댓글분석/Language Mining. Nick Mehta VoC Loop, Teresa Torres OST, Sean Ellis PMF Survey 적용.",
       "model": "opus",
       "tools": [
         "Read",
@@ -1134,7 +1124,7 @@
     {
       "id": "growth-engineer",
       "name": "growth-engineer",
-      "description": "랜딩페이지 A/B 테스트 인프라·실험 코드·전환 퍼널 자동화·feature flag·통계 검증 전담. GrowthBook + Vercel Edge Config + Mixpanel/Amplitude/PostHog 통합. copywriting·Design Engineer가 만든 변형(variant)을 코드로 구현하고 통계 유의성 도달 시 winning variant 승격까지 책임. Use when \"A/B 테스트 설계\", \"랜딩 실험\", \"퍼널 분석\", \"feature flag\", \"GrowthBook\", \"전환 실험\", \"통계 유의성\", \"랜딩 variant\", \"ICE/RICE 우선순위\", \"growth hacking\" 키워드 감지 시. 4 구루: Sean Ellis(AARRR)/Andrew Chen(Cold Start)/Brian Balfour(4 Fits)/Casey Winters(SEO·Marketplace).",
+      "description": "랜딩페이지 A/B 테스트 인프라·실험 코드·전환 퍼널 자동화·feature flag·통계 검증. GrowthBook + Vercel Edge Config + Mixpanel/Amplitude/PostHog 통합. 트리거: \"A/B 테스트\", \"랜딩 실험\", \"퍼널 분석\", \"feature flag\", \"GrowthBook\", \"전환 실험\".",
       "model": "opus",
       "tools": [
         ""
@@ -1145,7 +1135,7 @@
     {
       "id": "hometax-processor",
       "name": "hometax-processor",
-      "description": "자율 홈택스 매출 동기화 에이전트. 홈택스 발급 알림 메일(from hometaxadmin@hometax.go.kr) 자동 감지, 보안메일 첨부 복호화(사업자번호 자동 입력), 라인 아이템 분해, 재무폴더/고객폴더 PDF·HTML 저장, revenue-processor 위임으로 Supabase/Notion 3종 원장 동시 기록까지 end-to-end 자동화. 매출 전용. 매입 처리(expense-processor)와 대칭이지만 발행 후 메일 자동 동기화 책임 분리.",
+      "description": "자율 홈택스 매출 동기화 에이전트. 홈택스 발급 알림 메일(from hometaxadmin@hometax.go.kr) 자동 감지, 보안메일 첨부 복호화(사업자번호 자동 입력), 라인 아이템 분해, 재무폴더/고객폴더 PDF·HTML 저장, revenue-processor 위임으로 Supabase/Notion 3종 원장 동시 기록까지 end-to-end 자동화. 매출 전용.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -1165,7 +1155,7 @@
     {
       "id": "hospitality-guest-services",
       "name": "Hospitality Guest Services",
-      "description": "Comprehensive hospitality guest services specialist for hotels, resorts, restaurants, and event venues — covering reservations, check-in/check-out, concierge services, guest complaint resolution, loyalty program management, and post-stay follow-up to deliver exceptional guest experiences that drive loyalty and revenue",
+      "description": "Hospitality guest services specialist for hotels, resorts, restaurants, event venues — reservations, check-in/out, concierge, complaint resolution, loyalty programs, post-stay follow-up.",
       "model": "default",
       "tools": [],
       "category": "operations"
@@ -1173,7 +1163,7 @@
     {
       "id": "hr-manager",
       "name": "hr-manager",
-      "description": "QJC HR 전담. 채용 공고 자동 수집(워크넷/사람인 API), 근태 관리, 급여 계산/4대보험 신고 보조, 노무 컴플라이언스 점검, 직원 온보딩, 성과 관리. Use when 채용공고/근태/급여계산/4대보험/직원온보딩/성과관리. Bersin, Ulrich, Bock, Lencioni, McCord, Scott 적용. 경계: 노무 법률 판단/근로자성/해고는 labor-consultant, 채용 평가/면접은 musk-hiring-evaluator.",
+      "description": "QJC HR 전담. 채용 공고 자동 수집(워크넷/사람인 API), 근태 관리, 급여 계산/4대보험 신고 보조, 노무 컴플라이언스 점검, 직원 온보딩, 성과 관리. Use when 채용공고/근태/급여계산/4대보험/직원온보딩/성과관리. Bersin, Ulrich, Bock, Lencioni, McCord, Scott 적용.",
       "model": "opus",
       "tools": [
         "Read",
@@ -1199,7 +1189,7 @@
     {
       "id": "impl-worker",
       "name": "impl-worker",
-      "description": "Isolated TDD implementer dispatched by tdd-guide or dev-team-lead. Consumes a single phase of plan.md, writes failing test, implements minimum code to pass, then refactors. Commits per phase. Works ONLY in worktree. Runs in parallel with sibling impl-workers (distinct phases, no shared files). Not a top-level agent — always dispatched from a Hub.",
+      "description": "Isolated TDD implementer dispatched by tdd-guide or dev-team-lead. Consumes a single plan.md phase, writes failing test, implements minimum code, refactors. Works ONLY in worktree. Not a top-level agent — always dispatched from a Hub.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -1235,7 +1225,7 @@
     {
       "id": "landing-page-team-lead",
       "name": "landing-page-team-lead",
-      "description": "랜딩페이지 제작 팀의 Hub-and-Spoke 리더. 12 spoke를 7-stage 워크플로우(Discovery→Strategy→Content→Design→Build→Optimize→Iterate)로 조율. HARD-GATE 3개(Discovery SELECTED / plan APPROVED+DoD 서명 / Lighthouse ≥ 90 + WCAG AA + INP < 200ms 100%) 엄격 준수. mesh 금지 — spoke ↔ Hub ↔ main session만 허용. dev-team-lead·marketing-content-team·ad-optimizer-team Hub 패턴 재사용. 트리거: \"랜딩페이지 만들어\", \"랜딩 제작\", \"landing page 제작\", \"랜딩 팀으로\", \"12 직무 풀 팀\". 단순 키워드 출현은 spoke로 직접 라우팅, 본 Hub는 풀 팀 동원이 필요한 경우만.",
+      "description": "랜딩페이지 제작 팀의 Hub-and-Spoke 리더. 12 spoke를 7-stage 워크플로우로 조율. HARD-GATE 3개(Discovery SELECTED / plan APPROVED / Lighthouse ≥ 90 + WCAG AA) 준수. 트리거: \"랜딩페이지 만들어\", \"랜딩 팀으로\", \"12 직무 풀 팀\".",
       "model": "opus",
       "tools": [
         ""
@@ -1253,7 +1243,7 @@
     {
       "id": "lead-scorer",
       "name": "lead-scorer",
-      "description": "QJC 자율 리드 스코어링. ICP 적합도 점수, 우선순위 분류, 전환 가능성 예측. Supabase B2B(os_outreach_leads.fit_score) / B2C(os_customer_pipeline.lead_score) UPDATE. 6차원 모델(Fit + Engagement) 100점. Use when 리드점수/리드스코어/ICP매칭/우선순위매겨/전환예측/HotLead/Score Decay. Lincoln Murphy, David Skok, Aaron Ross 적용. 관계 관리는 crm-manager, 전략적 ICP는 qjc-business.",
+      "description": "QJC 자율 리드 스코어링. ICP 적합도, 우선순위 분류, 전환 예측. Supabase B2B/B2C UPDATE. 6차원 모델(Fit+Engagement) 100점. 트리거: 리드점수/ICP매칭/전환예측/HotLead. 관계 관리는 crm-manager.",
       "model": "opus",
       "tools": [
         "Read, Grep, Glob, Write, Edit, Bash, WebSearch, mcp__supabase__execute_sql, mcp__supabase__list_tables"
@@ -1273,7 +1263,7 @@
     {
       "id": "loan-advisor",
       "name": "loan-advisor",
-      "description": "정부 정책자금·보증부대출·1금융권 대출 전문. 중소기업/소상공인/1인기업 대상 자금 탐색, 보증기관 활용, 금리 비교, 심사 준비, 상환 최적화. Use when 정책자금/보증부대출/은행대출/금리비교/대출심사/노란우산대출/Avalanche/Snowball. 윤상민 5단계, 중진공 DSCR, 슈카 금리 메커니즘, Dave Ramsey 적용. 경계: 보조금/무상지원=gov-support-strategist, 예산/현금흐름=budget-analyst.",
+      "description": "정부 정책자금·보증부대출·1금융권 대출 전문. 중소기업/소상공인/1인기업 대상 자금 탐색, 보증기관 활용, 금리 비교, 심사 준비, 상환 최적화. Use when 정책자금/보증부대출/은행대출/금리비교/대출심사/노란우산대출/Avalanche/Snowball. 윤상민 5단계, 중진공 DSCR, 슈카 금리 메커니즘, Dave Ramsey 적용.",
       "model": "opus",
       "tools": [
         "Read",
@@ -1338,7 +1328,7 @@
     {
       "id": "marketing-carousel-growth-engine",
       "name": "Carousel Growth Engine",
-      "description": "Autonomous TikTok and Instagram carousel generation specialist. Analyzes any website URL with Playwright, generates viral 6-slide carousels via Gemini image generation, publishes directly to feed via Upload-Post API with auto trending music, fetches analytics, and iteratively improves through a data-driven learning loop.",
+      "description": "Autonomous TikTok/Instagram carousel generation. Analyzes website URL with Playwright, generates viral 6-slide carousels via Gemini, publishes to feed with auto trending music, fetches analytics, and iteratively improves.",
       "model": "default",
       "tools": [],
       "category": "marketing"
@@ -1382,7 +1372,7 @@
     {
       "id": "marketing-linkedin-content-creator",
       "name": "LinkedIn Content Creator",
-      "description": "Expert LinkedIn content strategist focused on thought leadership, personal brand building, and high-engagement professional content. Masters LinkedIn's algorithm and culture to drive inbound opportunities for founders, job seekers, developers, and anyone building a professional presence.",
+      "description": "Expert LinkedIn content strategist focused on thought leadership, personal brand building, and high-engagement professional content.",
       "model": "default",
       "tools": [],
       "category": "marketing"
@@ -1390,7 +1380,7 @@
     {
       "id": "marketing-livestream-commerce-coach",
       "name": "Livestream Commerce Coach",
-      "description": "Veteran livestream e-commerce coach specializing in host training and live room operations across Douyin, Kuaishou, Taobao Live, and Channels, covering script design, product sequencing, paid-vs-organic traffic balancing, conversion closing techniques, and real-time data-driven optimization.",
+      "description": "Veteran livestream e-commerce coach specializing in host training and live room operations across Douyin, Kuaishou, Taobao Live, and Channels, covering script design, product sequencing, paid-vs-organic traffic balancing",
       "model": "default",
       "tools": [],
       "category": "marketing"
@@ -1398,7 +1388,7 @@
     {
       "id": "marketing-podcast-strategist",
       "name": "Podcast Strategist",
-      "description": "Content strategy and operations expert for the Chinese podcast market, with deep expertise in Xiaoyuzhou, Ximalaya, and other major audio platforms, covering show positioning, audio production, audience growth, multi-platform distribution, and monetization to help podcast creators build sticky audio content brands.",
+      "description": "Chinese podcast market expert: Xiaoyuzhou, Ximalaya. Show positioning, audio production, audience growth, multi-platform distribution, monetization for podcast creators.",
       "model": "default",
       "tools": [],
       "category": "marketing"
@@ -1414,7 +1404,7 @@
     {
       "id": "marketing-short-video-editing-coach",
       "name": "Short-Video Editing Coach",
-      "description": "Hands-on short-video editing coach covering the full post-production pipeline, with mastery of CapCut Pro, Premiere Pro, DaVinci Resolve, and Final Cut Pro across composition and camera language, color grading, audio engineering, motion graphics and VFX, subtitle design, multi-platform export optimization, editing workflow efficiency, and AI-assisted editing.",
+      "description": "Hands-on short-video editing coach covering full post-production: CapCut Pro, Premiere Pro, DaVinci Resolve, Final Cut Pro across composition, color grading, audio, motion graphics, subtitle design, multi-platform export, and AI-assisted editing.",
       "model": "default",
       "tools": [],
       "category": "marketing"
@@ -1466,7 +1456,7 @@
     {
       "id": "meeting-prep",
       "name": "meeting-prep",
-      "description": "QJC 미팅 준비 전담. 고객사 사전 리서치, 안건 정리, 과거 미팅 이력 요약, 제안 포인트 도출, 1-Page 브리핑 노트. Supabase os_outreach_leads + os_deals + os_meetings + customer-index.json + Google Calendar 통합. Use when 미팅준비/아젠다/브리핑/discovery call/SPICED/Challenger/사전리서치. SNAP Selling, Challenger Sale, SPICED 프레임워크 적용. 회의록 작성은 meeting-secretary.",
+      "description": "QJC 미팅 준비 전담. 고객사 리서치, 안건 정리, 과거 이력 요약, 제안 포인트, 1-Page 브리핑 노트. 트리거: 미팅준비/아젠다/브리핑/discovery call/SPICED. 회의록은 meeting-secretary.",
       "model": "opus",
       "tools": [
         "Read",
@@ -1487,7 +1477,7 @@
     {
       "id": "meeting-secretary",
       "name": "meeting-secretary",
-      "description": "QJC 회의록 자율 작성. 미팅 녹음 STT 변환, 화자 분리, 회의 요약, 결정사항/액션 아이템 추출, 후속 태스크 자동 등록, 3분할 배포(GitHub/Supabase/GWS). Use when 회의록/녹음분석/STT/화자분리/미팅요약/액션아이템추출/미팅이력. ~/meeting-automation/ 파이프라인(VITO STT + pyannote 화자분리) 오케스트레이션. Otter.ai/Fireflies.ai/Notion AI 적용. 미팅 전 준비는 meeting-prep.",
+      "description": "QJC 회의록 자율 작성. 미팅 녹음 STT 변환, 화자 분리, 회의 요약, 결정사항/액션 아이템 추출, 후속 태스크 자동 등록, 3분할 배포(GitHub/Supabase/GWS). Use when 회의록/녹음분석/STT/화자분리/미팅요약/액션아이템추출/미팅이력. ~/meeting-automation/ 파이프라인(VITO STT + pyannote 화자분리) 오케스트레이션.",
       "model": "opus",
       "tools": [
         "Read",
@@ -1550,7 +1540,7 @@
     {
       "id": "onboarding-guide",
       "name": "onboarding-guide",
-      "description": "QJC 고객 온보딩 가이드. 신규 고객 환영, 단계별 학습 가이드, 진도 체크, 첫 성과 달성 지원, 이탈 방지 넛지. Supabase qjc-webapp + Notion + Gmail 통합. Use when 신규고객/환영메시지/학습경로/진도확인/첫성과/이탈위험/온보딩가이드. Lincoln Murphy Desired Outcome, Wes Bush Bowling Alley, Ramli John EUREKA 적용. 경계: 직원 온보딩은 hr-manager, 교육 설계는 training-designer.",
+      "description": "QJC 고객 온보딩 가이드. 신규 고객 환영, 단계별 학습 가이드, 진도 체크, 첫 성과 달성 지원, 이탈 방지 넛지. Supabase qjc-webapp + Notion + Gmail 통합. Use when 신규고객/환영메시지/학습경로/진도확인/첫성과/이탈위험/온보딩가이드.",
       "model": "opus",
       "tools": [
         "Read",
@@ -1568,7 +1558,7 @@
     {
       "id": "openai-image-creator",
       "name": "openai-image-creator",
-      "description": "OpenAI gpt-image-2 모델 전용 이미지 생성 에이전트. 한국어/영문 텍스트가 들어간 단일 컷 이미지(포스터·청첩장·메뉴·인포그래픽·유튜브 썸네일·SNS 단일 카드)를 OpenAI Cookbook 5단 구조(Scene→Subject→Detail→Lighting→Constraint)로 정제하여 생성한다. gpt-image-2의 99% 텍스트 정확도(2026-04-21 LM Arena +242 Elo)를 정면 활용. PROACTIVELY 사용: \"OpenAI로 만들어줘\", \"gpt-image-2로\", \"포스터 한 장\", \"포토리얼 한 장\", \"한국어 텍스트 정확하게\", \"exact text\", \"단일 이미지\" 키워드 감지 시. Use NOT: 배너 세트/카드뉴스 5장+/광고 크리에이티브 GDN+Meta 세트/상세페이지 롱스크롤/HTML 합성 — 이들은 design-creator가 담당. Gemini 풍경/배경/추상은 generate-image 스킬 자동 라우팅이 처리. 본 에이전트는 단일 컷의 프롬프트 품질에만 집중.",
+      "description": "OpenAI gpt-image-2 모델 전용 단일 컷 이미지 생성. 한국어/영문 텍스트 포함 포스터·청첩장·메뉴·인포그래픽·썸네일·SNS 단일 카드를 5단 프롬프트로 생성. PROACTIVELY 사용: \"OpenAI로\", \"gpt-image-2로\", \"포스터 한 장\", \"한국어 텍스트 정확하게\", \"단일 이미지\" 키워드 시. 다중 이미지 세트는 design-creator.",
       "model": "sonnet",
       "tools": [
         "Bash",
@@ -1581,7 +1571,7 @@
     {
       "id": "paid-media-creative-strategist",
       "name": "Ad Creative Strategist",
-      "description": "Paid media creative specialist focused on ad copywriting, RSA optimization, asset group design, and creative testing frameworks across Google, Meta, Microsoft, and programmatic platforms. Bridges the gap between performance data and persuasive messaging.",
+      "description": "Paid media creative specialist focused on ad copywriting, RSA optimization, asset group design, and creative testing frameworks across Google, Meta, Microsoft, and programmatic platforms.",
       "model": "default",
       "tools": [
         "WebFetch, WebSearch, Read, Write, Edit, Bash"
@@ -1591,7 +1581,7 @@
     {
       "id": "paid-media-programmatic-buyer",
       "name": "Programmatic & Display Buyer",
-      "description": "Display advertising and programmatic media buying specialist covering managed placements, Google Display Network, DV360, trade desk platforms, partner media (newsletters, sponsored content), and ABM display strategies via platforms like Demandbase and 6Sense.",
+      "description": "Display advertising and programmatic media buying specialist covering managed placements, Google Display Network, DV360, trade desk platforms, partner media (newsletters, sponsored content), and ABM display strategies vi",
       "model": "default",
       "tools": [
         "WebFetch, WebSearch, Read, Write, Edit, Bash"
@@ -1601,7 +1591,7 @@
     {
       "id": "paid-media-tracking-specialist",
       "name": "Tracking & Measurement Specialist",
-      "description": "Expert in conversion tracking architecture, tag management, and attribution modeling across Google Tag Manager, GA4, Google Ads, Meta CAPI, LinkedIn Insight Tag, and server-side implementations. Ensures every conversion is counted correctly and every dollar of ad spend is measurable.",
+      "description": "Expert in conversion tracking architecture, tag management, and attribution modeling across Google Tag Manager, GA4, Google Ads, Meta CAPI, LinkedIn Insight Tag, and server-side implementations.",
       "model": "default",
       "tools": [
         "WebFetch, WebSearch, Read, Write, Edit, Bash"
@@ -1629,7 +1619,7 @@
     {
       "id": "performance-growth-marketer",
       "name": "performance-growth-marketer",
-      "description": "Use when planning performance marketing strategy, campaign/budget allocation, growth direction, OR running Lighthouse/Core Web Vitals (LCP/INP/CLS) audits via chrome-devtools-mcp. Applies Perry Marshall 80/20, Hormozi Value Equation, Depesh Mandalia CBO, Charley T Olympic Ring. For campaign data analysis/execution, use ad-optimizer-team instead.",
+      "description": "Performance marketing strategy, campaign/budget allocation, growth direction, OR Lighthouse/Core Web Vitals audits via chrome-devtools-mcp. For campaign data analysis/execution, use ad-optimizer-team.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -1692,12 +1682,29 @@
     {
       "id": "portfolio-architect",
       "name": "portfolio-architect",
-      "description": "Specialized agent that converts a resume PDF (and optional headshot) into a 1-page editorial founder portfolio (5 PDFs, swiss-pure/red/cream/navy/seal). Use proactively when the user provides a resume/CV PDF and asks for a portfolio, profile sheet, executive bio, or 1-pager. Orchestrates the founder-portfolio skill pipeline end-to-end — extract → synthesize profile.yaml → optional AI portrait → render 5 PDFs.",
+      "description": "Converts a resume PDF (and optional headshot) into a 1-page editorial founder portfolio (5 PDFs, 5 themes). Use when user provides a resume/CV and asks for a portfolio, profile sheet, executive bio, or 1-pager.",
       "model": "sonnet",
       "tools": [
         "Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion"
       ],
       "category": "creative"
+    },
+    {
+      "id": "premiere-editor",
+      "name": "premiere-editor",
+      "description": "프리미어 프로 영상 편집 코치. 편집 워크플로우 설계, 자막/SRT 생성, FFmpeg 배치 처리, 내보내기 최적화, 프로젝트 구조 정리. 트리거: '프리미어', 'Premiere', '영상 편집', '컷 편집', '자막 작업', '내보내기 설정', '인코딩', 'FFmpeg', '영상 리뷰', '편집 체크리스트'.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "category": "development",
+      "maxTurns": 30,
+      "memory": "project"
     },
     {
       "id": "product-behavioral-nudge-engine",
@@ -1720,7 +1727,7 @@
     {
       "id": "product-strategist",
       "name": "product-strategist",
-      "description": "일반 PM 프레임워크 기반 제품/비즈니스/전략 기획 전문. 12 구루(Cagan, Torres, Martin, Osterwalder, Kim, Rumelt, Biddle, Perri, Patton, Knapp, Ries, Singer)를 상황 매칭하여 19 PM 스킬 오케스트레이션. Use when 신제품기획/PRD/로드맵/PM프레임워크/Discovery/OST/Strategy Cascade/DHM. 경계: QJC 특화 브랜드/포트폴리오/가격/GTM=qjc-business, 발산 옵션 비교=dev-brainstormer, 구현 계획=planner, 근본 재설계=first-principles-thinker.",
+      "description": "일반 PM 프레임워크 기반 제품/비즈니스/전략 기획. 12 구루 오케스트레이션. 트리거: 신제품기획/PRD/로드맵/PM프레임워크/Discovery/OST. 경계: QJC 특화=qjc-business, 발산=dev-brainstormer, 구현=planner.",
       "model": "opus",
       "tools": [
         "Read",
@@ -1765,7 +1772,7 @@
     {
       "id": "project-management-studio-producer",
       "name": "Studio Producer",
-      "description": "Senior strategic leader specializing in high-level creative and technical project orchestration, resource allocation, and multi-project portfolio management. Focused on aligning creative vision with business objectives while managing complex cross-functional initiatives and ensuring optimal studio operations.",
+      "description": "Senior strategic leader for creative and technical project orchestration, resource allocation, and multi-project portfolio management. Aligns creative vision with business objectives.",
       "model": "default",
       "tools": [],
       "category": "business"
@@ -1829,7 +1836,7 @@
     {
       "id": "qjc-business",
       "name": "qjc-business",
-      "description": "Use for **QJC 특화** business strategy, sales planning, marketing strategy, and customer success analysis. Handles QJC 브랜드·포트폴리오·가격·ICP·GTM·경쟁 분석·제안서. For operational execution (consulting, education, finance) use qjc-operations instead. For **generic PM 프레임워크(Cagan/Torres/Martin/Rumelt) on new product planning** use product-strategist instead. qjc-business=QJC 맥락 우선, product-strategist=일반 PM 프레임워크 우선.",
+      "description": "QJC 특화 business strategy, sales planning, marketing strategy, customer success. QJC 브랜드·포트폴리오·가격·ICP·GTM·경쟁 분석·제안서. 운영 실행은 qjc-operations, 일반 PM 프레임워크는 product-strategist.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -1846,14 +1853,10 @@
     {
       "id": "qjc-content",
       "name": "qjc-content",
-      "description": "Use when creating YouTube scripts, planning video content, **thumbnail 기획(컨셉/문구)**, or optimizing content strategy. Data-driven content design with hook frameworks, SEO optimization, and repurpose planning. Delegates to /youtube for full pipeline. 경계: 썸네일·배너 **이미지 렌더링**은 design-creator, 전환 카피(헤드라인/CTA)는 copywriting, 브랜드 스토리·영상 내러티브 구조는 storyteller(후행 연계), 광고 퍼포먼스 전략은 performance-growth-marketer로 위임.",
+      "description": "YouTube 스크립트, 영상 콘텐츠 기획, 썸네일 기획(컨셉/문구), 콘텐츠 전략 최적화. 경계: 썸네일·배너 이미지 렌더링은 design-creator, 전환 카피는 copywriting, 브랜드 스토리는 storyteller, 광고 전략은 performance-growth-marketer.",
       "model": "sonnet",
       "tools": [
-        "Read",
-        "Grep",
-        "Glob",
-        "Write",
-        "Edit"
+        "[\"Read\", \"Grep\", \"Glob\", \"Write\", \"Edit\"]"
       ],
       "category": "marketing",
       "maxTurns": 25,
@@ -1862,7 +1865,7 @@
     {
       "id": "qjc-operations",
       "name": "qjc-operations",
-      "description": "QJC 회사운영 오케스트레이터 (1인기업 COO). 자동화 컨설팅(Make.com/n8n), 교육 설계 보조, 세무 일정/노란우산/창업 혜택/사업자 관리. Use when 회사운영/노란우산/창업혜택/운영리포트/월간체크리스트/자동화컨설팅. Michalowicz Clockwork, Wickman EOS, Doerr OKR 적용. 위임: 세무는 financial-accountant, 채용은 hr-manager, 지원사업은 gov-support-strategist, 대출은 loan-advisor. 전략은 qjc-business.",
+      "description": "QJC 회사운영 오케스트레이터 (1인기업 COO). 자동화 컨설팅(Make.com/n8n), 교육 설계 보조, 세무 일정/노란우산/창업 혜택/사업자 관리. Use when 회사운영/노란우산/창업혜택/운영리포트/월간체크리스트/자동화컨설팅. Michalowicz Clockwork, Wickman EOS, Doerr OKR 적용.",
       "model": "opus",
       "tools": [
         "Read",
@@ -1881,17 +1884,10 @@
     {
       "id": "qjc-orchestrator",
       "name": "qjc-orchestrator",
-      "description": "QJC(퀀텀점프클럽) 메타-오케스트레이터 — 자율 비즈니스 이해도 누적 + 자가개선 + QJC 작업 진입 시 자동 발동. 다른 QJC 에이전트(qjc-business/operations/content)의 활동을 추적·학습·조율하며 분기 Dreaming Cycle로 SWOT/매출 비중/패턴을 자동 갱신. Anthropic Dreaming(2026-04) + Fowler Feedback Flywheel(2026-04-09) + Subagent Memory(v2.1.33) 통합 적용. Use proactively when QJC/퀀텀점프클럽/퀀텀점프/QuantumJumpClub 키워드 + 'business strategy / 매출 분석 / SKU 비중 / 분기 갱신 / 자가개선 / QJC 전체 / 메타 분석 / 비즈니스 상태' 요청 시. 단일 도메인(견적/콘텐츠/회의록)은 해당 전문 에이전트 직접 호출 권장.",
+      "description": "QJC(퀀텀점프클럽) 메타-오케스트레이터. 자율 비즈니스 이해도 누적 + 자가개선. QJC 에이전트 활동 추적·학습·조율, 분기 Dreaming Cycle로 SWOT/매출/패턴 자동 갱신. 트리거: QJC/퀀텀점프클럽 + business strategy/매출 분석/분기 갱신/자가개선.",
       "model": "opus",
       "tools": [
-        "Read",
-        "Grep",
-        "Glob",
-        "Write",
-        "Edit",
-        "Bash",
-        "WebSearch",
-        "Agent"
+        "[\"Read\", \"Grep\", \"Glob\", \"Write\", \"Edit\", \"Bash\", \"WebSearch\", \"Agent\"]"
       ],
       "category": "business",
       "maxTurns": 35,
@@ -1917,7 +1913,7 @@
     {
       "id": "rca-debugger",
       "name": "rca-debugger",
-      "description": "Root-cause analyzer for complex multi-system failures. Escalation from systematic-debugger when bisect is inconclusive, CI-vs-local discrepancy, flaky intermittent bugs, or cross-layer regressions (frontend + backend + DB). Produces 5-why + fishbone diagram + fix proposal. Use PROACTIVELY on red signal from verify-agent or e2e-runner.",
+      "description": "Root-cause analyzer for complex multi-system failures. Escalation from systematic-debugger when bisect is inconclusive, CI-vs-local discrepancy, flaky bugs, or cross-layer regressions. Produces 5-why + fishbone + fix proposal.",
       "model": "opus",
       "tools": [
         "Read",
@@ -1941,7 +1937,7 @@
     {
       "id": "real-estate-investor",
       "name": "real-estate-investor",
-      "description": "한국 부동산 투자 전문 에이전트. 공공데이터 API(실거래가/공시지가/경매/청약/임대차) + 거시경제 API(ECOS 기준금리/CPI/환율)에서 시장 데이터를 자동 수집하고, 투자 적합도를 AI 분석하며, 매일 시장 동향 리포트를 생성한다. 15명의 구루 프레임워크 — 부동산 10명(빠숑, 너나위, 부읽남, 아기곰, 이현정, 채상욱, 부동산지인, 호갱노노, 류태민, 기대위) + 거시경제/지정학 5명(레이 달리오, 하워드 막스, 홍춘욱, 오건영, 피터 자이한) — 을 적용하여 체계적 부동산 투자 전략을 지원한다.",
+      "description": "한국 부동산 투자 전문 에이전트. 공공데이터 API(실거래가/공시지가/경매/청약/임대차) + 거시경제 API(ECOS 기준금리/CPI/환율)에서 시장 데이터를 자동 수집하고, 투자 적합도를 AI 분석하며, 매일 시장 동향 리포트를 생성한다.",
       "model": "opus",
       "tools": [
         "Read",
@@ -1964,7 +1960,7 @@
     {
       "id": "real-estate-property",
       "name": "real-estate-property",
-      "description": "한국 부동산 매물 전문 에이전트. 공공 API(실거래가/건축물대장/공시가격/청약/경매)와 민간 플랫폼(네이버부동산/호갱노노/직방) 데이터를 수집하여 매물을 검색·분석·비교·모니터링한다. 15명의 구루 프레임워크 — 매물 분석 10명(빠숑, 너나위, 부읽남, 아기곰, 이현정, 채상욱, 부동산지인, 호갱노노, 류태민, 기대위) + 임장/실전 5명(방미, 김학렬TV, 월천대사, 렘군, 너바나) — 을 적용하여 매물 선별부터 투자 의사결정까지 체계적으로 지원한다. real-estate-investor(시장/거시 분석)와 파이프라인 연계.",
+      "description": "한국 부동산 매물 전문 에이전트. 공공 API(실거래가/건축물대장/공시가격/청약/경매)와 민간 플랫폼(네이버부동산/호갱노노/직방) 데이터를 수집하여 매물을 검색·분석·비교·모니터링한다.",
       "model": "opus",
       "tools": [
         "Read",
@@ -2032,7 +2028,7 @@
     {
       "id": "research-pi",
       "name": "research-pi",
-      "description": "시장분석·기술동향·정책연구·비즈니스 리서치 체계적 수행. researcher + auto-experimenter 오케스트레이션. PRISMA·TAM/SAM/SOM·경쟁 매핑·Kitchenham SLR 프레임워크. Use proactively when \"시장 조사\", \"산업 분석\", \"동향 분석\", \"정책 연구\", \"비즈니스 리서치\", \"TAM/SAM/SOM 산정\" 요청 시. 단순 팩트체크는 researcher, 공식문서 교차검증은 super-research, AI 논문은 ai-researcher 분기.",
+      "description": "시장분석·기술동향·정책연구·비즈니스 리서치 체계적 수행. researcher + auto-experimenter 오케스트레이션. PRISMA·TAM/SAM/SOM·경쟁 매핑·Kitchenham SLR 프레임워크. Use proactively when \"시장 조사\", \"산업 분석\", \"동향 분석\", \"정책 연구\", \"비즈니스 리서치\", \"TAM/SAM/SOM 산정\" 요청 시.",
       "model": "opus",
       "tools": [
         "Read",
@@ -2073,7 +2069,7 @@
     {
       "id": "revenue-processor",
       "name": "revenue-processor",
-      "description": "자율 매출 처리 에이전트. 매출 발생 시 3종 원장(로컬 PDF + Supabase + Notion) 동시 저장, 고객폴더 업무기록 자동 생성, NTS 매출 세금계산서 artifact 승인, 월간 매출 리포트 생성을 수행한다. 매입 처리(expense-processor)와 대칭 구조이나 수동 입력이 주 진입점이며, NTS 자동 감지는 artifact 경로로 분리된다. 세법 판단(부가세 신고, 수익 코드 해석)은 financial-accountant로 위임.",
+      "description": "자율 매출 처리 에이전트. 매출 발생 시 3종 원장(로컬 PDF + Supabase + Notion) 동시 저장, 고객폴더 업무기록 자동 생성, NTS 매출 세금계산서 artifact 승인, 월간 매출 리포트 생성을 수행한다. 매입 처리(expense-processor)와 대칭 구조이나 수동 입력이 주 진입점이며, NTS 자동 감지는 artifact 경로로 분리된다.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -2176,7 +2172,7 @@
     {
       "id": "sales-followup",
       "name": "sales-followup",
-      "description": "영업 팔로업 자동화 에이전트. 콜드 아웃리치 / 미팅 / 제안서 발송 후 D+0·D+3·D+7 3-touch 시퀀스를 톤 차별화하여 발송한다. D+0=정중·가치 중심, D+3=가볍고 친근, D+7=시급성·마감 압박·대안 제시. Gmail(gws CLI) 발송, 시퀀스 상태는 로컬 JSON(`~/.claude/state/sales-followup/`)으로 관리, 답장 감지 시 자동 중단. Use when 영업팔로업/D+0/D+3/D+7/시퀀스이메일/3터치팔로업/콜드아웃리치팔로업/제안서팔로업/미팅후속/대안제시이메일/마감압박이메일. 경계: 첫 콜드 메시지는 copywriting/leads 스킬, 답장 후 응대는 cs-responder, 전반적 CRM은 crm-manager.",
+      "description": "영업 팔로업 자동화. 콜드 아웃리치/미팅/제안서 후 D+0·D+3·D+7 3-touch 시퀀스. Gmail(gws CLI) 발송, 답장 감지 시 자동 중단. 트리거: 영업팔로업/D+0/D+3/D+7/시퀀스이메일.",
       "model": "opus",
       "tools": [
         "Read, Grep, Glob, Write, Edit, Bash, AskUserQuestion"
@@ -2188,7 +2184,7 @@
     {
       "id": "scenario-visualizer",
       "name": "scenario-visualizer",
-      "description": "시나리오/스토리보드 시각화 전문가. 시나리오 텍스트나 장면 설명을 받으면 컷으로 분해하고 OpenAI GPT Image-2 API를 호출하여 이미지를 생성한다. 캐릭터 일관성과 영화적 카메라/조명 문법을 유지한다. **사용자가 레퍼런스 이미지(파일 경로/URL/첨부)를 제공하면 자동으로 디자인 테마(팔레트·조명·구도·아트 디렉션·질감·분위기·시대감)를 7축으로 분석하여 모든 컷에 일관 적용한다.** Use proactively when user provides scenario text, scene description, or asks for storyboard/visualization. 트리거 키워드 — \"시나리오 시각화\", \"스토리보드\", \"장면 그려줘\", \"컷 분해\", \"캐릭터 시트\", \"GPT Image\", \"이미지 생성\", \"콘티\", \"레퍼런스 이미지\", \"이 스타일로\", \"이 톤으로\", \"이 분위기로\", \"style reference\", \"디자인 테마\".",
+      "description": "시나리오/스토리보드 시각화. 장면 텍스트를 컷 분해 후 GPT Image-2로 이미지 생성. 캐릭터 일관성·영화적 카메라/조명 유지. 레퍼런스 이미지 제공 시 7축 디자인 테마 자동 분석·일관 적용. 트리거: \"시나리오 시각화\", \"스토리보드\", \"장면 그려줘\", \"컷 분해\".",
       "model": "opus",
       "tools": [
         "Read, Write, Bash, Glob"
@@ -2213,7 +2209,7 @@
     {
       "id": "seo-geo-aeo-strategist",
       "name": "seo-geo-aeo-strategist",
-      "description": "Use when making SEO/GEO/AEO strategy decisions, content/technical SEO audits, optimizing for AI search, OR running page-level Lighthouse SEO audits + JSON-LD extraction via chrome-devtools-mcp. Applies Lily Ray E-E-A-T, Rand Fishkin Brand SEO, Princeton GEO 9 Strategies, Kevin Indig Topical Authority.",
+      "description": "SEO/GEO/AEO strategy, content/technical SEO audits, AI search optimization, page-level Lighthouse SEO audits + JSON-LD extraction via chrome-devtools-mcp.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -2235,15 +2231,10 @@
     {
       "id": "slides-web-builder",
       "name": "slides-web-builder",
-      "description": "웹 슬라이드(React + Tailwind + GSAP + Lucide) 단일 HTML 빌더. /slides-web 스킬 메인 오케스트레이터. data.json + assets → 1920×1080 16:9 letterbox + 9 layout + 10종 인터랙티브 액션 + Chrome headless 검증. Use proactively when \"웹 슬라이드 만들어\", \"react 슬라이드 생성\", \"강의 슬라이드덱 HTML로\", \"발표 슬라이드 빌드\" 요청 또는 /slides-web 진입 시. PPTX 빌드는 /lecture, 단일 랜딩은 /landing-build로 분기.",
+      "description": "웹 슬라이드(React + Tailwind + GSAP + Lucide) 단일 HTML 빌더. /slides-web 스킬 메인 오케스트레이터. 트리거: \"웹 슬라이드 만들어\", \"react 슬라이드\", \"강의 슬라이드덱 HTML로\". PPTX는 /lecture, 단일 랜딩은 /landing-build.",
       "model": "sonnet",
       "tools": [
-        "Read",
-        "Write",
-        "Edit",
-        "Bash",
-        "Glob",
-        "Grep"
+        "[\"Read\", \"Write\", \"Edit\", \"Bash\", \"Glob\", \"Grep\"]"
       ],
       "category": "development"
     },
@@ -2266,7 +2257,7 @@
     {
       "id": "specialized-developer-advocate",
       "name": "Developer Advocate",
-      "description": "Expert developer advocate specializing in building developer communities, creating compelling technical content, optimizing developer experience (DX), and driving platform adoption through authentic engineering engagement. Bridges product and engineering teams with external developers.",
+      "description": "Expert developer advocate specializing in building developer communities, creating compelling technical content, optimizing developer experience (DX), and driving platform adoption through authentic engineering engagemen",
       "model": "default",
       "tools": [],
       "category": "operations"
@@ -2290,7 +2281,7 @@
     {
       "id": "specialized-workflow-architect",
       "name": "Workflow Architect",
-      "description": "Workflow design specialist who maps complete workflow trees for every system, user journey, and agent interaction — covering happy paths, all branch conditions, failure modes, recovery paths, handoff contracts, and observable states to produce build-ready specs that agents can implement against and QA can test against.",
+      "description": "Workflow design specialist mapping complete workflow trees — happy paths, branch conditions, failure modes, recovery paths, handoff contracts, observable states — to produce build-ready specs for implementation and QA.",
       "model": "default",
       "tools": [],
       "category": "business"
@@ -2316,7 +2307,7 @@
     {
       "id": "storyteller",
       "name": "storyteller",
-      "description": "자율 스토리텔링 전문. 비즈니스 내러티브, 브랜드 스토리, 고객 성공 사례, 프레젠테이션 스토리, 피치덱 내러티브 설계. Use when 스토리/내러티브 구조/브랜드스토리/고객사례스토리화/피치덱/Hero's Journey/SB7/Storynomics. McKee, Campbell, Miller(SB7), Duarte, Hall 적용. 경계: 카피는 copywriting, 영상 스크립트 초안은 qjc-content, 정적 이미지는 design-creator. 본 에이전트는 내러티브 구조 설계만.",
+      "description": "자율 스토리텔링 전문. 비즈니스 내러티브, 브랜드 스토리, 고객 성공 사례, 프레젠테이션 스토리, 피치덱 내러티브 설계. Use when 스토리/내러티브 구조/브랜드스토리/고객사례스토리화/피치덱/Hero's Journey/SB7/Storynomics. McKee, Campbell, Miller(SB7), Duarte, Hall 적용.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -2332,7 +2323,7 @@
     {
       "id": "super-research",
       "name": "super-research",
-      "description": "Tier 0-4 도메인 신뢰도 등급 + 출처 교차검증 + 할루시네이션 방지 내장 고신뢰도 리서치. yt-dlp 자막 추출, GitHub reactions 임계값 검증, 격리 워크스페이스(git worktree/tmp 폴백) 자동 확보. Use proactively when 공신력·법규·제품 공식 사양·팩트체크·유튜브 영상 분석·정책·EU AI Act 등 정확성 결정적 조사 요청 시. 단순 웹 검색은 researcher, 시장분석은 research-pi. 호출 시 isolation 파라미터 절대 명시 금지.",
+      "description": "Tier 0-4 도메인 신뢰도 등급 + 출처 교차검증 + 할루시네이션 방지 내장 고신뢰도 리서치. yt-dlp 자막 추출, GitHub reactions 임계값 검증, 격리 워크스페이스(git worktree/tmp 폴백) 자동 확보. Use proactively when 공신력·법규·제품 공식 사양·팩트체크·유튜브 영상 분석·정책·EU AI Act 등 정확성 결정적 조사 요청 시.",
       "model": "opus",
       "tools": [
         "Read, Write, Edit, Bash, Grep, Glob, WebSearch, Agent, mcp__exa__web_search_exa, mcp__jina-reader__jina_reader, mcp__fetch__fetch, mcp__plugin_context7_context7__resolve-library-id, mcp__plugin_context7_context7__query-docs, mcp__plugin_playwright_playwright__browser_navigate, mcp__plugin_playwright_playwright__browser_snapshot, mcp__plugin_playwright_playwright__browser_wait_for, mcp__plugin_playwright_playwright__browser_evaluate, mcp__plugin_playwright_playwright__browser_close"
@@ -2344,10 +2335,93 @@
     {
       "id": "supply-chain-strategist",
       "name": "Supply Chain Strategist",
-      "description": "Expert supply chain management and procurement strategy specialist — skilled in supplier development, strategic sourcing, quality control, and supply chain digitalization. Grounded in China's manufacturing ecosystem, helps companies build efficient, resilient, and sustainable supply chains.",
+      "description": "Expert supply chain management and procurement strategy specialist — skilled in supplier development, strategic sourcing, quality control, and supply chain digitalization.",
       "model": "default",
       "tools": [],
       "category": "business"
+    },
+    {
+      "id": "sync-detector",
+      "name": "sync-detector",
+      "description": "프로젝트 동기화 변경 감지 전담. git diff + 신규 파일(고객 문서/회의록/PRD) + Supabase 갭(os_prds·os_meetings·os_quotations github_url IS NULL) + CLAUDE.md drift를 진단하여 단일 JSON으로 반환. 직접 동기화하지 않음, 감지만. context-sync-lead Hub가 dispatch.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Bash",
+        "Grep",
+        "Glob",
+        "mcp__plugin_supabase_supabase__execute_sql"
+      ],
+      "category": "development",
+      "maxTurns": 8,
+      "memory": "project"
+    },
+    {
+      "id": "sync-gdrive-publisher",
+      "name": "sync-gdrive-publisher",
+      "description": "Google Drive 미러 전담. 고객 문서/회의록/PRD/sync 리포트를 /QJC/팀공유/<project>/{prds,meetings,customers,sync-reports}/ 자동 폴더 구조에 미러. gws-drive-sync.sh 활용 + appProperties.qjc_source_sha로 멱등성. L3 redact + L4 abort. context-sync-lead Hub가 dispatch.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Bash",
+        "Glob",
+        "mcp__claude_ai_Google_Drive__search_files",
+        "mcp__claude_ai_Google_Drive__create_file",
+        "mcp__claude_ai_Google_Drive__get_file_metadata"
+      ],
+      "category": "development",
+      "maxTurns": 10,
+      "memory": "project"
+    },
+    {
+      "id": "sync-github-publisher",
+      "name": "sync-github-publisher",
+      "description": "GitHub 미러 전담. PRD/회의록/고객 문서/sync 리포트를 적절한 디렉토리(docs/prds/, docs/meetings/, docs/customers/, sync-reports/)에 커밋하고 push. Supabase os_prds/os_meetings의 github_url 컬럼 UPDATE. context-sync-lead Hub가 sync-detector 결과로 dispatch.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob",
+        "mcp__plugin_supabase_supabase__execute_sql"
+      ],
+      "category": "development",
+      "maxTurns": 10,
+      "memory": "project"
+    },
+    {
+      "id": "sync-harness-updater",
+      "name": "sync-harness-updater",
+      "description": "CLAUDE.md/rules/ 동기화 전담. /sync-docs skill 호출 + sync-all CLAUDE.md 마커 블록 자동 갱신 + rules/ 신규 파일 등재. 코드 직접 수정 없음, 메타 문서만. context-sync-lead Hub가 sync-detector의 harness.drift_level이 warn/alert일 때만 dispatch.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Grep",
+        "Glob",
+        "Skill"
+      ],
+      "category": "development",
+      "maxTurns": 12,
+      "memory": "project"
+    },
+    {
+      "id": "sync-notifier",
+      "name": "sync-notifier",
+      "description": "큐봇(Discord) 동기화 알림 전담. 다른 4 spoke 결과를 종합하여 project_sync_started/completed/failed 이벤트로 _shared/notify.ts notify() 호출. discord-gateway-api가 자동 발송. 알림만 담당, 동기화 자체는 절대 수행 안 함.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Bash",
+        "mcp__plugin_supabase_supabase__execute_sql"
+      ],
+      "category": "development",
+      "maxTurns": 5,
+      "memory": "project"
     },
     {
       "id": "systematic-debugger",
@@ -2415,7 +2489,7 @@
     {
       "id": "training-designer",
       "name": "training-designer",
-      "description": "QJC 교육 설계 전문. 커리큘럼 설계, 학습 목표, 교안/자료 자동 생성, 퀴즈/과제 설계, 학습 효과 측정. NotebookLM MCP + Notion + Remotion 통합. Use when 커리큘럼/학습목표/교안/퀴즈설계/교육효과/VOD강의구조/Bloom/ADDIE/Kirkpatrick. Bloom Taxonomy, ADDIE, Kirkpatrick 4단계, Gagné 9 Events 적용. 경계: 교육 운영은 qjc-operations, 고객 온보딩은 onboarding-guide.",
+      "description": "QJC 교육 설계 전문. 커리큘럼 설계, 학습 목표, 교안/자료 자동 생성, 퀴즈/과제 설계, 학습 효과 측정. NotebookLM MCP + Notion + Remotion 통합. Use when 커리큘럼/학습목표/교안/퀴즈설계/교육효과/VOD강의구조/Bloom/ADDIE/Kirkpatrick.",
       "model": "opus",
       "tools": [
         "Read",
@@ -2567,7 +2641,7 @@
     {
       "id": "writer-team",
       "name": "writer-team",
-      "description": "리서처가 생성한 조사 리포트를 고급 독자용 테크 블로그 초안으로 변환. 새 조사 수행하지 않으며, 입력 리포트(.claude/artifacts/research_report.md)의 자료만 근거로 트레이드오프 중심 4단 구조로 작성. Use when 리서치 리포트→블로그 초안 변환/테크 블로그 초안. 경계: 새 조사는 researcher/research-pi/super-research, 카피는 copywriting, 유튜브 스크립트는 qjc-content, 4채널 통합 발행은 marketing-content-team.",
+      "description": "리서처가 생성한 조사 리포트를 고급 독자용 테크 블로그 초안으로 변환. 새 조사 수행하지 않으며, 입력 리포트(.claude/artifacts/research_report.md)의 자료만 근거로 트레이드오프 중심 4단 구조로 작성. Use when 리서치 리포트→블로그 초안 변환/테크 블로그 초안.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -2603,7 +2677,7 @@
     {
       "id": "zk-steward",
       "name": "ZK Steward",
-      "description": "Knowledge-base steward in the spirit of Niklas Luhmann's Zettelkasten. Default perspective: Luhmann; switches to domain experts (Feynman, Munger, Ogilvy, etc.) by task. Enforces atomic notes, connectivity, and validation loops. Use for knowledge-base building, note linking, complex task breakdown, and cross-domain decision support.",
+      "description": "Knowledge-base steward in Luhmann's Zettelkasten spirit. Enforces atomic notes, connectivity, validation loops. Use for knowledge-base building, note linking, complex task breakdown, cross-domain decision support.",
       "model": "default",
       "tools": [],
       "category": "research"
@@ -2723,6 +2797,20 @@
       "hasSubcommands": false
     },
     {
+      "id": "business-pulse",
+      "name": "/business-pulse — QJC 사업 현황 스냅샷",
+      "description": "사업 현황 스냅샷 — 현금/매출/파이프라인/CS/태스크 교차 진단. 1분 요약.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "campaign-plan",
+      "name": "/campaign-plan — QJC 마케팅 캠페인 기획",
+      "description": "마케팅 캠페인 기획 — 목표/타깃/메시지/채널/콘텐츠 캘린더/KPI 종합 기획서 생성.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "card-news",
       "name": "card-news",
       "description": "카드뉴스 제작 및 소셜 미디어 포스팅 시",
@@ -2775,6 +2863,13 @@
       "id": "civil-dispute",
       "name": "/civil-dispute — 민사 분쟁 해결 도우미",
       "description": "민사 분쟁 해결 도우미 — 내용증명/소장/지급명령 초안, 손해배상 분석, 비용 계산",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "close-month",
+      "name": "/close-month — QJC 월마감 워크플로우",
+      "description": "월마감 — 매출/매입 대사, 미분류 거래 정리, P&L 내러티브, 마감 패킷 생성.",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -3017,6 +3112,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "friday-brief",
+      "name": "/friday-brief — QJC 금요 정리",
+      "description": "금요 브리핑 — 주간 매출/성과/WINS/WATCHES 정리. Supabase 연동.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "gemini-review",
       "name": "Gemini 프론트엔드 크로스모델 리뷰",
       "description": "Gemini CLI로 프론트엔드 크로스모델 리뷰를 실행합니다. (React/Next.js, a11y, 성능, CSS, 번들, 보안)",
@@ -3035,6 +3137,13 @@
       "name": "ghost-writer",
       "description": "사용자 글쓰기 스타일 학습 후 대필. 보이스 캘리브레이션(샘플 분석), 스타일 프로파일 생성, 프로파일 기반 초안 작성. humanizer + content-creator 연계.",
       "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "goal-maker",
+      "name": "goal-maker",
+      "description": "/goal 명령에 사용할 condition 프롬프트를 5-7 인터뷰로 자동 생성. QJC 4-section 구조 + 앤트로픽 가드 5종 자동 주입.",
+      "type": "skill-file",
       "hasSubcommands": false
     },
     {
@@ -3083,6 +3192,13 @@
       "id": "instagram-dm-status",
       "name": "/instagram-dm-status",
       "description": "인스타그램 DM 자동화 전체 헬스 체크. Chrome CDP, 세션, 발송 성공률, 워밍업, 크론 상태를 한눈에.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "invoice-chase",
+      "name": "/invoice-chase — QJC 미수금 추심 자동화",
+      "description": "미수금 추심 — 고객별 톤 매칭 리마인더 이메일 초안 + 발송. Supabase + Gmail 연동.",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -3220,6 +3336,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "monday-brief",
+      "name": "/monday-brief — QJC 월요 브리핑",
+      "description": "월요 브리핑 — 현금/매출/파이프라인/주간 일정/TOP 3 액션. Supabase + GWS 연동.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "morning-sync",
       "name": "Morning Sync",
       "description": "아침 루틴 - context-sync + todos + 캘린더 + network overdue + 정부지원사업 수집 + 주식 시장 체크 + 부동산 시장 체크 + 아키텍처 건강 체크",
@@ -3265,6 +3388,13 @@
       "id": "patent-search",
       "name": "patent-search",
       "description": "KIPRIS API 기반 선행기술 조사. 특허/실용신안/상표 검색 및 분석 보고서 생성.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "pipeline-review",
+      "name": "/pipeline-review — QJC B2B 파이프라인 리뷰",
+      "description": "B2B 파이프라인 리뷰 — 딜 우선순위/리스크/주간 액션 플랜. Supabase 연동.",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -3409,6 +3539,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "project-sync",
+      "name": "/project-sync — 프로젝트 동기화 단일 진입점",
+      "description": "프로젝트 동기화 단일 진입 — 고객 문서·미팅·PRD·CLAUDE.md/rules를 한 명령어로 GitHub + Google Drive + 큐봇 알림까지 (5 spoke Hub-and-Spoke)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "project-update",
       "name": "/project-update — 프로젝트 진행 업데이트 (3대 원툴)",
       "description": "프로젝트 진행 업데이트 — os_project_updates INSERT + notifyTeam + 조건부 advance-stage",
@@ -3482,6 +3619,13 @@
       "id": "quotation",
       "name": "견적서 스킬 (서버 거버넌스 모드)",
       "description": "QJC B2B 견적서 작성 (Supabase 거버넌스 풀스택). 가격 결정은 quotation-api 서버에서 수행하며,",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "rc",
+      "name": "/rc — Remote Claude Code Session",
+      "description": "Mac Studio의 tmux 세션에 어디서든 attach해 Claude Code 멀티 세션을 그대로 잇는다. Tailscale 네트워크 + macOS sshd 기반.",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -3605,6 +3749,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "standup",
+      "name": "/standup — QJC 팀 스탠드업",
+      "description": "팀 스탠드업 — 어제/오늘/블로커 자동 생성. git log + os_tasks + Supabase 연동.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "startup-business-analyst-business-case",
       "name": "startup-business-analyst-business-case",
       "description": "Generate comprehensive investor-ready business case document with market, solution, financials, and strategy",
@@ -3623,6 +3774,13 @@
       "name": "startup-metrics-framework",
       "description": "This skill should be used when the user asks about \"key startup metrics\", \"SaaS metrics\", \"CAC and LTV\", \"unit economics\", \"burn multiple\", \"rule of 40\", \"marketplace metrics\", or requests guidance on tracking and optimizing business performance metrics.",
       "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "status-report",
+      "name": "/status-report — QJC 경영 보고서",
+      "description": "경영 보고서 — KPI/리스크/액션 아이템 포함 주간·월간 보고서. 고객/내부 양쪽 사용.",
+      "type": "skill-file",
       "hasSubcommands": false
     },
     {
@@ -3678,6 +3836,13 @@
       "id": "sync-docs",
       "name": "/sync-docs - 문서 동기화 (v7)",
       "description": "prompt_plan.md, spec.md, CLAUDE.md + rules/ 문서 동기화 (v7)",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "sync-scattered",
+      "name": "/sync-scattered — 흩어진 프로젝트 자료 통합 동기화",
+      "description": "흩어진 프로젝트 자료를 키워드+루트로 스캔 → 민감도 분류(L1/L2/L3) + 다른 프로젝트 자동 제외 → 이중 GitHub repo + GDrive 폴더 동시 미러. PII redact 자동, L3 ACL 차등.",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -3766,10 +3931,24 @@
       "hasSubcommands": false
     },
     {
+      "id": "video-edit",
+      "name": "video-edit",
+      "description": "영상 편집 워크플로우. 편집 계획, 자막 생성, 내보내기 최적화, 배치 처리를 한 커맨드로.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "video-frames",
       "name": "video-frames",
       "description": "Extract frames or short clips from videos using ffmpeg.",
       "type": "skill-dir",
+      "hasSubcommands": false
+    },
+    {
+      "id": "video-review",
+      "name": "video-review",
+      "description": "영상 최종 검수. 기술 품질(ffprobe) + 콘텐츠 체크리스트 + 플랫폼 규격 준수 확인.",
+      "type": "skill-file",
       "hasSubcommands": false
     },
     {
@@ -4351,6 +4530,11 @@
           "command": "~/.claude/hooks/stop-failure-notify.sh",
           "timeout": 10000,
           "async": false
+        },
+        {
+          "command": "~/.claude/hooks/moshi-notify.sh failure",
+          "timeout": 5000,
+          "async": true
         }
       ]
     },
@@ -4386,6 +4570,11 @@
         {
           "command": "~/.claude/hooks/discord-notify.sh stop",
           "timeout": 8000,
+          "async": true
+        },
+        {
+          "command": "~/.claude/hooks/moshi-notify.sh stop",
+          "timeout": 5000,
           "async": true
         }
       ]
@@ -4428,6 +4617,11 @@
         {
           "command": "~/.claude/hooks/discord-notify.sh notification",
           "timeout": 8000,
+          "async": true
+        },
+        {
+          "command": "~/.claude/hooks/moshi-notify.sh notification",
+          "timeout": 5000,
           "async": true
         },
         {
@@ -4656,6 +4850,12 @@
       "priority": "critical"
     },
     {
+      "id": "docx-professional",
+      "name": "DOCX 문서 줄띄움·가독성 거버넌스 (CRITICAL)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/docx-professional.md",
+      "priority": "critical"
+    },
+    {
       "id": "email",
       "name": "이메일 규칙 (Email Rules)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/email.md",
@@ -4731,6 +4931,12 @@
       "id": "interaction",
       "name": "Interaction Rules",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/interaction.md",
+      "priority": "critical"
+    },
+    {
+      "id": "knowledge-work-routing",
+      "name": "Knowledge Work Plugins 라우팅 규칙 (2026-05-26)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/knowledge-work-routing.md",
       "priority": "critical"
     },
     {
@@ -4924,6 +5130,12 @@
       "name": "Verification Before Completion (CRITICAL)",
       "path": "/Users/sangrok/qjc-office/dotclaude/rules/verification.md",
       "priority": "critical"
+    },
+    {
+      "id": "video-production",
+      "name": "영상 제작 거버넌스 규칙 (IMPORTANT)",
+      "path": "/Users/sangrok/qjc-office/dotclaude/rules/video-production.md",
+      "priority": "important"
     },
     {
       "id": "youtube-subtitle",
@@ -6095,6 +6307,10 @@
           "fileCount": 0
         },
         {
+          "name": "performance-reviewer",
+          "fileCount": 1
+        },
+        {
           "name": "product-strategist",
           "fileCount": 2
         },
@@ -6173,10 +6389,10 @@
     }
   },
   "stats": {
-    "agentCount": 201,
-    "skillCount": 176,
-    "hookCount": 97,
-    "ruleCount": 71,
+    "agentCount": 207,
+    "skillCount": 191,
+    "hookCount": 100,
+    "ruleCount": 74,
     "pipelineCount": 18,
     "mcpServerCount": 46
   }

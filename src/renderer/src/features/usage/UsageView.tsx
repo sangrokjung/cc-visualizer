@@ -56,7 +56,7 @@ export default function UsageView() {
   const toolChartData = useMemo(() => toolUsage.slice(0, 15), [])
   const projectChartData = useMemo(() => projects.slice(0, 12), [])
   const hookChartData = useMemo(() => hookEvents.slice(0, 12), [])
-  const areaData = useMemo(() => dailyActivity.map((d: any) => ({
+  const areaData = useMemo(() => dailyActivity.map((d: { date: string; events: number }) => ({
     ...d,
     date: d.date.slice(5), // MM-DD
   })), [])
@@ -175,7 +175,7 @@ export default function UsageView() {
           <StatCard label="총 이벤트" value={fmt(summary.totalEvents)} color="#2D72D2" />
           <StatCard label="총 세션" value={fmt(summary.totalSessions)} color="#7961DB" />
           <StatCard label="프로젝트" value={fmt(summary.totalProjects)} color="#29A634" />
-          <StatCard label="에이전트 스폰" value={fmt(agentSpawns.reduce((s: number, a: any) => s + a.count, 0))} color="#D1980B" />
+          <StatCard label="에이전트 스폰" value={fmt(agentSpawns.reduce((s: number, a: { count: number }) => s + a.count, 0))} color="#D1980B" />
         </div>
 
         {/* 도구 사용 + 일별 활동 */}
@@ -189,7 +189,7 @@ export default function UsageView() {
                 <YAxis type="category" dataKey="name" width={80} tick={{ fill: C.textSub, fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }} />
                 <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                  {toolChartData.map((_: any, i: number) => (
+                  {toolChartData.map((_: unknown, i: number) => (
                     <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
                   ))}
                 </Bar>
@@ -229,7 +229,7 @@ export default function UsageView() {
                 <YAxis type="category" dataKey="name" width={120} tick={{ fill: C.textSub, fontSize: 10 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }} />
                 <Bar dataKey="events" radius={[0, 4, 4, 0]}>
-                  {projectChartData.map((_: any, i: number) => (
+                  {projectChartData.map((_: unknown, i: number) => (
                     <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
                   ))}
                 </Bar>
@@ -254,7 +254,7 @@ export default function UsageView() {
         {/* 에이전트 스폰 테이블 */}
         <div className="rounded-xl p-5" style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}>
           <h3 className="text-sm font-semibold mb-4" style={{ color: C.text }}>
-            에이전트 스폰 ({fmt(agentSpawns.reduce((s: number, a: any) => s + a.count, 0))})
+            에이전트 스폰 ({fmt(agentSpawns.reduce((s: number, a: { count: number }) => s + a.count, 0))})
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
@@ -266,7 +266,7 @@ export default function UsageView() {
                 </tr>
               </thead>
               <tbody>
-                {agentSpawns.slice(0, 20).map((agent: any, i: number) => (
+                {agentSpawns.slice(0, 20).map((agent: { name: string; project: string; count: number }, i: number) => (
                   <tr key={i} className="transition-colors" style={{ borderBottom: `1px solid ${C.border}22` }}
                     onMouseEnter={e => e.currentTarget.style.backgroundColor = C.cardSub}
                     onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
