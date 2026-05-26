@@ -26,8 +26,8 @@ Tauri 실행 시: Rust 백엔드(`commands.rs`)가 JSON 파일을 직접 읽어 
 | 파일 | 역할 |
 |------|------|
 | `lib.rs` | Tauri 앱 엔트리. 커맨드 등록 + 워처 시작 |
-| `commands.rs` | IPC 커맨드 8개: read_file, list_dir, get_system_paths, rescan_system/usage, load_*_data |
-| `file_watcher.rs` | `~/.claude/work-log`, `agent-memory` 디렉토리 감시 → `file-changed` 이벤트 emit |
+| `commands.rs` | IPC 커맨드 10개: read_file, list_dir, get_system_paths, rescan_system/usage, load_{system,usage,external}_data, backfill_session, fetch_ccusage_daily. GUI .app PATH 제한 회피용 npm/npx 절대경로 폴백(`run_tsx_script`) + 3단 데이터 폴백(cache→bundle→dev source) 내장 |
+| `file_watcher.rs` | 두 그룹 감시 → 이벤트 emit. **WorkLog 그룹** (`~/.claude/work-log`, `agent-memory`) → `file-changed`. **ClaudeSystem 그룹** — `~/.claude/{agents,commands,rules,settings.json}` symlink + `~/qjc-office/dotclaude/{agents,commands,rules,reference/agent-pipeline.md}` SSOT 실경로 (notify가 symlink target 미추적 회피) → `claude-system-changed` (1초 디바운스). DashboardView + AgentOfficeView 양쪽 리스너로 실시간 갱신 |
 | `session_watcher.rs` | `~/.claude/projects/*/` 에서 최신 JSONL 세션 파일 tail → `session-event` 이벤트 emit |
 
 ## 프론트엔드 라우팅
