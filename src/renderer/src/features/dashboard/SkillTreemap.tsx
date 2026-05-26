@@ -53,7 +53,7 @@ export function SkillTreemap() {
     // skill.type 기준 그룹핑
     const groups: Record<string, number> = {}
     for (const skill of systemData.skills) {
-      const group = (skill as any).type || 'unknown'
+      const group = (skill as { type?: string }).type || 'unknown'
       groups[group] = (groups[group] || 0) + 1
     }
     return Object.entries(groups)

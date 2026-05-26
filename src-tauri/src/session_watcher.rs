@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::fs;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::PathBuf;
@@ -59,14 +59,6 @@ fn count_message_chars(raw: &serde_json::Value) -> u32 {
         }
     }
     total as u32
-}
-
-#[derive(Deserialize)]
-struct JsonlEntry {
-    uuid: Option<String>,
-    timestamp: Option<String>,
-    r#type: Option<String>,
-    data: Option<serde_json::Value>,
 }
 
 fn now_iso() -> String {
@@ -151,22 +143,6 @@ fn truncate_utf8_safe(s: &str, max_bytes: usize) -> String {
         idx -= 1;
     }
     s[..idx].to_string()
-}
-
-fn extract_tool_uses(data: &serde_json::Value) -> Vec<(String, Option<String>)> {
-    let mut results = Vec::new();
-    let message = data.get("message").unwrap_or(data);
-    if let Some(content) = message.get("content").and_then(|c| c.as_array()) {
-        for block in content {
-            if block.get("type").and_then(|t| t.as_str()) == Some("tool_use") {
-                if let Some(name) = block.get("name").and_then(|n| n.as_str()) {
-                    let input = block.get("input").map(|i| truncate_utf8_safe(&i.to_string(), 100));
-                    results.push((name.to_string(), input));
-                }
-            }
-        }
-    }
-    results
 }
 
 fn parse_line(line: &str) -> Vec<SessionEvent> {
