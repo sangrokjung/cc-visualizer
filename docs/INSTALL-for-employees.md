@@ -121,7 +121,9 @@ xattr -d com.apple.quarantine ~/.local/bin/cc-menubar
 
 ### 메뉴바에서 바로 확인
 
-- 메뉴바 아이콘을 클릭하면 오늘 토큰 소비·비용·병렬 실행 현황이 팝업으로 보여요
+- 메뉴바 아이콘을 클릭하면 오늘·주간·월간 비용, 토큰, 병렬 실행 현황이 팝업으로 보여요
+- Claude/Codex 계정 상태와 5시간·7일 사용률, 다음 reset까지 남은 시간을 확인할 수 있어요
+- TeamClaude/TeamCodex를 쓰는 경우 현재 사용 중인 계정과 계정 풀 상태도 함께 보여요
 - "대시보드 열기" 클릭 → 본체 앱이 실행돼요
 
 <!-- 스크린샷 placeholder -->
@@ -131,7 +133,8 @@ xattr -d com.apple.quarantine ~/.local/bin/cc-menubar
 
 - **에이전트 맵** — 에이전트 연결 관계와 상태
 - **에이전트 오피스** — 실시간 활성 에이전트 현황
-- **토큰 Economy** — 오늘/어제/주간/전체 사용량
+- **토큰 Economy** — 오늘/주간/월간/누적 사용량과 Claude/Codex/Gemini 모델별 비용
+- **AI 계정 진단** — TeamClaude/TeamCodex 계정, quota, 동시 요청 상태
 - **파이프라인** — 에이전트 실행 흐름
 - 그 외 스킬·훅·룰·MCP 서버 시각화
 

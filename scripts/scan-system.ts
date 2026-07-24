@@ -1,11 +1,27 @@
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import matter from 'gray-matter'
 import { AGENT_CATEGORY_MAP } from '../src/renderer/src/lib/agent-category-map'
 
-const HOME = process.env.HOME || '/Users/sangrok'
+// HOME 은 실행 머신마다 다르다. process.env.HOME 미설정(일부 GUI spawn) 시 os.homedir() 폴백.
+// 특정 사용자(sangrok)를 하드코딩하지 않으므로 임의 직원 PC에서 자기 ~/.claude 를 스캔한다.
+const HOME = process.env.HOME || os.homedir()
 
 // -- 유틸리티 --
+
+// 후보 경로 중 실제 존재하는 첫 경로 반환 (symlink 따라감). 모두 없으면 마지막 후보(graceful empty).
+// 예: ~/.claude/rules (표준 위치, sangrok PC에선 qjc-office symlink) → ~/qjc-office/dotclaude/rules (폴백)
+function firstExistingPath(...candidates: string[]): string {
+  for (const c of candidates) {
+    try {
+      if (fs.existsSync(c)) return c
+    } catch {
+      // 접근 불가 후보 무시
+    }
+  }
+  return candidates[candidates.length - 1] ?? ''
+}
 
 function readFileOrNull(filePath: string): string | null {
   try {
@@ -249,7 +265,13 @@ function scanHooks(): Hook[] {
   const content = readFileOrNull(settingsPath)
   if (!content) return []
 
-  const settings = JSON.parse(content)
+  // settings.json이 깨졌을 때 전체 스캔이 크래시하지 않도록 가드 (scanMcpServers와 동일 방어).
+  let settings: { hooks?: Record<string, unknown> }
+  try {
+    settings = JSON.parse(content)
+  } catch {
+    return []
+  }
   const hooks: Hook[] = []
 
   for (const [event, matchers] of Object.entries(settings.hooks || {})) {
@@ -277,7 +299,12 @@ interface Rule {
 }
 
 function scanRules(): Rule[] {
-  const rulesDir = path.join(HOME, 'qjc-office/dotclaude/rules')
+  // 표준 ~/.claude/rules 우선 (직원 PC), 없으면 QJC SSOT(~/qjc-office/dotclaude/rules) 폴백.
+  // sangrok PC에선 ~/.claude/rules 가 qjc-office 로의 symlink → 동일 파일을 스캔(회귀 없음).
+  const rulesDir = firstExistingPath(
+    path.join(HOME, '.claude/rules'),
+    path.join(HOME, 'qjc-office/dotclaude/rules')
+  )
   const files = listFiles(rulesDir, '.md')
 
   return files.map((file) => {
@@ -311,9 +338,10 @@ interface Pipeline {
 }
 
 function scanPipelines(): Pipeline[] {
-  const pipelinePath = path.join(
-    HOME,
-    'qjc-office/dotclaude/reference/agent-pipeline.md'
+  // 표준 ~/.claude/reference 우선, QJC SSOT 폴백. 둘 다 없으면 빈 파이프라인(graceful).
+  const pipelinePath = firstExistingPath(
+    path.join(HOME, '.claude/reference/agent-pipeline.md'),
+    path.join(HOME, 'qjc-office/dotclaude/reference/agent-pipeline.md')
   )
   const content = readFileOrNull(pipelinePath)
   if (!content) return []
@@ -427,11 +455,9 @@ function findLastAgent(pipeline: Pipeline, _line: string): string {
   return pipeline.steps[pipeline.steps.length - 1].to
 }
 
+// 직전 step의 to를 부모(from)로 사용. (이전 for 루프는 첫 반복에서 무조건 return하던 죽은 코드)
 function findParentAgent(steps: PipelineStep[], index: number): string {
-  for (let i = index - 1; i >= 0; i--) {
-    return steps[i].to
-  }
-  return ''
+  return index > 0 ? steps[index - 1].to : ''
 }
 
 // -- 6. MCP 서버 스캔 --

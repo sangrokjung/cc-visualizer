@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import {
   Bar,
   BarChart,
@@ -8,22 +9,27 @@ import {
 } from 'recharts'
 import { useSystemDataContext } from '../../lib/DataProvider'
 
+// 상위 N개로 제한 (전체 50+ 도구를 한 차트에 넣으면 라벨이 겹친다)
+const TOP_N = 15
+
 // 에이전트 도구 사용 빈도를 가로 바 차트로 시각화
 export function ToolUsageChart() {
   const { systemData } = useSystemDataContext()
-  // 도구별 사용 횟수 집계
-  const toolCounts: Record<string, number> = {}
-  for (const agent of systemData.agents) {
-    for (const tool of agent.tools) {
-      toolCounts[tool] = (toolCounts[tool] || 0) + 1
-    }
-  }
 
-  // 빈도 순 정렬 + 상위 15개로 제한 (전체 50+ 도구를 한 차트에 넣으면 라벨이 겹친다)
-  const TOP_N = 15
-  const sorted = Object.entries(toolCounts).sort((a, b) => b[1] - a[1])
-  const data = sorted.slice(0, TOP_N).map(([name, count]) => ({ name, count }))
-  const totalToolCount = sorted.length
+  // 도구별 사용 횟수 집계 — agents 변경 시에만 재계산 (매 렌더 207개 순회 방지)
+  const { data, totalToolCount } = useMemo(() => {
+    const toolCounts: Record<string, number> = {}
+    for (const agent of systemData.agents) {
+      for (const tool of agent.tools) {
+        toolCounts[tool] = (toolCounts[tool] || 0) + 1
+      }
+    }
+    const sorted = Object.entries(toolCounts).sort((a, b) => b[1] - a[1])
+    return {
+      data: sorted.slice(0, TOP_N).map(([name, count]) => ({ name, count })),
+      totalToolCount: sorted.length,
+    }
+  }, [systemData.agents])
 
   // 긴 도구명(mcp__supabase_db__execute_sql 등) ellipsis
   const formatTick = (name: string): string => (name.length > 22 ? `${name.slice(0, 21)}…` : name)

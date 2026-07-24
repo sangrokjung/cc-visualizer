@@ -23,7 +23,8 @@ function groupByAgent(events: FileChangeEvent[]): PathGroup[] {
   }
   return Object.entries(counts)
     .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
+    // 동점일 때 이름순 2차 정렬 — 막대 순서 비결정성 제거
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
     .slice(0, 10)
 }
 

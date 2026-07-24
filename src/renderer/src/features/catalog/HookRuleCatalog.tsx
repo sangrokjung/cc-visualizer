@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { shortenHomePath } from '../../lib/format-path'
 
 type HookCommand = {
   command: string
@@ -175,7 +176,7 @@ function RuleSection({ rules, searchQuery }: { rules: Rule[]; searchQuery: strin
                 >
                   <span className="text-xs text-gray-200 min-w-[180px]">{rule.name}</span>
                   <code className="text-[10px] text-gray-500 truncate">
-                    {rule.path.replace('/Users/sangrok/', '~/')}
+                    {shortenHomePath(rule.path)}
                   </code>
                 </div>
               ))}

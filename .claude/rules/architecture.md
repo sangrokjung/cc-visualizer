@@ -26,7 +26,7 @@ Tauri 실행 시: Rust 백엔드(`commands.rs`)가 JSON 파일을 직접 읽어 
 | 파일 | 역할 |
 |------|------|
 | `lib.rs` | Tauri 앱 엔트리. 커맨드 등록 + 워처 시작 |
-| `commands.rs` | IPC 커맨드 10개: read_file, list_dir, get_system_paths, rescan_system/usage, load_{system,usage,external}_data, backfill_session, fetch_ccusage_daily. GUI .app PATH 제한 회피용 npm/npx 절대경로 폴백(`run_tsx_script`) + 3단 데이터 폴백(cache→bundle→dev source) 내장 |
+| `commands.rs` | IPC 커맨드 13개: read_file, list_dir, get_system_paths, rescan_system/usage, load_{system,usage,external}_data, backfill_session, fetch_ccusage_{daily,weekly,monthly}, fetch_usd_krw_rate. ccusage 호출은 `run_ccusage(subcommand)` 공유 — 주간/월간/누적을 native 명령으로 조회해 `ccusage weekly`/`monthly` CLI와 정확히 일치. 환율은 `curl`로 open.er-api.com(키 불필요) 호출 + 폴백 상수(1450). GUI .app PATH 제한 회피용 npm/npx 절대경로 폴백(`run_tsx_script`) + 3단 데이터 폴백(cache→bundle→dev source) 내장 |
 | `file_watcher.rs` | 두 그룹 감시 → 이벤트 emit. **WorkLog 그룹** (`~/.claude/work-log`, `agent-memory`) → `file-changed`. **ClaudeSystem 그룹** — `~/.claude/{agents,commands,rules,settings.json}` symlink + `~/qjc-office/dotclaude/{agents,commands,rules,reference/agent-pipeline.md}` SSOT 실경로 (notify가 symlink target 미추적 회피) → `claude-system-changed` (1초 디바운스). DashboardView + AgentOfficeView 양쪽 리스너로 실시간 갱신 |
 | `session_watcher.rs` | `~/.claude/projects/*/` 에서 최신 JSONL 세션 파일 tail → `session-event` 이벤트 emit |
 
@@ -86,3 +86,7 @@ NSMenu: TrendChartView(14일 막대) + ParallelGaugeView(병렬 게이지) NSVie
 - LaunchAgent KeepAlive=true → 새 빌드 반영은 본체 PID `kill`로 자동 재시작.
 
 데이터 모델: `DayPoint{date,cost,tokens}` 배열(recent7/14Days)이 일별 추이 차트·리스트 공유 소스. NSMenu에 `TrendChartView`/`DailyRowView`/`ParallelGaugeView` NSView 임베드(`NSMenuItem.view`).
+
+주간·월간·환율 (2026-06-20): `runCcusage()`가 `runCcusageRaw(subcommand)`로 daily+weekly+monthly를 **순차 호출**(isFetching 가드 → 좀비 방지)하여 native CLI와 일치하는 이번 주(월요일 시작)·이번 달(YYYY-MM)·전체 누적(monthly totals)을 산출. 실패 시 daily 파생 폴백. `fetchUsdKrwRate()`가 open.er-api.com 라이브 환율 + UserDefaults 12h 캐시 + 폴백 1450으로 USD→KRW 변환(`formatKRW`/`formatKRWShort`). 드롭다운 비용 항목·롤링 슬롯에 `$` + `₩` 병기. (본체 앱은 동일 데이터를 Tauri 커맨드 3개로 **병렬** 호출 — `use-global-token-stats.ts` + `buildTokenStats`, 환율은 `use-usd-krw-rate.ts`.)
+
+모델·제공자 추적 (codex, 2026-06-20): 양쪽 표면이 ccusage 엔트리의 `modelBreakdowns[]`에서 이번 달 모델별 비용을 추출해 **제공자별(Claude/Codex/Gemini/…)** 로 그룹핑. `providerOf`(claude→Claude, gpt-*·*codex→Codex, gemini→Gemini)로 분류 — codex(GPT) 가시 추적. TS: `token-aggregation.ts`(`providerOf`/`modelLabel`/`aggregateModels`/`aggregateProviders`/`PROVIDER_COLOR`) → `UsageView` "모델별 사용량" 패널(ProviderChips + ModelBar). Swift: `parseModelBreakdown`+`ModelRowView`(드롭다운) + 롤링 "코덱스 $X" 슬롯. native monthly 엔트리의 modelBreakdowns 우선, 없으면 이번 달 daily 집계.
