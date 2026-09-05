@@ -1997,7 +1997,8 @@ final class StatusMenuDashboardView: NSView {
         isMeasuringTeamClaude: Bool,
         teamClaudeMeasureDetail: String?,
         onMeasureTeamClaude: (() -> Void)?,
-        onReauthenticateTeamClaude: ((String, String?) -> Void)? = nil
+        onReauthenticateTeamClaude: ((String, String?) -> Void)? = nil,
+        onRecoverTeamCodex: ((String, String?, TeamCodexAccountRecoveryKind) -> Void)? = nil
     ) {
         subviews.removeAll()
         renderedAccountCount = teamClaude?.accounts.count ?? 0
@@ -2041,6 +2042,7 @@ final class StatusMenuDashboardView: NSView {
             view.health = codex
             view.pool = teamCodex
             view.usage = usage
+            view.onRecover = onRecoverTeamCodex
             addSubview(view)
             codexView = view
             y += codexHeight + 4
@@ -2065,7 +2067,8 @@ final class StatusMenuDashboardView: NSView {
         isMeasuringTeamClaude: Bool,
         teamClaudeMeasureDetail: String?,
         onMeasureTeamClaude: (() -> Void)?,
-        onReauthenticateTeamClaude: ((String, String?) -> Void)? = nil
+        onReauthenticateTeamClaude: ((String, String?) -> Void)? = nil,
+        onRecoverTeamCodex: ((String, String?, TeamCodexAccountRecoveryKind) -> Void)? = nil
     ) {
         let accountCount = teamClaude?.accounts.count ?? 0
         let usageHeight = UsageDashboardView.preferredHeight(for: usage)
@@ -2086,7 +2089,8 @@ final class StatusMenuDashboardView: NSView {
                 isMeasuringTeamClaude: isMeasuringTeamClaude,
                 teamClaudeMeasureDetail: teamClaudeMeasureDetail,
                 onMeasureTeamClaude: onMeasureTeamClaude,
-                onReauthenticateTeamClaude: onReauthenticateTeamClaude
+                onReauthenticateTeamClaude: onReauthenticateTeamClaude,
+                onRecoverTeamCodex: onRecoverTeamCodex
             )
             return
         }
@@ -2099,6 +2103,7 @@ final class StatusMenuDashboardView: NSView {
         codexView?.health = codex
         codexView?.pool = teamCodex
         codexView?.usage = usage
+        codexView?.onRecover = onRecoverTeamCodex
         usageView?.usage = usage
         usageView?.parallelCount = parallelCount
         usageView?.active = active
@@ -2503,6 +2508,36 @@ func resolveTeamClaudeExecutable() -> String {
     return "teamclaude"
 }
 
+/// codex 하위 명령은 teamcodex 진입점으로만 보낸다.
+/// 이 호스트에는 후보 경로 어디에도 `teamclaude` 실행 파일이 없다(2026-09-06 실측:
+/// `~/.local/bin`·fnm·homebrew·/usr/local 전부 부재). 그래서 codex 명령을
+/// `resolveTeamClaudeExecutable()`로 보내면 리터럴 "teamclaude"로 떨어져
+/// command not found로 죽는다. teamcodex는 `~/.local/bin/teamcodex`와
+/// fnm 설치본으로 실재하며 codex 풀 CLI를 담당한다.
+func resolveTeamCodexExecutable() -> String {
+    let home = NSHomeDirectory()
+    var candidates = [
+        "\(home)/.local/bin/teamcodex",
+        "\(home)/.local/share/fnm/aliases/default/bin/teamcodex",
+        "/opt/homebrew/bin/teamcodex",
+        "/usr/local/bin/teamcodex",
+    ]
+    let fnmVersions = "\(home)/.local/share/fnm/node-versions"
+    if let versions = try? FileManager.default.contentsOfDirectory(atPath: fnmVersions) {
+        let installed = versions.compactMap { version -> (String, Date)? in
+            let path = "\(fnmVersions)/\(version)/installation/bin/teamcodex"
+            guard FileManager.default.isExecutableFile(atPath: path) else { return nil }
+            let modified = (try? FileManager.default.attributesOfItem(atPath: path)[.modificationDate] as? Date) ?? .distantPast
+            return (path, modified)
+        }.sorted { $0.1 > $1.1 }.map(\.0)
+        candidates.append(contentsOf: installed)
+    }
+    for candidate in candidates where FileManager.default.isExecutableFile(atPath: candidate) {
+        return candidate
+    }
+    return resolveTeamClaudeExecutable()
+}
+
 func teamClaudeConfigSignature() -> String {
     let path = "\(NSHomeDirectory())/.config/teamclaude.json"
     let modifiedAt = (try? FileManager.default.attributesOfItem(atPath: path)[.modificationDate] as? Date)?
@@ -2532,6 +2567,18 @@ struct TeamCodexConfiguredAccount: Equatable {
     let name: String
     let accountUuid: String?
     let enabled: Bool
+    /// teamcodex.json의 `type`/`provider`. 프록시가 꺼져 config-only 행으로 떨어지는
+    /// 바로 그 순간이 계정을 다시 켜고 싶은 순간이므로, 계정 종류를 여기서도 들고 간다.
+    var accountType: String? = nil
+    var providerName: String? = nil
+
+    /// 비교 기준은 토폴로지(이름·UUID·on/off)뿐이다. 계정 종류는 수렴 판정
+    /// (`teamCodexTopologyMatches`)의 기준이 아니므로 동등성에서 뺀다.
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.name == rhs.name
+            && lhs.accountUuid == rhs.accountUuid
+            && lhs.enabled == rhs.enabled
+    }
 }
 
 struct TeamCodexConfigSnapshot: Equatable {
@@ -2590,7 +2637,9 @@ func teamCodexConfigSnapshot(home: String = NSHomeDirectory()) -> TeamCodexConfi
         return TeamCodexConfiguredAccount(
             name: name,
             accountUuid: tcString(row["accountUuid"]) ?? tcString(row["accountId"]),
-            enabled: tcBool(row["enabled"]) ?? true
+            enabled: tcBool(row["enabled"]) ?? true,
+            accountType: tcString(row["type"]),
+            providerName: tcString(row["provider"])
         )
     }
     let topology = rows.enumerated().map { index, row in
@@ -2679,7 +2728,9 @@ func teamCodexPoolHealth(
                 inflight: 0,
                 maxConcurrent: 0,
                 totalRequests: 0,
-                totalTokens: 0
+                totalTokens: 0,
+                accountType: configured.accountType,
+                providerName: configured.providerName
             )
         }
         return TeamCodexPoolAccount(
@@ -2702,7 +2753,9 @@ func teamCodexPoolHealth(
             totalTokens: live.totalTokens,
             subscriptionState: live.subscriptionState,
             subscriptionEndsAt: live.subscriptionEndsAt,
-            planType: live.planType
+            planType: live.planType,
+            accountType: live.accountType,
+            providerName: live.providerName
         )
     }
     let accountNames = Set(accounts.filter(\.enabled).map(\.name))
@@ -2955,6 +3008,13 @@ func teamClaudeTerminalCommand(
     let successCommand = codexMode
         ? nil
         : "launchctl kickstart -k gui/$(id -u)/com.qjc.teamclaude || \(quotedExe) restart"
+    // codex 경로는 서버를 다시 띄우지 않는다(successCommand가 없다).
+    // `codex enable`은 실행 중 서버에 라이브 리로드되지 않아 CLI가 바로 위에
+    // "Apply the change with: teamcodex restart"를 찍는다. 앱이 그 줄을
+    // "자동 반영됩니다"로 덮으면 사용자는 재시작을 건너뛰고 반영 안 된 상태로 남는다.
+    let closingNote = codexMode
+        ? "완료 후 위 실행 결과를 확인하세요 · 반영되지 않으면 teamcodex restart가 필요합니다."
+        : "완료되면 상태바에 자동 반영됩니다."
     var commands = [
         "clear",
         "echo \(shellQuote("\(product): \(commandTitle)"))",
@@ -2966,7 +3026,7 @@ func teamClaudeTerminalCommand(
     }
     commands.append(contentsOf: [
         "echo",
-        "echo \(shellQuote("완료되면 상태바에 자동 반영됩니다."))",
+        "echo \(shellQuote(closingNote))",
         "read -n 1 -s -r -p \(shellQuote("닫으려면 아무 키나 누르세요"))",
     ])
     return commands.joined(separator: "; ")
@@ -3240,6 +3300,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             onMeasureTeamClaude: { [weak self] in self?.measureTeamClaudeAction() },
             onReauthenticateTeamClaude: { [weak self] name, accountUuid in
                 self?.reauthenticateTeamClaudeAccount(name, expectedAccountUuid: accountUuid)
+            },
+            onRecoverTeamCodex: { [weak self] name, accountUuid, kind in
+                self?.recoverTeamCodexAccount(name, expectedAccountUuid: accountUuid, kind: kind)
             }
         )
         dashboard.needsDisplay = true
@@ -3622,6 +3685,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             onMeasureTeamClaude: { [weak self] in self?.measureTeamClaudeAction() },
             onReauthenticateTeamClaude: { [weak self] name, accountUuid in
                 self?.reauthenticateTeamClaudeAccount(name, expectedAccountUuid: accountUuid)
+            },
+            onRecoverTeamCodex: { [weak self] name, accountUuid, kind in
+                self?.recoverTeamCodexAccount(name, expectedAccountUuid: accountUuid, kind: kind)
             }
         )
 
@@ -3712,6 +3778,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             onMeasureTeamClaude: { [weak self] in self?.measureTeamClaudeAction() },
             onReauthenticateTeamClaude: { [weak self] name, accountUuid in
                 self?.reauthenticateTeamClaudeAccount(name, expectedAccountUuid: accountUuid)
+            },
+            onRecoverTeamCodex: { [weak self] name, accountUuid, kind in
+                self?.recoverTeamCodexAccount(name, expectedAccountUuid: accountUuid, kind: kind)
             }
         )
         openDashboardView = dashboard
@@ -3940,7 +4009,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func openTeamClaudeTerminal(commandTitle: String, arguments: [String], codexMode: Bool = false) {
-        let exe = resolveTeamClaudeExecutable()
+        let exe = codexMode ? resolveTeamCodexExecutable() : resolveTeamClaudeExecutable()
         let command = teamClaudeTerminalCommand(
             executable: exe,
             commandTitle: commandTitle,
@@ -4116,6 +4185,48 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             arguments: arguments
         )
         watchTeamClaudeConfigAfterExternalCommand(reason: "reauth \(name)")
+    }
+
+    /// 풀에서 빠진 Codex 계정을 그 자리에서 되돌린다.
+    /// 화면의 행은 낡았을 수 있으므로 인자를 그대로 믿지 않고 현재 상태에서 다시 판정한다.
+    func recoverTeamCodexAccount(
+        _ name: String,
+        expectedAccountUuid: String?,
+        kind: TeamCodexAccountRecoveryKind
+    ) {
+        let accounts = currentTeamCodex?.accounts ?? []
+        let candidates = accounts.filter { row in
+            expectedAccountUuid.map { row.accountUuid == $0 } ?? (row.name == name)
+        }
+        guard candidates.count == 1,
+              let row = candidates.first,
+              row.name == name,
+              let recovery = teamCodexAccountRecovery(row),
+              recovery.kind == kind else {
+            print("TEAMCODEX-RECOVER: stale or ineligible account (kind=\(kind))")
+            fflush(stdout)
+            return
+        }
+        // enable은 CLI가 이름으로만 계정을 찾는다(--account-uuid 없음).
+        // 같은 이름이 둘이면 어느 쪽이 바뀔지 알 수 없으므로 실행하지 않는다.
+        if recovery.kind == .enable, accounts.filter({ $0.name == name }).count != 1 {
+            print("TEAMCODEX-RECOVER: ambiguous account name for enable")
+            fflush(stdout)
+            return
+        }
+        let title = recovery.kind == .enable
+            ? "Codex 계정 다시 켜기"
+            : "Codex OAuth 재인증"
+        openTeamClaudeTerminal(
+            commandTitle: title,
+            arguments: recovery.arguments,
+            codexMode: true
+        )
+        // 별도 감시를 걸지 않는다. teamcodex.json 구성 변경은 tick()의
+        // observeTeamCodexConfigChanges()가 1초마다, 프록시 status 변화는 statusTimer가
+        // 10초마다 이미 본다. 재인증은 토폴로지를 바꾸지 않으므로 status 폴링이 담당한다.
+        print("TEAMCODEX-RECOVER: \(recovery.kind) 명령 실행, 설정·상태 감시로 반영 대기")
+        fflush(stdout)
     }
 
     @objc func addCodexOAuthAccountAction() {
@@ -4365,6 +4476,22 @@ if CommandLine.arguments.contains("--teamcodex-dashboard-selftest") {
     legacyConfigState.seed(legacyA)
     precondition(legacyConfigState.observe(legacyB) == 1)
 
+    let typedConfigData = try JSONSerialization.data(withJSONObject: [
+        "accounts": [[
+            "name": "typed",
+            "accountUuid": "typed-uuid",
+            "type": "oauth",
+            "provider": "codex",
+            "enabled": false,
+        ]],
+    ])
+    try typedConfigData.write(to: legacyConfigURL)
+    guard let typedSnapshot = teamCodexConfigSnapshot(home: legacyHome.path) else {
+        preconditionFailure("A typed TeamCodex config must produce a snapshot")
+    }
+    precondition(typedSnapshot.accounts.first?.accountType == "oauth")
+    precondition(typedSnapshot.accounts.first?.providerName == "codex")
+
     var convergenceCoordinator = TeamCodexConfigRefreshCoordinator()
     precondition(convergenceCoordinator.request(generation: 1))
     precondition(convergenceCoordinator.shouldContinue(generation: 1))
@@ -4391,6 +4518,41 @@ if CommandLine.arguments.contains("--teamcodex-dashboard-selftest") {
         codexMode: false
     )
     precondition(claudeLoginCommand.contains("exit_code=$?"))
+    // codex 명령은 서버를 다시 띄우지 않는다. CLI가 "teamcodex restart"를 요구하는 줄을
+    // 찍는 바로 그 화면에서 앱이 "자동 반영됩니다"라고 덮어쓰면 안 된다.
+    precondition(!codexLoginCommand.contains("완료되면 상태바에 자동 반영됩니다."))
+    precondition(codexLoginCommand.contains("teamcodex restart가 필요합니다"))
+    precondition(claudeLoginCommand.contains("완료되면 상태바에 자동 반영됩니다."))
+    let codexEnableCommand = teamClaudeTerminalCommand(
+        executable: "/tmp/teamcodex",
+        commandTitle: "Codex 계정 다시 켜기",
+        arguments: ["codex", "enable", "off@example.com"],
+        codexMode: true
+    )
+    precondition(!codexEnableCommand.contains("완료되면 상태바에 자동 반영됩니다."))
+    precondition(codexEnableCommand.contains("teamcodex restart가 필요합니다"))
+
+    // 프록시가 꺼져 config-only 행으로 떨어져도 다시 켜기 버튼이 살아 있어야 한다.
+    // 오프라인인 순간이 바로 계정을 다시 켜고 싶은 순간이다.
+    let offlineSnapshot = TeamCodexConfigSnapshot(
+        signature: 700,
+        accounts: [
+            TeamCodexConfiguredAccount(
+                name: "off@example.com",
+                accountUuid: "uuid-off",
+                enabled: false,
+                accountType: "oauth",
+                providerName: "codex"
+            ),
+        ]
+    )
+    let offlineAligned = teamCodexPoolHealth(aligning: pool(0), to: offlineSnapshot)
+    precondition(offlineAligned.accounts.count == 1)
+    precondition(offlineAligned.accounts[0].accountType == "oauth")
+    precondition(offlineAligned.accounts[0].providerName == "codex")
+    precondition(offlineAligned.accounts[0].status == "disabled")
+    precondition(teamCodexAccountRecovery(offlineAligned.accounts[0])?.kind == .enable)
+    precondition(teamCodexTopologyMatches(snapshot: offlineSnapshot, pool: offlineAligned))
 
     for (liveCount, configuredCount) in [(0, 1), (4, 5), (5, 4), (8, 0)] {
         let configured = snapshot(configuredCount, signature: configuredCount)
@@ -4480,7 +4642,71 @@ if CommandLine.arguments.contains("--teamcodex-dashboard-selftest") {
     precondition(duplicateUuid.currentAccount == nil)
     precondition(duplicateUuid.currentAccountUuid == nil)
 
-    print("TEAMCODEX-DASHBOARD-SELFTEST: transitions, missing config, legacy accountId replacement, single-flight convergence, shell, UUID/legacy/mixed/duplicate-name/duplicate-UUID identity, 0...32 heights passed")
+    print("TEAMCODEX-DASHBOARD-SELFTEST: transitions, missing config, legacy accountId replacement, typed config-only recovery, terminal follow-up wording, single-flight convergence, shell, UUID/legacy/mixed/duplicate-name/duplicate-UUID identity, 0...32 heights passed")
+    exit(0)
+}
+
+// 진단: 실제 프록시·설정 데이터로 되돌리기 버튼이 어느 행 어느 좌표에 앉는지 출력한다.
+// 좌표를 문서에 손으로 적지 않고 실측하기 위한 출력이다(그리기 경로와 같은 layout()을 쓴다).
+if let recoveryLayoutIndex = CommandLine.arguments.firstIndex(of: "--teamcodex-recovery-layout") {
+    // 화면과 같은 데이터를 본다. commitTeamCodexHealth와 마찬가지로 설정 파일에 정렬한다.
+    let live = loadTeamCodexPoolHealth()
+    let pool = teamCodexConfigSnapshot().map {
+        teamCodexPoolHealth(aligning: live, to: $0)
+    } ?? live
+    let view = CodexStatusView(frame: NSRect(
+        x: 0,
+        y: 0,
+        width: StatusMenuDashboardView.preferredWidth,
+        height: CodexStatusView.preferredHeight(for: pool)
+    ))
+    view.pool = pool
+    view.layoutSubtreeIfNeeded()
+    let buttons = view.subviews.compactMap { $0 as? NSButton }
+    let noteFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+    print("TEAMCODEX-RECOVERY-LAYOUT: width=\(Int(StatusMenuDashboardView.preferredWidth)) reachable=\(pool.serverReachable) accounts=\(pool.accounts.count) buttons=\(buttons.count)")
+    for (index, account) in pool.accounts.enumerated() {
+        let state = teamCodexAccountStatusLabel(
+            account,
+            switchThresholdPercent: pool.switchThresholdPercent,
+            now: pool.checkedAt
+        )
+        guard let recovery = teamCodexAccountRecovery(account, now: pool.checkedAt) else {
+            print("  [\(index)] \(account.name) | \(state) | 버튼 없음")
+            continue
+        }
+        let button = buttons.first { $0.accessibilityLabel() == recovery.accessibilityLabel }
+        let frame = button?.frame ?? .zero
+        let titleWidth = recovery.title.size(withAttributes: [
+            .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
+        ]).width
+        let noteWidth = recovery.followUpNote.map {
+            $0.size(withAttributes: [.font: noteFont]).width
+        } ?? 0
+        let drawsResetCountdown = !account.isPermanentlyOut(now: pool.checkedAt)
+        print("  [\(index)] \(account.name) | \(state) | \(recovery.kind) \"\(recovery.title)\" | x=\(Int(frame.minX)) y=\(Int(frame.minY)) w=\(Int(frame.width)) h=\(Int(frame.height)) 제목폭=\(Int(titleWidth.rounded())) | 보조줄=\(recovery.followUpNote == nil ? "없음" : "폭 \(Int(noteWidth.rounded()))") 카운트다운=\(drawsResetCountdown ? "그림" : "안그림")")
+    }
+    // 경로를 주면 같은 뷰를 PNG로 남긴다. 로컬 사용량(38GB 세션 로그 스캔)은 부르지 않으므로
+    // 풀 표만 즉시 렌더된다 — 버튼과 보조줄이 실제로 겹치지 않는지 눈으로 확인하는 용도다.
+    if CommandLine.arguments.indices.contains(recoveryLayoutIndex + 1) {
+        let outputPath = CommandLine.arguments[recoveryLayoutIndex + 1]
+        guard let representation = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
+            fputs("TEAMCODEX-RECOVERY-LAYOUT: bitmap 생성 실패\n", stderr)
+            exit(1)
+        }
+        view.cacheDisplay(in: view.bounds, to: representation)
+        guard let data = representation.representation(using: .png, properties: [:]) else {
+            fputs("TEAMCODEX-RECOVERY-LAYOUT: PNG 변환 실패\n", stderr)
+            exit(1)
+        }
+        do {
+            try data.write(to: URL(fileURLWithPath: outputPath), options: .atomic)
+            print("TEAMCODEX-RECOVERY-LAYOUT: \(outputPath)")
+        } catch {
+            fputs("TEAMCODEX-RECOVERY-LAYOUT: \(error)\n", stderr)
+            exit(1)
+        }
+    }
     exit(0)
 }
 

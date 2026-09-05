@@ -48,6 +48,10 @@ struct TeamCodexPoolAccount {
     /// 구독 종료(예정) 시각. 프록시는 ISO8601 문자열로 준다.
     var subscriptionEndsAt: Date? = nil
     var planType: String? = nil
+    /// 프록시 status·teamcodex.json의 `type` (oauth 등). 재인증은 oauth 계정만 대상으로 한다.
+    var accountType: String? = nil
+    /// 프록시 status·teamcodex.json의 `provider` (codex). 다른 풀 계정에 codex 명령을 쏘지 않기 위한 가드.
+    var providerName: String? = nil
 
     /// 구독이 확정적으로 끝난 계정. 기다려도 돌아오지 않는다.
     /// `end-date-reached`는 여기 넣지 않는다 — 프록시는 그 상태를 "확인 안 된 종료"로 보고
@@ -332,6 +336,110 @@ func teamCodexAccountNote(
     return "구독 종료 예정 · " + formatTeamCodexResetRemaining(endsAt, now: now)
 }
 
+/// 풀에서 빠진 계정을 그 자리에서 되돌리는 방법.
+enum TeamCodexAccountRecoveryKind {
+    /// 운영자가 꺼 둔 계정을 다시 켠다.
+    case enable
+    /// 인증이 끊긴 계정의 자격증명을 다시 연결한다.
+    case reauth
+}
+
+/// 버튼이 지어낼 수 있는 문자열을 없애기 위해 제목·실행 인자·설명을 한 값으로 묶는다.
+struct TeamCodexAccountRecovery: Equatable {
+    let kind: TeamCodexAccountRecoveryKind
+    let title: String
+    /// teamcodex CLI 인자. 앞에 `codex`가 붙어 Codex 풀로만 간다.
+    let arguments: [String]
+    let accessibilityLabel: String
+    let toolTip: String
+    /// 눌러도 실행 중 서버에 바로 반영되지 않을 수 있는 경우에만 채운다.
+    let followUpNote: String?
+}
+
+/// 다시 켠 계정이 실행 중 서버에 즉시 반영된다는 보장이 없다.
+/// CLI는 워커에 SIGHUP을 시도하고, 실패하면 "Apply the change with: teamcodex restart"를 찍는다.
+let teamCodexEnableFollowUpNote = "다시 켠 뒤 터미널 안내를 확인하세요 · 반영되지 않으면 teamcodex restart"
+
+/// 꺼져 있으면서 인증까지 깨진 계정. 다시 켜도 빨간 상태가 남는다는 사실을 먼저 말한다.
+/// (다시 켜기 전에는 CLI reauth가 disabled 계정을 거부하므로 버튼은 여전히 "다시 켜기" 하나뿐이다.)
+let teamCodexEnableThenReauthFollowUpNote = "다시 켠 뒤에도 인증 오류면 재인증이 필요합니다 · 반영은 teamcodex restart"
+
+/// 계정 한 줄에 어떤 되돌리기 버튼을 붙일지 정한다. 붙일 것이 없으면 nil.
+///
+/// 판정 근거는 전부 실제 CLI 동작이다(운영 아티팩트 6b538222 `reauth.js` / `index.js`):
+/// - `findReauthTarget`은 `type !== 'oauth'`, 다른 provider, `enabled === false`,
+///   `subscriptionDisabled`를 각각 거부한다. 그래서 여기서도 같은 조건을 먼저 막는다.
+/// - `canReauthenticateTuiAccount`(프록시 자체 TUI 게이트)는 `subscription-disabled`와
+///   `subscription-ended`를 함께 재인증 대상에서 뺀다. 구독이 끝난 계정은 다시 로그인해도
+///   돌아오지 않으므로 같은 판단을 따른다(패널 보조줄도 이미 "돌아오지 않음"이라고 쓴다).
+/// - `enable`은 CLI가 이름으로만 계정을 찾는다(`--account-uuid` 없음).
+///
+/// `now`는 구독 종료 판정(`isSubscriptionRetired`)으로만 넘어간다. 지금 그 판정은 `state`와
+/// `errorReason`만 보므로 실제로 시각에 의존하지 않는다. 그래도 호출부(뷰·핸들러)가 집계와
+/// 같은 시각을 넘기는 규약을 지키도록 파라미터는 유지한다.
+/// 재인증으로는 풀리지 않는 오류 사유.
+/// - `subscription-disabled`: 조직이 막았다(Claude 표도 같은 이유로 제외한다).
+/// - `send-failed`: 업스트림 전송 실패다. 자격증명 문제가 아니라서 상태 칸은 "송신실패"라고
+///   쓰는데 버튼만 "재인증"이라고 처방하면 서로 모순되고, 멀쩡한 계정으로 로그인을 완주하게 된다.
+func teamCodexReauthCannotFix(_ errorReason: String?) -> Bool {
+    errorReason == "subscription-disabled" || errorReason == "send-failed"
+}
+
+func teamCodexAccountRecovery(
+    _ account: TeamCodexPoolAccount,
+    now: Date = Date()
+) -> TeamCodexAccountRecovery? {
+    // 계정 종류를 모르면 아무것도 제안하지 않는다. 설정 파일과 프록시 status 모두 `type`을 준다.
+    guard (account.accountType ?? "").lowercased() == "oauth" else { return nil }
+    guard (account.providerName ?? "codex").lowercased() == "codex" else { return nil }
+
+    // 구독이 끝난 계정: 다시 켜도, 다시 연결해도 돌아오지 않는다.
+    if account.isSubscriptionRetired(now: now) { return nil }
+
+    // 꺼 둔 계정은 인증 상태와 무관하게 "다시 켜기"가 먼저다.
+    // CLI reauth가 disabled 계정을 거부하므로 순서를 바꾸면 실패할 명령을 띄우게 된다.
+    if !account.enabled {
+        // 상태 칸에 빨간 인증 오류가 그대로 보이는데 버튼은 노란 "다시 켜기" 하나뿐인 조합.
+        // 켠 뒤에도 빨간 상태가 남는 이유를 여기서 미리 말해 둔다.
+        // 단 조직 차단·송신 실패는 재인증으로 풀리지 않으므로 "켠 뒤 재인증" 약속을 하지 않는다.
+        // 켜고 나면 아래 게이트가 재인증 버튼을 아예 안 주기 때문에 지키지 못할 말이 된다.
+        let hasAuthIssue = (account.errorReason != nil || account.status == "error")
+            && !teamCodexReauthCannotFix(account.errorReason)
+        let followUpNote = hasAuthIssue
+            ? teamCodexEnableThenReauthFollowUpNote
+            : teamCodexEnableFollowUpNote
+        return TeamCodexAccountRecovery(
+            kind: .enable,
+            title: "다시 켜기",
+            arguments: ["codex", "enable", account.name],
+            accessibilityLabel: "다시 켜기: \(account.name)",
+            toolTip: "\(account.name) 계정을 다시 풀에 넣습니다. \(followUpNote)",
+            followUpNote: followUpNote
+        )
+    }
+
+    // 재인증으로 풀리지 않는 사유는 버튼을 주지 않는다.
+    if teamCodexReauthCannotFix(account.errorReason) { return nil }
+
+    // 고칠 것이 있는 계정만 재인증을 제안한다. 한도소진·종료확인중·정상은 대상이 아니다.
+    guard account.status == "error" || account.errorReason != nil else { return nil }
+
+    // 자격증명을 덮어쓰는 명령이라 신원이 확인된 행에서만 실행한다.
+    // 이름만으로도 CLI가 중복을 거부하긴 하지만, 덮어쓰기는 되돌리기 어려우므로 여기서 먼저 막는다.
+    guard let accountUuid = account.accountUuid, !accountUuid.isEmpty else { return nil }
+
+    // 낱말은 Claude 풀 표의 같은 버튼("재인증 필요")과 맞춘다. 한 창에서 두 표를 보는 사람이
+    // 같은 동작에 두 낱말을 배우게 하지 않는다(버튼 폭은 양쪽 다 이 제목이 들어간다).
+    return TeamCodexAccountRecovery(
+        kind: .reauth,
+        title: "재인증 필요",
+        arguments: ["codex", "reauth", account.name, "--account-uuid", accountUuid],
+        accessibilityLabel: "재인증 필요: \(account.name)",
+        toolTip: "\(account.name) 계정의 Codex 인증을 다시 연결합니다.",
+        followUpNote: nil
+    )
+}
+
 private func teamCodexAccounts(
     from rows: [[String: Any]],
     currentAccount: String?,
@@ -382,7 +490,9 @@ private func teamCodexAccounts(
                 : inputTokens + outputTokens,
             subscriptionState: teamCodexString(subscription["state"]),
             subscriptionEndsAt: teamCodexTimestamp(subscription["endsAt"]),
-            planType: teamCodexString(row["planType"])
+            planType: teamCodexString(row["planType"]),
+            accountType: teamCodexString(row["type"]),
+            providerName: teamCodexString(row["provider"])
         )
     }
 }

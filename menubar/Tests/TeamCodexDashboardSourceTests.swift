@@ -52,14 +52,49 @@ struct TeamCodexDashboardSourceTests {
         precondition(
             source.contains("teamClaudeCanReauthenticate(")
                 && source.contains("button.title = \"재인증 필요\"")
-                && source.contains("onReauthenticateTeamClaude")
-                && source.contains("setAccessibilityElement(false)"),
+                && source.contains("onReauthenticateTeamClaude"),
             "The graphical TeamClaude table must expose eligible re-auth buttons in the accessibility tree"
         )
         precondition(
             source.contains("expectedAccountUuid: accountUuid")
                 && source.contains("--account-uuid"),
             "The re-auth action must carry the selected account UUID to the CLI"
+        )
+        // Claude 재인증과 같은 강도로 Codex 되돌리기 "배선"도 고정한다.
+        // 순수 함수만 덮으면 콜백 한 줄이 지워져도 테스트가 전부 통과한 채 버튼만 죽는다.
+        precondition(
+            codexStatusView.contains("var onRecover: ((String, String?, TeamCodexAccountRecoveryKind) -> Void)?")
+                && codexStatusView.contains("teamCodexAccountRecovery(account, now: pool.checkedAt)")
+                && codexStatusView.contains("addSubview(button)")
+                && codexStatusView.contains("onRecover?(target.name, target.accountUuid, target.kind)"),
+            "The Codex pool table must build recovery buttons and report clicks through onRecover"
+        )
+        precondition(
+            source.contains("view.onRecover = onRecoverTeamCodex")
+                && source.contains("codexView?.onRecover = onRecoverTeamCodex")
+                && source.contains("self?.recoverTeamCodexAccount(name, expectedAccountUuid: accountUuid, kind: kind)"),
+            "Both the first render and the update path must wire the Codex recovery callback"
+        )
+        let recoverTeamCodex = try functionBody(
+            named: "    func recoverTeamCodexAccount(",
+            endingBefore: "\n    @objc func addCodexOAuthAccountAction()",
+            in: source
+        )
+        precondition(
+            recoverTeamCodex.contains("teamCodexAccountRecovery(row)")
+                && recoverTeamCodex.contains("recovery.kind == kind")
+                && recoverTeamCodex.contains("codexMode: true"),
+            "The Codex recovery action must re-verify the live row and run through the teamcodex entrypoint"
+        )
+        let terminalCommand = try functionBody(
+            named: "func teamClaudeTerminalCommand(",
+            endingBefore: "\nclass AppDelegate",
+            in: source
+        )
+        precondition(
+            terminalCommand.contains("teamcodex restart가 필요합니다")
+                && terminalCommand.contains("let closingNote = codexMode"),
+            "A codex-mode terminal must not overwrite the CLI restart warning with an auto-apply promise"
         )
         let isolatedProcess = try functionBody(
             named: "func runTrustedProcessInIsolatedGroup(",
@@ -99,7 +134,7 @@ struct TeamCodexDashboardSourceTests {
             "Timeout cleanup must signal an unreaped, isolated process group without PID lookups"
         )
 
-        print("TeamCodexDashboardSourceTests: 9 passed, 0 failed")
+        print("TeamCodexDashboardSourceTests: 13 passed, 0 failed")
     }
 
     private static func functionBody(

@@ -599,6 +599,31 @@ struct TeamCodexPoolStatusTests {
         precondition(servingPool.poolCount == 1)
         precondition(servingPool.excludedCount == 0)
 
+        // 회귀 가드(2026-09-06 리뷰): 조직이 막은 계정을 운영자가 추가로 꺼 둔 조합.
+        // 다시 켜기는 주되, 켠 뒤에도 재인증 버튼은 영영 안 나오므로 "켠 뒤 재인증" 약속을 하지 않는다.
+        func recovery(enabled: Bool, status: String, errorReason: String?) -> TeamCodexAccountRecovery? {
+            let a = TeamCodexPoolAccount(
+                name: "acct", accountUuid: "uuid-acct", isCurrent: false,
+                enabled: enabled, status: status, errorReason: errorReason,
+                usableFromProxy: nil, sessionPercent: 0, sessionResetAt: nil,
+                weeklyPercent: 0, weeklyResetAt: nil, inflight: 0, maxConcurrent: 3,
+                totalRequests: 0, totalTokens: 0,
+                accountType: "oauth", providerName: "codex"
+            )
+            return teamCodexAccountRecovery(a, now: checkedAt)
+        }
+        let blockedAndOff = recovery(enabled: false, status: "error", errorReason: "subscription-disabled")
+        precondition(blockedAndOff?.kind == .enable)
+        precondition(blockedAndOff?.followUpNote == teamCodexEnableFollowUpNote)
+        precondition(!(blockedAndOff?.toolTip.contains("재인증") ?? true))
+        // 켠 뒤에는 재인증 버튼이 아예 없다 — 위 안내가 지킬 수 없는 약속이 아니어야 한다
+        precondition(recovery(enabled: true, status: "error", errorReason: "subscription-disabled") == nil)
+        // 송신 실패는 자격증명 문제가 아니다: 재인증을 처방하지 않는다
+        precondition(recovery(enabled: true, status: "error", errorReason: "send-failed") == nil)
+        let offWithAuthError = recovery(enabled: false, status: "error", errorReason: "auth-revoked")
+        precondition(offWithAuthError?.kind == .enable)
+        precondition(offWithAuthError?.followUpNote == teamCodexEnableThenReauthFollowUpNote)
+
         // errorReason 라벨: 구독 종료는 결함이 아니다
         precondition(teamAccountErrorReasonLabel("subscription-ended") == "구독종료")
 
@@ -636,6 +661,194 @@ struct TeamCodexPoolStatusTests {
         precondition(loadedLayout.poolY == loadingLayout.poolY)
         precondition(loadedLayout.metricsY == 168)
 
-        print("TeamCodexPoolStatusTests: 125 passed, 0 failed")
+        // ── 되돌리기 버튼 자격 판정 ───────────────────────────────────────────
+        // 실제 CLI(운영 아티팩트 6b538222)가 거부하는 조합에는 버튼을 붙이지 않는다.
+        func recoveryAccount(
+            name: String = "codex-account",
+            accountUuid: String? = "11111111-2222-3333-4444-555555555555",
+            enabled: Bool = true,
+            status: String = "active",
+            errorReason: String? = nil,
+            usableFromProxy: Bool? = nil,
+            sessionPercent: Double? = nil,
+            weeklyPercent: Double? = nil,
+            subscriptionState: String? = "active",
+            subscriptionEndsAt: Date? = nil,
+            accountType: String? = "oauth",
+            providerName: String? = "codex"
+        ) -> TeamCodexPoolAccount {
+            TeamCodexPoolAccount(
+                name: name,
+                accountUuid: accountUuid,
+                isCurrent: false,
+                enabled: enabled,
+                status: status,
+                errorReason: errorReason,
+                usableFromProxy: usableFromProxy,
+                sessionPercent: sessionPercent,
+                sessionResetAt: nil,
+                weeklyPercent: weeklyPercent,
+                weeklyResetAt: nil,
+                inflight: 0,
+                maxConcurrent: 3,
+                totalRequests: 0,
+                totalTokens: 0,
+                subscriptionState: subscriptionState,
+                subscriptionEndsAt: subscriptionEndsAt,
+                planType: "pro",
+                accountType: accountType,
+                providerName: providerName
+            )
+        }
+
+        let recoveryNow = Date(timeIntervalSince1970: 1_788_700_000)
+
+        // 운영자가 끈 계정 → 다시 켜기 (CLI enable은 이름만 받는다)
+        let offAccount = recoveryAccount(name: "off@example.com", enabled: false, status: "disabled")
+        let offRecovery = teamCodexAccountRecovery(offAccount, now: recoveryNow)
+        precondition(offRecovery?.kind == .enable)
+        precondition(offRecovery?.title == "다시 켜기")
+        precondition(offRecovery?.arguments == ["codex", "enable", "off@example.com"])
+        precondition(offRecovery?.followUpNote == teamCodexEnableFollowUpNote)
+        precondition(offRecovery?.accessibilityLabel == "다시 켜기: off@example.com")
+
+        // 꺼져 있으면서 인증까지 깨진 계정도 "다시 켜기"가 먼저다.
+        // CLI reauth는 disabled 계정을 거부하므로 순서를 바꾸면 실패할 명령을 띄우게 된다.
+        let offBrokenRecovery = teamCodexAccountRecovery(
+            recoveryAccount(enabled: false, status: "disabled", errorReason: "auth-revoked"),
+            now: recoveryNow
+        )
+        precondition(offBrokenRecovery?.kind == .enable)
+        // 상태 칸은 빨간 "인증만료"인데 버튼은 노란 "다시 켜기" 하나뿐인 조합.
+        // 보조줄이 "켜도 인증 문제가 남는다"를 먼저 말해야 한다.
+        precondition(offBrokenRecovery?.followUpNote == teamCodexEnableThenReauthFollowUpNote)
+        precondition(offBrokenRecovery?.toolTip.contains("재인증이 필요합니다") == true)
+        precondition(teamCodexEnableThenReauthFollowUpNote != teamCodexEnableFollowUpNote)
+
+        // 인증 오류 → 재인증. uuid를 붙여 신원을 고정한다.
+        let brokenRecovery = teamCodexAccountRecovery(
+            recoveryAccount(name: "broken@example.com", status: "error", errorReason: "auth-revoked"),
+            now: recoveryNow
+        )
+        precondition(brokenRecovery?.kind == .reauth)
+        // 낱말은 Claude 풀 표의 같은 버튼과 맞춘다("재인증 필요").
+        precondition(brokenRecovery?.title == "재인증 필요")
+        precondition(brokenRecovery?.accessibilityLabel == "재인증 필요: broken@example.com")
+        precondition(brokenRecovery?.arguments == [
+            "codex",
+            "reauth",
+            "broken@example.com",
+            "--account-uuid",
+            "11111111-2222-3333-4444-555555555555",
+        ])
+        precondition(brokenRecovery?.followUpNote == nil)
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(status: "error", errorReason: "refresh-failed"),
+            now: recoveryNow
+        )?.kind == .reauth)
+
+        // uuid 없는 행: 자격증명 덮어쓰기는 신원이 확인될 때만
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(accountUuid: nil, status: "error", errorReason: "auth-revoked"),
+            now: recoveryNow
+        ) == nil)
+        // 같은 행이라도 끄기/켜기는 되돌릴 수 있어 uuid 없이도 제안한다.
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(accountUuid: nil, enabled: false, status: "disabled"),
+            now: recoveryNow
+        )?.kind == .enable)
+
+        // 조직 차단 → 재인증으로 풀리지 않는다 (Claude 표와 같은 판단)
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(status: "error", errorReason: "subscription-disabled"),
+            now: recoveryNow
+        ) == nil)
+
+        // 구독 종료 → 다시 로그인해도 돌아오지 않는다.
+        // 프록시 자체 TUI 게이트(canReauthenticateTuiAccount)도 subscription-ended를 뺀다.
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(status: "error", errorReason: "subscription-ended", subscriptionState: "ended"),
+            now: recoveryNow
+        ) == nil)
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(
+                enabled: false,
+                status: "error",
+                errorReason: "subscription-ended",
+                subscriptionState: "ended"
+            ),
+            now: recoveryNow
+        ) == nil)
+
+        // 정상·한도소진·종료확인중: 고칠 것이 없으므로 버튼도 없다
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(usableFromProxy: true),
+            now: recoveryNow
+        ) == nil)
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(status: "exhausted", sessionPercent: 100),
+            now: recoveryNow
+        ) == nil)
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(status: "throttled"),
+            now: recoveryNow
+        ) == nil)
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(
+                subscriptionState: "end-date-reached",
+                subscriptionEndsAt: recoveryNow.addingTimeInterval(-3600)
+            ),
+            now: recoveryNow
+        ) == nil)
+
+        // oauth가 아니거나 다른 풀의 계정이면 codex 명령을 쏘지 않는다
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(status: "error", errorReason: "auth-revoked", accountType: "api-key"),
+            now: recoveryNow
+        ) == nil)
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(enabled: false, status: "disabled", accountType: nil),
+            now: recoveryNow
+        ) == nil)
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(status: "error", errorReason: "auth-revoked", providerName: "anthropic"),
+            now: recoveryNow
+        ) == nil)
+        // provider가 비어 있는 구 status는 codex 풀로 본다(이 패널은 codex 풀만 그린다)
+        precondition(teamCodexAccountRecovery(
+            recoveryAccount(status: "error", errorReason: "auth-revoked", providerName: nil),
+            now: recoveryNow
+        )?.kind == .reauth)
+
+        // 실제 payload에서 type/provider가 실려 온다 (프록시 status는 두 필드를 함께 준다)
+        let typedFixture: [String: Any] = [
+            "switchThreshold": 1.0,
+            "accounts": [
+                [
+                    "name": "typed@example.com",
+                    "accountUuid": "typed-uuid",
+                    "type": "oauth",
+                    "provider": "codex",
+                    "status": "active",
+                    "enabled": false,
+                    "inflight": 0,
+                    "maxConcurrent": 3,
+                    "quota": [:],
+                    "usage": [:],
+                ],
+            ],
+        ]
+        let typedHealth = try teamCodexPoolHealth(
+            from: try JSONSerialization.data(withJSONObject: typedFixture),
+            port: 3457,
+            serverPid: nil,
+            checkedAt: recoveryNow
+        )
+        precondition(health.accounts[0].accountType == nil)
+        precondition(typedHealth.accounts[0].accountType == "oauth")
+        precondition(typedHealth.accounts[0].providerName == "codex")
+        precondition(teamCodexAccountRecovery(typedHealth.accounts[0], now: recoveryNow)?.kind == .enable)
+
+        print("TeamCodexPoolStatusTests: 168 passed, 0 failed")
     }
 }

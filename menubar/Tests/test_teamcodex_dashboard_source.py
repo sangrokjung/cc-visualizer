@@ -34,7 +34,7 @@ class TeamCodexDashboardSourceTests(unittest.TestCase):
             timeout=30,
         )
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn("9 passed, 0 failed", result.stdout)
+        self.assertIn("13 passed, 0 failed", result.stdout)
 
     def test_process_tree_identity_behavior(self):
         subprocess.run(

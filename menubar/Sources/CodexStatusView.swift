@@ -22,9 +22,16 @@ final class CodexStatusView: NSView {
     var pool: TeamCodexPoolHealth? {
         didSet {
             updateAccessibility()
+            needsLayout = true
             needsDisplay = true
         }
     }
+    /// 풀에서 빠진 계정을 되돌리는 버튼을 눌렀을 때. 실행 인자는 넘기지 않는다.
+    /// 누른 시점의 행이 낡았을 수 있으므로 호출부가 현재 상태에서 다시 판정한다.
+    var onRecover: ((String, String?, TeamCodexAccountRecoveryKind) -> Void)?
+    private var recoveryButtons: [NSButton] = []
+    private var recoveryTargets: [ObjectIdentifier: (name: String, accountUuid: String?, kind: TeamCodexAccountRecoveryKind)] = [:]
+    private var recoverySignature = ""
     var usage: UsageData? {
         didSet { needsDisplay = true }
     }
@@ -32,6 +39,12 @@ final class CodexStatusView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
+        // 되돌리기 버튼을 자식으로 두는 표라 컨테이너를 접근성 요소로 잡지 않는다.
+        // 쌍둥이인 TeamClaudeTableView가 같은 이유로 false를 쓴다. 두 표의
+        // VoiceOver 도달성이 갈리지 않도록 낱말뿐 아니라 이 설정도 맞춘다.
+        // 컨테이너를 요소로 유지한다. 패널 본문은 전부 draw() 텍스트라 AX 트리에 없고,
+        // updateAccessibility()가 여기 붙이는 요약문이 유일한 낭독 대상이다.
+        // true여도 NSButton 자식은 그대로 노출된다(2026-09-06 실측).
         setAccessibilityElement(true)
         setAccessibilityRole(.group)
         setAccessibilityLabel("Codex 상태")
@@ -45,6 +58,86 @@ final class CodexStatusView: NSView {
         let codexSummary = health?.accessibilitySummary ?? "Codex 상태"
         let poolSummary = pool.map { ", \($0.accessibilitySummary)" } ?? ""
         setAccessibilityLabel(codexSummary + poolSummary)
+    }
+
+    /// 행별 되돌리기 제안. 그리기와 배치가 같은 판정을 쓰도록 한 곳에서만 만든다.
+    private func recoveryRows() -> [(index: Int, recovery: TeamCodexAccountRecovery, name: String, accountUuid: String?)] {
+        guard let pool else { return [] }
+        return pool.accounts.enumerated().compactMap { index, account in
+            guard let recovery = teamCodexAccountRecovery(account, now: pool.checkedAt) else { return nil }
+            return (index, recovery, account.name, account.accountUuid)
+        }
+    }
+
+    private func ensureRecoveryButtons() {
+        let rows = recoveryRows()
+        let signature = rows
+            .map { "\($0.index):\($0.recovery.kind):\($0.name):\($0.accountUuid ?? "-")" }
+            .joined(separator: "|")
+        guard signature != recoverySignature else { return }
+        recoverySignature = signature
+        recoveryButtons.forEach { $0.removeFromSuperview() }
+        recoveryButtons.removeAll(keepingCapacity: true)
+        recoveryTargets.removeAll(keepingCapacity: true)
+        for row in rows {
+            let button = NSButton(frame: .zero)
+            button.title = row.recovery.title
+            button.bezelStyle = .rounded
+            button.isBordered = true
+            button.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+            button.contentTintColor = row.recovery.kind == .reauth
+                ? NSColor(calibratedRed: 0.96, green: 0.26, blue: 0.32, alpha: 1.0)
+                : NSColor(calibratedRed: 0.93, green: 0.76, blue: 0.22, alpha: 1.0)
+            button.setAccessibilityLabel(row.recovery.accessibilityLabel)
+            button.setAccessibilityHelp(row.recovery.toolTip)
+            button.toolTip = row.recovery.toolTip
+            button.target = self
+            button.action = #selector(recoveryButtonClicked(_:))
+            recoveryButtons.append(button)
+            recoveryTargets[ObjectIdentifier(button)] = (row.name, row.accountUuid, row.recovery.kind)
+            addSubview(button)
+        }
+    }
+
+    @objc private func recoveryButtonClicked(_ sender: NSButton) {
+        guard let target = recoveryTargets[ObjectIdentifier(sender)] else { return }
+        onRecover?(target.name, target.accountUuid, target.kind)
+    }
+
+    /// draw(_:)의 풀 표와 같은 좌표를 쓴다. 두 곳이 어긋나면 버튼이 남의 행에 붙는다.
+    private func poolTableRect() -> NSRect? {
+        guard let pool else { return nil }
+        let card = bounds.insetBy(dx: 8, dy: 4)
+        let layout = codexStatusLayout(
+            topY: Double(card.minY + 14),
+            poolHeight: Double(Self.poolSectionHeight(for: pool)),
+            hasPool: true,
+            localUsageLoaded: health != nil
+        )
+        return NSRect(
+            x: card.minX + 16,
+            y: CGFloat(layout.poolY),
+            width: card.width - 32,
+            height: Self.poolSectionHeight(for: pool)
+        )
+    }
+
+    override func layout() {
+        super.layout()
+        ensureRecoveryButtons()
+        guard let poolRect = poolTableRect() else { return }
+        // 마지막 칸(토큰, +720)을 버튼이 통째로 쓴다. 같은 행의 토큰 값은 draw에서 건너뛴다.
+        let buttonX = poolRect.minX + 720
+        let buttonWidth = max(60, poolRect.maxX - 12 - buttonX)
+        let headerY = poolRect.minY + 36
+        for (button, row) in zip(recoveryButtons, recoveryRows()) {
+            button.frame = NSRect(
+                x: buttonX,
+                y: headerY + 22 + CGFloat(row.index) * 36 + 6,
+                width: buttonWidth,
+                height: 22
+            )
+        }
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -162,6 +255,8 @@ final class CodexStatusView: NSView {
                     now: pool.checkedAt
                 )
                 let quotaBlocked = accountState == .limited
+                // 되돌리기 버튼은 토큰 칸 자리에 앉는다. 그리기와 배치가 같은 판정을 봐야 한다.
+                let recovery = teamCodexAccountRecovery(account, now: pool.checkedAt)
                 // 영구 제외(구독 종료·수동 제외)는 가장 조용하게, 일시 한도는 노랑, 진짜 오류는 빨강.
                 let accountTone: NSColor
                 switch accountState {
@@ -189,16 +284,28 @@ final class CodexStatusView: NSView {
                 ) {
                     drawText(note, poolRect.minX + 12, rowY + 17, smallFont, dim)
                 }
+                // 다시 켜도 실행 중 서버에 바로 반영된다는 보장이 없다. 그 사실을 행에서 말한다.
+                // 이 문자열은 상태 칸(+250)에서 시작해 5시간(+355)·7일(+445) 보조줄 자리를 지난다.
+                // 그래서 초기화 카운트다운을 그리지 않는 행에서만 쓴다. 두 텍스트를 한 줄에 겹쳐
+                // 그리느니 안내를 접는 편이 낫다(버튼 툴팁과 터미널 마지막 줄이 같은 말을 한다).
+                let drawsResetCountdown = !account.isPermanentlyOut(now: pool.checkedAt)
+                if let followUp = recovery?.followUpNote, !drawsResetCountdown {
+                    drawText(followUp, poolRect.minX + 250, rowY + 17, smallFont, dim)
+                }
                 drawText(formatCodexPercent(account.sessionPercent), poolRect.minX + 355, rowY, rowFont, limitTone(account.sessionPercent))
                 drawText(formatCodexPercent(account.weeklyPercent), poolRect.minX + 445, rowY, rowFont, limitTone(account.weeklyPercent))
                 // 돌아오지 않는 계정에 초기화 카운트다운을 그리면 "곧 복귀"로 오해된다.
-                if !account.isPermanentlyOut(now: pool.checkedAt) {
+                if drawsResetCountdown {
                     drawText(formatTeamCodexResetRemaining(account.sessionResetAt), poolRect.minX + 355, rowY + 17, smallFont, quotaBlocked ? accountTone : dim)
                     drawText(formatTeamCodexResetRemaining(account.weeklyResetAt), poolRect.minX + 445, rowY + 17, smallFont, dim)
                 }
                 drawText("\(account.inflight)/\(account.maxConcurrent)", poolRect.minX + 530, rowY, rowFont, muted)
                 drawText("\(account.totalRequests)", poolRect.minX + 620, rowY, rowFont, muted)
-                drawText(formatCodexTokens(account.totalTokens), poolRect.minX + 720, rowY, rowFont, muted)
+                // 마지막 칸은 버튼과 자리를 나눠 쓴다. 고장 난 계정의 누적 토큰보다
+                // 되돌리는 방법이 먼저다(Claude 표도 같은 자리를 버튼에 내준다).
+                if recovery == nil {
+                    drawText(formatCodexTokens(account.totalTokens), poolRect.minX + 720, rowY, rowFont, muted)
+                }
             }
         }
 
