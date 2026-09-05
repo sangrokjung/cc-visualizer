@@ -146,6 +146,9 @@ struct TeamClaudeAccountHealth {
     let enabled: Bool
     let isUsable: Bool
     let status: String
+    var errorReason: String? = nil
+    var provider: String? = nil
+    var accountUuid: String? = nil
     let source: String?
     let totalTokens: Int
     let totalRequests: Int
@@ -256,6 +259,8 @@ func teamClaudeConfiguredRows(_ config: [String: Any]?) -> [TeamClaudeAccountHea
             enabled: tcBool(account["enabled"]) ?? true,
             isUsable: false,
             status: "configured",
+            provider: tcString(account["provider"]),
+            accountUuid: tcString(account["accountUuid"]),
             source: tcString(account["source"]) ?? tcString(account["type"]),
             totalTokens: 0,
             totalRequests: 0,
@@ -375,23 +380,16 @@ func runTeamClaudeBareClaudeProbe(port: Int, apiKey: String?, model: String) -> 
     process.standardOutput = nullOut
     process.standardError = nullOut
 
-    do {
-        try process.run()
-    } catch {
+    guard let result = runTrustedProcessInIsolatedGroup(
+        process,
+        timeoutSeconds: 45,
+        terminationGraceMicroseconds: 700_000
+    ) else {
         nullOut?.closeFile()
         return nil
     }
-
-    let pid = process.processIdentifier
-    DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 45) {
-        if process.isRunning {
-            terminateProcessTree(rootPid: pid, signal: SIGTERM)
-        }
-    }
-
-    process.waitUntilExit()
     nullOut?.closeFile()
-    return process.terminationStatus
+    return result.terminationStatus
 }
 
 func stripClaudeModelSuffix(_ model: String) -> String {
@@ -569,6 +567,9 @@ func loadTeamClaudeHealth() -> TeamClaudeHealth {
             enabled: enabled,
             isUsable: isUsable,
             status: status,
+            errorReason: tcString(account["errorReason"]),
+            provider: tcString(account["provider"]),
+            accountUuid: tcString(account["accountUuid"]),
             source: tcString(account["source"]) ?? tcString(account["type"]),
             totalTokens: totalTokens,
             totalRequests: teamClaudeBoundedCount(
@@ -713,6 +714,9 @@ func teamClaudeRetainingQuota(
             enabled: account.enabled,
             isUsable: account.isUsable,
             status: account.status,
+            errorReason: account.errorReason,
+            provider: account.provider,
+            accountUuid: account.accountUuid,
             source: account.source,
             totalTokens: account.totalTokens,
             totalRequests: account.totalRequests,
@@ -841,6 +845,9 @@ func teamClaudeAccountMergingQuota(
         enabled: candidate.enabled,
         isUsable: isUsable,
         status: candidate.status,
+        errorReason: candidate.errorReason,
+        provider: candidate.provider,
+        accountUuid: candidate.accountUuid,
         source: candidate.source,
         totalTokens: candidate.totalTokens,
         totalRequests: candidate.totalRequests,
@@ -1006,79 +1013,172 @@ func runCcusageRaw(_ subcommand: String) -> Data? {
         return nil
     }
     process.standardOutput = writeHandle
-    process.standardError = Pipe() // stderr는 작아서 pipe OK
-
-    do {
-        try process.run()
-    } catch {
-        print("CCUSAGE-FAIL[\(subcommand)]: 실행 실패 — \(error.localizedDescription)")
-        fflush(stdout)
+    guard let nullError = FileHandle(forWritingAtPath: "/dev/null") else {
         writeHandle.closeFile()
         return nil
     }
+    process.standardError = nullError
 
-    let pid = process.processIdentifier
-    let deadline = DispatchTime.now() + .seconds(60)
-    DispatchQueue.global(qos: .utility).asyncAfter(deadline: deadline) {
-        if process.isRunning {
-            terminateProcessTree(rootPid: pid, signal: SIGTERM)
-            usleep(700_000)
-            if process.isRunning {
-                terminateProcessTree(rootPid: pid, signal: SIGKILL)
-            }
-            print("CCUSAGE-TIMEOUT[\(subcommand)]: 60초 초과, 강제 종료")
-            fflush(stdout)
-        }
+    guard let result = runTrustedProcessInIsolatedGroup(
+        process,
+        timeoutSeconds: 60,
+        terminationGraceMicroseconds: 700_000
+    ) else {
+        print("CCUSAGE-FAIL[\(subcommand)]: 격리 프로세스 실행 실패")
+        fflush(stdout)
+        writeHandle.closeFile()
+        nullError.closeFile()
+        return nil
     }
-
-    process.waitUntilExit()
+    if result.timedOut {
+        print("CCUSAGE-TIMEOUT[\(subcommand)]: 60초 초과, 강제 종료")
+        fflush(stdout)
+    }
     writeHandle.closeFile()
+    nullError.closeFile()
 
     let data = (try? Data(contentsOf: URL(fileURLWithPath: tmpPath))) ?? Data()
     try? FileManager.default.removeItem(atPath: tmpPath)
-    print("CCUSAGE[\(subcommand)]: exit=\(process.terminationStatus) bytes=\(data.count)")
+    print("CCUSAGE[\(subcommand)]: exit=\(result.terminationStatus) bytes=\(data.count)")
     fflush(stdout)
 
-    guard process.terminationStatus == 0, !data.isEmpty else { return nil }
+    guard result.terminationStatus == 0, !data.isEmpty else { return nil }
     return data
 }
 
-func processTreePids(rootPid: Int32) -> [Int32] {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/bin/ps")
-    process.arguments = ["-axo", "pid=,ppid="]
-    let pipe = Pipe()
-    process.standardOutput = pipe
-    process.standardError = Pipe()
-    do { try process.run() } catch { return [rootPid] }
-    process.waitUntilExit()
-
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    guard let output = String(data: data, encoding: .utf8) else { return [rootPid] }
-
-    var childrenByParent: [Int32: [Int32]] = [:]
-    for line in output.split(separator: "\n") {
-        let parts = line.split(separator: " ").compactMap { Int32($0) }
-        if parts.count == 2 {
-            childrenByParent[parts[1], default: []].append(parts[0])
-        }
-    }
-
-    var result: [Int32] = []
-    func visit(_ pid: Int32) {
-        for child in childrenByParent[pid] ?? [] {
-            visit(child)
-            result.append(child)
-        }
-    }
-    visit(rootPid)
-    result.append(rootPid)
-    return result
+struct IsolatedProcessResult {
+    let terminationStatus: Int32
+    let timedOut: Bool
 }
 
-func terminateProcessTree(rootPid: Int32, signal: Int32) {
-    for pid in processTreePids(rootPid: rootPid) {
-        _ = Darwin.kill(pid, signal)
+private func withOwnedCStringArray<Result>(
+    _ values: [String],
+    _ body: (UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>) -> Result
+) -> Result {
+    var pointers: [UnsafeMutablePointer<CChar>?] = values.map { strdup($0) }
+    pointers.append(nil)
+    defer {
+        for case let pointer? in pointers {
+            free(pointer)
+        }
+    }
+    return pointers.withUnsafeMutableBufferPointer { buffer in
+        body(buffer.baseAddress!)
+    }
+}
+
+private func decodedWaitStatus(_ status: Int32) -> Int32 {
+    let terminatingSignal = status & 0x7f
+    if terminatingSignal == 0 {
+        return (status >> 8) & 0xff
+    }
+    return 128 + terminatingSignal
+}
+
+private func childHasExitedWithoutReaping(_ pid: pid_t) -> Bool? {
+    var info = siginfo_t()
+    let result = waitid(
+        P_PID,
+        UInt32(bitPattern: pid),
+        &info,
+        WEXITED | WNOHANG | WNOWAIT
+    )
+    if result == 0 {
+        return info.si_pid == pid
+    }
+    return errno == EINTR ? false : nil
+}
+
+private func reapChild(_ pid: pid_t) -> Int32? {
+    var status: Int32 = 0
+    while true {
+        let result = waitpid(pid, &status, 0)
+        if result == pid { return decodedWaitStatus(status) }
+        if result == -1, errno == EINTR { continue }
+        return nil
+    }
+}
+
+/// `setsid`/`setpgid`로 의도적으로 탈출하지 않는 QJC 고정 CLI만 실행합니다.
+func runTrustedProcessInIsolatedGroup(
+    _ process: Process,
+    timeoutSeconds: Double,
+    terminationGraceMicroseconds: useconds_t
+) -> IsolatedProcessResult? {
+    guard let executableURL = process.executableURL,
+          executableURL.isFileURL,
+          let standardOutput = process.standardOutput as? FileHandle,
+          let standardError = process.standardError as? FileHandle else { return nil }
+
+    var fileActions: posix_spawn_file_actions_t?
+    guard posix_spawn_file_actions_init(&fileActions) == 0 else { return nil }
+    defer { posix_spawn_file_actions_destroy(&fileActions) }
+    guard posix_spawn_file_actions_adddup2(
+        &fileActions,
+        standardOutput.fileDescriptor,
+        STDOUT_FILENO
+    ) == 0,
+    posix_spawn_file_actions_adddup2(
+        &fileActions,
+        standardError.fileDescriptor,
+        STDERR_FILENO
+    ) == 0 else { return nil }
+
+    var attributes: posix_spawnattr_t?
+    guard posix_spawnattr_init(&attributes) == 0 else { return nil }
+    defer { posix_spawnattr_destroy(&attributes) }
+    let spawnFlags = Int16(POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_CLOEXEC_DEFAULT)
+    guard posix_spawnattr_setflags(&attributes, spawnFlags) == 0,
+          posix_spawnattr_setpgroup(&attributes, 0) == 0 else { return nil }
+
+    let executable = executableURL.path
+    let arguments = [executable] + (process.arguments ?? [])
+    let environment = (process.environment ?? ProcessInfo.processInfo.environment)
+        .sorted { $0.key < $1.key }
+        .map { "\($0.key)=\($0.value)" }
+    var childPid: pid_t = 0
+    let spawnResult = executable.withCString { executablePointer in
+        withOwnedCStringArray(arguments) { argumentPointers in
+            withOwnedCStringArray(environment) { environmentPointers in
+                posix_spawn(
+                    &childPid,
+                    executablePointer,
+                    &fileActions,
+                    &attributes,
+                    argumentPointers,
+                    environmentPointers
+                )
+            }
+        }
+    }
+    guard spawnResult == 0, childPid > 0 else { return nil }
+
+    let timeoutNanoseconds = UInt64(max(timeoutSeconds, 0) * 1_000_000_000)
+    let startedAt = DispatchTime.now().uptimeNanoseconds
+    while DispatchTime.now().uptimeNanoseconds - startedAt < timeoutNanoseconds {
+        guard let hasExited = childHasExitedWithoutReaping(childPid) else {
+            _ = Darwin.killpg(childPid, SIGKILL)
+            return reapChild(childPid).map {
+                IsolatedProcessResult(terminationStatus: $0, timedOut: false)
+            }
+        }
+        if hasExited {
+            return reapChild(childPid).map {
+                IsolatedProcessResult(terminationStatus: $0, timedOut: false)
+            }
+        }
+        usleep(50_000)
+    }
+
+    // childPid는 직접 자식이며 여기까지 waitpid로 회수하지 않았습니다. 따라서
+    // process group ID가 재사용되기 전에 TERM/KILL을 같은 그룹에 안전하게 보낼 수 있습니다.
+    _ = Darwin.killpg(childPid, SIGTERM)
+    if terminationGraceMicroseconds > 0 {
+        usleep(terminationGraceMicroseconds)
+    }
+    _ = Darwin.killpg(childPid, SIGKILL)
+    return reapChild(childPid).map {
+        IsolatedProcessResult(terminationStatus: $0, timedOut: true)
     }
 }
 
@@ -1500,26 +1600,95 @@ final class TeamClaudeTableView: NSView {
             let total = max(health.accountTotal, health.accountConfigured)
             setAccessibilityLabel("TeamClaude, 활성 \(health.accountActive)/\(total), 라우팅 가능 \(health.accountUsable), 계정 연동 불일치 \(health.accountConfigDrift), 측정 필요 \(health.measurementPendingCount), 상태 확인 \(health.measurementUnavailableCount), 사용 한도 \(health.quotaLimitedCount), Fable 경고 \(health.fableOver), 상태 \(health.statusLabel)")
             setAccessibilityHelp(health.measurementPendingCount > 0 ? "Return 키를 누르면 미측정 계정을 지금 측정합니다." : nil)
+            needsLayout = true
             needsDisplay = true
         }
     }
     var isMeasuring = false { didSet { needsDisplay = true } }
     var measurementDetail: String? { didSet { needsDisplay = true } }
     var onMeasure: (() -> Void)?
+    var onReauthenticate: ((String, String?) -> Void)?
     private var measureActionRect = NSRect.zero
     private var measureRowRects: [NSRect] = []
+    private var reauthButtons: [NSButton] = []
+    private var reauthButtonTargets: [ObjectIdentifier: (name: String, accountUuid: String?)] = [:]
+    private var reauthSignature = ""
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        setAccessibilityElement(true)
-        setAccessibilityRole(.group)
-        setAccessibilityLabel("TeamClaude 상태")
+        setAccessibilityElement(false)
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    private func reauthenticationRows() -> [(index: Int, name: String, accountUuid: String?)] {
+        guard let health else { return [] }
+        return health.accounts.enumerated().compactMap { index, row in
+            teamClaudeCanReauthenticate(
+                enabled: row.enabled,
+                status: row.status,
+                source: row.source,
+                provider: row.provider,
+                errorReason: row.errorReason
+            ) ? (index, row.name, row.accountUuid) : nil
+        }
+    }
+
+    private func ensureReauthenticationButtons() {
+        let rows = reauthenticationRows()
+        let signature = rows.map { "\($0.index):\($0.name):\($0.accountUuid ?? "-")" }.joined(separator: "|")
+        guard signature != reauthSignature else { return }
+        reauthSignature = signature
+        reauthButtons.forEach { $0.removeFromSuperview() }
+        reauthButtons.removeAll(keepingCapacity: true)
+        reauthButtonTargets.removeAll(keepingCapacity: true)
+        for row in rows {
+            let button = NSButton(frame: .zero)
+            button.title = "재인증 필요"
+            button.bezelStyle = .rounded
+            button.isBordered = true
+            button.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+            button.contentTintColor = NSColor(calibratedRed: 0.96, green: 0.26, blue: 0.32, alpha: 1.0)
+            button.setAccessibilityLabel("재인증 필요: \(row.name)")
+            button.setAccessibilityHelp("이 계정으로 Claude OAuth를 다시 인증합니다.")
+            button.toolTip = "\(row.name) 계정 재인증"
+            button.target = self
+            button.action = #selector(reauthenticateButtonClicked(_:))
+            reauthButtons.append(button)
+            reauthButtonTargets[ObjectIdentifier(button)] = (row.name, row.accountUuid)
+            addSubview(button)
+        }
+    }
+
+    @objc private func reauthenticateButtonClicked(_ sender: NSButton) {
+        guard let target = reauthButtonTargets[ObjectIdentifier(sender)] else { return }
+        onReauthenticate?(target.name, target.accountUuid)
+    }
+
+    override func layout() {
+        super.layout()
+        ensureReauthenticationButtons()
+        guard let health else { return }
+        let card = bounds.insetBy(dx: 8, dy: 4)
+        let innerX = card.minX + 16
+        let topY = card.minY + 14
+        let statY = topY + (health.hostSummaryText != nil ? 78 : 58)
+        let tableY = statY + 70
+        let buttonX = innerX + 750
+        let buttonWidth = card.maxX - buttonX - 2
+        let rows = reauthenticationRows()
+        for (button, row) in zip(reauthButtons, rows) {
+            button.frame = NSRect(
+                x: buttonX,
+                y: tableY + 34 + CGFloat(row.index) * 28 + 1,
+                width: buttonWidth,
+                height: 24
+            )
+        }
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -1746,7 +1915,18 @@ final class TeamClaudeTableView: NSView {
             drawText(fbPercent != nil ? percentText(fbPercent) : "측정전", innerX + 620, y + 5, rowFont, fbPercent != nil ? fbColor : muted)
             bar(fbPercent, x: innerX + 682, y: y + 10, width: 48, color: fbColor)
             drawText(formatTeamClaudeDuration(row.fableResetSeconds), innerX + 738, y + 5, smallFont, muted)
-            if let issue = row.measurementIssue {
+            if teamClaudeCanReauthenticate(
+                enabled: row.enabled,
+                status: row.status,
+                source: row.source,
+                provider: row.provider,
+                errorReason: row.errorReason
+            ) {
+                continue
+            } else if row.status == "error" {
+                let reasonText = teamAccountErrorReasonLabel(row.errorReason)
+                drawText(reasonText, innerX + 790, y + 5, smallFont, red)
+            } else if let issue = row.measurementIssue {
                 if issue.canMeasureNow && !isMeasuring {
                     let rowActionRect = NSRect(x: innerX + 780, y: y + 2, width: 58, height: 22)
                     fillRound(rowActionRect, yellow.withAlphaComponent(0.13), 6)
@@ -1816,7 +1996,8 @@ final class StatusMenuDashboardView: NSView {
         active: Bool,
         isMeasuringTeamClaude: Bool,
         teamClaudeMeasureDetail: String?,
-        onMeasureTeamClaude: (() -> Void)?
+        onMeasureTeamClaude: (() -> Void)?,
+        onReauthenticateTeamClaude: ((String, String?) -> Void)? = nil
     ) {
         subviews.removeAll()
         renderedAccountCount = teamClaude?.accounts.count ?? 0
@@ -1834,6 +2015,7 @@ final class StatusMenuDashboardView: NSView {
             view.isMeasuring = isMeasuringTeamClaude
             view.measurementDetail = teamClaudeMeasureDetail
             view.onMeasure = onMeasureTeamClaude
+            view.onReauthenticate = onReauthenticateTeamClaude
             teamClaudeView = view
 
             if contentHeight > height {
@@ -1882,7 +2064,8 @@ final class StatusMenuDashboardView: NSView {
         active: Bool,
         isMeasuringTeamClaude: Bool,
         teamClaudeMeasureDetail: String?,
-        onMeasureTeamClaude: (() -> Void)?
+        onMeasureTeamClaude: (() -> Void)?,
+        onReauthenticateTeamClaude: ((String, String?) -> Void)? = nil
     ) {
         let accountCount = teamClaude?.accounts.count ?? 0
         let usageHeight = UsageDashboardView.preferredHeight(for: usage)
@@ -1902,7 +2085,8 @@ final class StatusMenuDashboardView: NSView {
                 active: active,
                 isMeasuringTeamClaude: isMeasuringTeamClaude,
                 teamClaudeMeasureDetail: teamClaudeMeasureDetail,
-                onMeasureTeamClaude: onMeasureTeamClaude
+                onMeasureTeamClaude: onMeasureTeamClaude,
+                onReauthenticateTeamClaude: onReauthenticateTeamClaude
             )
             return
         }
@@ -1911,6 +2095,7 @@ final class StatusMenuDashboardView: NSView {
         teamClaudeView?.isMeasuring = isMeasuringTeamClaude
         teamClaudeView?.measurementDetail = teamClaudeMeasureDetail
         teamClaudeView?.onMeasure = onMeasureTeamClaude
+        teamClaudeView?.onReauthenticate = onReauthenticateTeamClaude
         codexView?.health = codex
         codexView?.pool = teamCodex
         codexView?.usage = usage
@@ -2343,6 +2528,218 @@ func teamClaudeAccountTopologySignature() -> Int {
     return topology.hashValue
 }
 
+struct TeamCodexConfiguredAccount: Equatable {
+    let name: String
+    let accountUuid: String?
+    let enabled: Bool
+}
+
+struct TeamCodexConfigSnapshot: Equatable {
+    let signature: Int
+    let accounts: [TeamCodexConfiguredAccount]
+}
+
+struct TeamCodexRefreshContext {
+    let generation: Int
+    let configSignature: Int?
+}
+
+struct TeamCodexConfigWatchState {
+    private(set) var signature: Int?
+    private(set) var generation = 0
+
+    mutating func seed(_ snapshot: TeamCodexConfigSnapshot) {
+        signature = snapshot.signature
+    }
+
+    mutating func observe(_ snapshot: TeamCodexConfigSnapshot) -> Int? {
+        guard signature != snapshot.signature else { return nil }
+        signature = snapshot.signature
+        generation += 1
+        return generation
+    }
+
+    func refreshContext(configSignature: Int?) -> TeamCodexRefreshContext {
+        TeamCodexRefreshContext(
+            generation: generation,
+            configSignature: configSignature
+        )
+    }
+
+    func accepts(
+        _ context: TeamCodexRefreshContext,
+        currentConfigSignature: Int?
+    ) -> Bool {
+        context.generation == generation
+            && context.configSignature == currentConfigSignature
+    }
+}
+
+func teamCodexConfigSnapshot(home: String = NSHomeDirectory()) -> TeamCodexConfigSnapshot? {
+    let path = "\(home)/.config/teamcodex.json"
+    guard FileManager.default.fileExists(atPath: path) else {
+        return TeamCodexConfigSnapshot(
+            signature: "missing-teamcodex-config".hashValue,
+            accounts: []
+        )
+    }
+    guard let config = readTeamClaudeJSON(path) else { return nil }
+    let rows = tcArray(config["accounts"]) ?? []
+    let accounts = rows.compactMap { row -> TeamCodexConfiguredAccount? in
+        guard let name = tcString(row["name"]), !name.isEmpty else { return nil }
+        return TeamCodexConfiguredAccount(
+            name: name,
+            accountUuid: tcString(row["accountUuid"]) ?? tcString(row["accountId"]),
+            enabled: tcBool(row["enabled"]) ?? true
+        )
+    }
+    let topology = rows.enumerated().map { index, row in
+        let name = tcString(row["name"]) ?? "unknown"
+        let identity = tcString(row["accountUuid"])
+            ?? tcString(row["accountId"])
+            ?? name
+        let enabled = tcBool(row["enabled"]) ?? true
+        let priority = tcInt(row["priority"]) ?? Int.max
+        return "\(index)|\(identity)|\(name)|\(enabled)|\(priority)"
+    }.joined(separator: ";")
+    return TeamCodexConfigSnapshot(signature: topology.hashValue, accounts: accounts)
+}
+
+func teamCodexTopologyMatches(
+    snapshot: TeamCodexConfigSnapshot,
+    pool: TeamCodexPoolHealth
+) -> Bool {
+    snapshot.accounts == pool.accounts.map {
+        TeamCodexConfiguredAccount(
+            name: $0.name,
+            accountUuid: $0.accountUuid,
+            enabled: $0.enabled
+        )
+    }
+}
+
+func teamCodexPoolHealth(
+    aligning pool: TeamCodexPoolHealth,
+    to snapshot: TeamCodexConfigSnapshot
+) -> TeamCodexPoolHealth {
+    var liveByUuid: [String: TeamCodexPoolAccount] = [:]
+    var liveByName: [String: TeamCodexPoolAccount] = [:]
+    var liveUuidCounts: [String: Int] = [:]
+    var liveNameCounts: [String: Int] = [:]
+    var configuredUuidCounts: [String: Int] = [:]
+    var configuredNameCounts: [String: Int] = [:]
+    for account in snapshot.accounts {
+        if let accountUuid = account.accountUuid {
+            configuredUuidCounts[accountUuid, default: 0] += 1
+        }
+        configuredNameCounts[account.name, default: 0] += 1
+    }
+    for account in pool.accounts {
+        if let accountUuid = account.accountUuid {
+            liveUuidCounts[accountUuid, default: 0] += 1
+            if liveByUuid[accountUuid] == nil {
+                liveByUuid[accountUuid] = account
+            }
+        }
+        liveNameCounts[account.name, default: 0] += 1
+        if liveByName[account.name] == nil {
+            liveByName[account.name] = account
+        }
+    }
+    let accounts = snapshot.accounts.map { configured -> TeamCodexPoolAccount in
+        let configuredUuidIsUnique = configured.accountUuid.map {
+            configuredUuidCounts[$0] == 1
+        } ?? true
+        let uuidCandidate = configured.accountUuid.flatMap { accountUuid in
+            configuredUuidCounts[accountUuid] == 1
+                && liveUuidCounts[accountUuid] == 1
+                ? liveByUuid[accountUuid]
+                : nil
+        }
+        let nameCandidate = liveByName[configured.name]
+        let nameFallbackIsSafe = configuredUuidIsUnique
+            && configuredNameCounts[configured.name] == 1
+            && liveNameCounts[configured.name] == 1
+            && (configured.accountUuid == nil || nameCandidate?.accountUuid == nil)
+        let live = uuidCandidate
+            ?? (nameFallbackIsSafe ? nameCandidate : nil)
+        guard let live else {
+            return TeamCodexPoolAccount(
+                name: configured.name,
+                accountUuid: configured.accountUuid,
+                isCurrent: false,
+                enabled: configured.enabled,
+                status: configured.enabled ? "configured" : "disabled",
+                errorReason: nil,
+                usableFromProxy: nil,
+                sessionPercent: nil,
+                sessionResetAt: nil,
+                weeklyPercent: nil,
+                weeklyResetAt: nil,
+                inflight: 0,
+                maxConcurrent: 0,
+                totalRequests: 0,
+                totalTokens: 0
+            )
+        }
+        return TeamCodexPoolAccount(
+            name: live.name,
+            accountUuid: configured.accountUuid ?? live.accountUuid,
+            isCurrent: live.isCurrent && configured.enabled,
+            enabled: configured.enabled,
+            status: configured.enabled
+                ? (live.status == "disabled" ? "configured" : live.status)
+                : "disabled",
+            errorReason: live.errorReason,
+            usableFromProxy: live.usableFromProxy,
+            sessionPercent: live.sessionPercent,
+            sessionResetAt: live.sessionResetAt,
+            weeklyPercent: live.weeklyPercent,
+            weeklyResetAt: live.weeklyResetAt,
+            inflight: live.inflight,
+            maxConcurrent: live.maxConcurrent,
+            totalRequests: live.totalRequests,
+            totalTokens: live.totalTokens,
+            subscriptionState: live.subscriptionState,
+            subscriptionEndsAt: live.subscriptionEndsAt,
+            planType: live.planType
+        )
+    }
+    let accountNames = Set(accounts.filter(\.enabled).map(\.name))
+    var enabledUuidCounts: [String: Int] = [:]
+    for account in accounts where account.enabled {
+        if let accountUuid = account.accountUuid {
+            enabledUuidCounts[accountUuid, default: 0] += 1
+        }
+    }
+    let currentAccountUuid = pool.currentAccountUuid.flatMap {
+        configuredUuidCounts[$0] == 1
+            && liveUuidCounts[$0] == 1
+            && enabledUuidCounts[$0] == 1
+            ? $0
+            : nil
+    }
+    let currentAccount = pool.currentAccountUuid != nil
+        ? accounts.first { $0.accountUuid == currentAccountUuid }?.name
+        : pool.currentAccount.flatMap {
+            configuredNameCounts[$0] == 1
+                && liveNameCounts[$0] == 1
+                && accountNames.contains($0)
+                ? $0
+                : nil
+        }
+    return TeamCodexPoolHealth(
+        checkedAt: pool.checkedAt,
+        serverReachable: pool.serverReachable,
+        serverPort: pool.serverPort,
+        serverPid: pool.serverPid,
+        currentAccount: currentAccount,
+        currentAccountUuid: currentAccountUuid,
+        switchThresholdPercent: pool.switchThresholdPercent,
+        accounts: accounts
+    )
+}
+
 @discardableResult
 func kickstartTeamClaudeServer() -> Bool {
     let task = Process()
@@ -2377,22 +2774,16 @@ func refreshTeamClaudeOAuthAccounts() -> Int32? {
     process.standardOutput = nullOut
     process.standardError = nullOut
 
-    do {
-        try process.run()
-    } catch {
+    guard let result = runTrustedProcessInIsolatedGroup(
+        process,
+        timeoutSeconds: 45,
+        terminationGraceMicroseconds: 700_000
+    ) else {
         nullOut?.closeFile()
         return nil
     }
-
-    let pid = process.processIdentifier
-    DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 45) {
-        if process.isRunning {
-            terminateProcessTree(rootPid: pid, signal: SIGTERM)
-        }
-    }
-    process.waitUntilExit()
     nullOut?.closeFile()
-    return process.terminationStatus
+    return result.terminationStatus
 }
 
 func shellQuote(_ value: String) -> String {
@@ -2552,6 +2943,35 @@ func isClaudeActive() -> Bool {
     return false
 }
 
+func teamClaudeTerminalCommand(
+    executable: String,
+    commandTitle: String,
+    arguments: [String],
+    codexMode: Bool
+) -> String {
+    let quotedExe = shellQuote(executable)
+    let argString = arguments.map(shellQuote).joined(separator: " ")
+    let product = codexMode ? "TeamCodex" : "TeamClaude"
+    let successCommand = codexMode
+        ? nil
+        : "launchctl kickstart -k gui/$(id -u)/com.qjc.teamclaude || \(quotedExe) restart"
+    var commands = [
+        "clear",
+        "echo \(shellQuote("\(product): \(commandTitle)"))",
+        "\(quotedExe) \(argString)",
+    ]
+    if let successCommand {
+        commands.append("exit_code=$?")
+        commands.append("if [ $exit_code -eq 0 ]; then \(successCommand); fi")
+    }
+    commands.append(contentsOf: [
+        "echo",
+        "echo \(shellQuote("완료되면 상태바에 자동 반영됩니다."))",
+        "read -n 1 -s -r -p \(shellQuote("닫으려면 아무 키나 누르세요"))",
+    ])
+    return commands.joined(separator: "; ")
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem?
     var dataTimer: Timer?       // ccusage 갱신 (60초)
@@ -2581,6 +3001,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var isMeasuringTeamClaude = false
     var teamClaudeMeasureDetail: String?
     var teamClaudeConfigWatchGeneration = 0
+    var teamCodexConfigWatchState = TeamCodexConfigWatchState()
+    var teamCodexConfigRefreshCoordinator = TeamCodexConfigRefreshCoordinator()
     var lastTeamClaudeAutoSyncAt: Date?
     var pendingTeamClaudeForcedSyncReason: String?
     var teamClaudeOutageStartedAt: TimeInterval?
@@ -2603,6 +3025,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         trimLogIfNeeded("\(NSHomeDirectory())/.claude/cache/cc-menubar.log")
+        if let snapshot = teamCodexConfigSnapshot() {
+            teamCodexConfigWatchState.seed(snapshot)
+        }
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem?.button?.toolTip = "Claude Code 사용량 — 좌측 스파크라인은 최근 7일 일별 비용 (오늘=초록). 클릭하면 상세."
@@ -2634,8 +3059,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         if let t = statusTimer { RunLoop.main.add(t, forMode: .common) }
 
-        // 60초마다 ccusage 갱신
-        dataTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
+        // 5분마다 ccusage 갱신
+        dataTimer = Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { [weak self] _ in
             self?.loadUsageInBackground()
         }
         if let t = dataTimer { RunLoop.main.add(t, forMode: .common) }
@@ -2646,6 +3071,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func tick() {
         pulseFrame = (pulseFrame + 1) % pulseFramesActive.count
         tickCount += 1
+        observeTeamCodexConfigChanges()
         // 5초마다 표시 슬롯 전환
         if tickCount % 5 == 0 {
             rollIndex = (rollIndex + 1) % displaySlots().count
@@ -2793,6 +3219,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func refreshOpenDashboard() {
+        if cachedDashboardView != nil, cachedDashboardItem != nil {
+            updateCachedMenuPresentation()
+            if openDashboardView != nil {
+                print("DASHBOARD-REFRESH: 열린 메뉴 최신 상태 반영")
+                fflush(stdout)
+            }
+            return
+        }
         guard let dashboard = cachedDashboardView ?? openDashboardView else { return }
         dashboard.updateContent(
             teamClaude: currentTeamClaude,
@@ -2803,7 +3237,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             active: isActive,
             isMeasuringTeamClaude: isMeasuringTeamClaude,
             teamClaudeMeasureDetail: teamClaudeMeasureDetail,
-            onMeasureTeamClaude: { [weak self] in self?.measureTeamClaudeAction() }
+            onMeasureTeamClaude: { [weak self] in self?.measureTeamClaudeAction() },
+            onReauthenticateTeamClaude: { [weak self] name, accountUuid in
+                self?.reauthenticateTeamClaudeAccount(name, expectedAccountUuid: accountUuid)
+            }
         )
         dashboard.needsDisplay = true
         if openDashboardView != nil {
@@ -2979,18 +3416,46 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func loadTeamCodexStatusInBackground() {
         guard !isRefreshingTeamCodex else { return }
         isRefreshingTeamCodex = true
+        let snapshot = teamCodexConfigSnapshot()
+        let refreshContext = teamCodexConfigWatchState.refreshContext(
+            configSignature: snapshot?.signature
+        )
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let teamCodex = autoreleasepool { loadTeamCodexPoolHealth() }
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                self.currentTeamCodex = teamCodex
                 self.isRefreshingTeamCodex = false
-                self.refreshOpenDashboard()
-                self.updateTitle()
-                print("TEAMCODEX-REFRESH: status=\(teamCodex.statusLabel) accounts=\(teamCodex.accounts.count) current=\(teamCodex.currentAccount ?? "-")")
-                fflush(stdout)
+                self.commitTeamCodexHealth(
+                    teamCodex,
+                    expectedContext: refreshContext
+                )
             }
         }
+    }
+
+    func commitTeamCodexHealth(
+        _ candidate: TeamCodexPoolHealth,
+        expectedContext: TeamCodexRefreshContext? = nil
+    ) {
+        let snapshot = teamCodexConfigSnapshot()
+        if let expectedContext,
+           !teamCodexConfigWatchState.accepts(
+               expectedContext,
+               currentConfigSignature: snapshot?.signature
+           ) {
+            print("TEAMCODEX-STALE: 이전 config 응답 폐기")
+            fflush(stdout)
+            return
+        }
+
+        let aligned = snapshot.map {
+            teamCodexPoolHealth(aligning: candidate, to: $0)
+        } ?? candidate
+        currentTeamCodex = aligned
+        refreshOpenDashboard()
+        updateTitle()
+        print("TEAMCODEX-REFRESH: status=\(aligned.statusLabel) accounts=\(aligned.accounts.count) current=\(aligned.currentAccount ?? "-")")
+        fflush(stdout)
     }
 
     func loadUsageInBackground() {
@@ -3154,7 +3619,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             active: isActive,
             isMeasuringTeamClaude: isMeasuringTeamClaude,
             teamClaudeMeasureDetail: teamClaudeMeasureDetail,
-            onMeasureTeamClaude: { [weak self] in self?.measureTeamClaudeAction() }
+            onMeasureTeamClaude: { [weak self] in self?.measureTeamClaudeAction() },
+            onReauthenticateTeamClaude: { [weak self] name, accountUuid in
+                self?.reauthenticateTeamClaudeAccount(name, expectedAccountUuid: accountUuid)
+            }
         )
 
         let contentHeight = StatusMenuDashboardView.preferredHeight(
@@ -3241,7 +3709,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             active: isActive,
             isMeasuringTeamClaude: isMeasuringTeamClaude,
             teamClaudeMeasureDetail: teamClaudeMeasureDetail,
-            onMeasureTeamClaude: { [weak self] in self?.measureTeamClaudeAction() }
+            onMeasureTeamClaude: { [weak self] in self?.measureTeamClaudeAction() },
+            onReauthenticateTeamClaude: { [weak self] name, accountUuid in
+                self?.reauthenticateTeamClaudeAccount(name, expectedAccountUuid: accountUuid)
+            }
         )
         openDashboardView = dashboard
         cachedDashboardView = dashboard
@@ -3470,26 +3941,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func openTeamClaudeTerminal(commandTitle: String, arguments: [String], codexMode: Bool = false) {
         let exe = resolveTeamClaudeExecutable()
-        let quotedExe = shellQuote(exe)
-        let argString = arguments.map(shellQuote).joined(separator: " ")
-        let product = codexMode ? "TeamCodex" : "TeamClaude"
-        let restart: String
-        if codexMode {
-            let logPath = shellQuote("\(NSHomeDirectory())/.config/teamcodex.log")
-            restart = "\(quotedExe) codex stop; nohup \(quotedExe) codex server </dev/null >> \(logPath) 2>&1 &"
-        } else {
-            restart = "launchctl kickstart -k gui/$(id -u)/com.qjc.teamclaude || \(quotedExe) restart"
-        }
-        let command = [
-            "clear",
-            "echo \(shellQuote("\(product): \(commandTitle)"))",
-            "\(quotedExe) \(argString)",
-            "status=$?",
-            "if [ $status -eq 0 ]; then \(restart); fi",
-            "echo",
-            "echo \(shellQuote("완료되면 상태바 메뉴를 다시 열거나 새로고침을 누르세요."))",
-            "read -n 1 -s -r -p \(shellQuote("닫으려면 아무 키나 누르세요"))",
-        ].joined(separator: "; ")
+        let command = teamClaudeTerminalCommand(
+            executable: exe,
+            commandTitle: commandTitle,
+            arguments: arguments,
+            codexMode: codexMode
+        )
 
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
@@ -3552,6 +4009,78 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    func observeTeamCodexConfigChanges() {
+        guard let snapshot = teamCodexConfigSnapshot(),
+              let generation = teamCodexConfigWatchState.observe(snapshot) else {
+            return
+        }
+        if let currentTeamCodex {
+            self.currentTeamCodex = teamCodexPoolHealth(
+                aligning: currentTeamCodex,
+                to: snapshot
+            )
+            refreshOpenDashboard()
+            updateTitle()
+        }
+        print("TEAMCODEX-WATCH: 계정 구성 변경 감지 generation=\(generation)")
+        fflush(stdout)
+        scheduleTeamCodexConfigConvergence()
+    }
+
+    func scheduleTeamCodexConfigConvergence() {
+        guard let snapshot = teamCodexConfigSnapshot() else { return }
+        let refreshContext = teamCodexConfigWatchState.refreshContext(
+            configSignature: snapshot.signature
+        )
+        guard teamCodexConfigRefreshCoordinator.request(
+            generation: refreshContext.generation
+        ) else {
+            return
+        }
+
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            var teamCodex = autoreleasepool { loadTeamCodexPoolHealth() }
+            for attempt in 0..<12 {
+                let shouldContinue = DispatchQueue.main.sync { [weak self] in
+                    self?.teamCodexConfigRefreshCoordinator.shouldContinue(
+                        generation: refreshContext.generation
+                    ) ?? false
+                }
+                if !shouldContinue {
+                    break
+                }
+                if teamCodexTopologyMatches(snapshot: snapshot, pool: teamCodex) {
+                    break
+                }
+                if attempt < 11 {
+                    Thread.sleep(forTimeInterval: 0.25)
+                    let shouldRetry = DispatchQueue.main.sync { [weak self] in
+                        self?.teamCodexConfigRefreshCoordinator.shouldContinue(
+                            generation: refreshContext.generation
+                        ) ?? false
+                    }
+                    if !shouldRetry {
+                        break
+                    }
+                    teamCodex = autoreleasepool { loadTeamCodexPoolHealth() }
+                }
+            }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                let shouldRunLatest = self.teamCodexConfigRefreshCoordinator.finish(
+                    generation: refreshContext.generation
+                )
+                self.commitTeamCodexHealth(
+                    teamCodex,
+                    expectedContext: refreshContext
+                )
+                if shouldRunLatest {
+                    self.scheduleTeamCodexConfigConvergence()
+                }
+            }
+        }
+    }
+
     @objc func importClaudeCodeAccountAction() {
         openTeamClaudeTerminal(commandTitle: "현재 Claude Code 로그인 계정 가져오기", arguments: ["import"])
         watchTeamClaudeConfigAfterExternalCommand(reason: "import")
@@ -3560,6 +4089,33 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func addClaudeOAuthAccountAction() {
         openTeamClaudeTerminal(commandTitle: "Claude OAuth 계정 추가", arguments: ["login"])
         watchTeamClaudeConfigAfterExternalCommand(reason: "login")
+    }
+
+    func reauthenticateTeamClaudeAccount(_ name: String, expectedAccountUuid: String?) {
+        let candidates = currentTeamClaude?.accounts.filter { row in
+            expectedAccountUuid.map { row.accountUuid == $0 } ?? (row.name == name)
+        } ?? []
+        guard candidates.count == 1,
+              let row = candidates.first,
+              row.name == name,
+              teamClaudeCanReauthenticate(
+                  enabled: row.enabled,
+                  status: row.status,
+                  source: row.source,
+                  provider: row.provider,
+                  errorReason: row.errorReason
+              ) else {
+            print("TEAMCLAUDE-REAUTH: stale or ineligible account \(name)")
+            fflush(stdout)
+            return
+        }
+        var arguments = ["reauth", name]
+        if let expectedAccountUuid { arguments.append(contentsOf: ["--account-uuid", expectedAccountUuid]) }
+        openTeamClaudeTerminal(
+            commandTitle: "Claude OAuth 재인증: \(name)",
+            arguments: arguments
+        )
+        watchTeamClaudeConfigAfterExternalCommand(reason: "reauth \(name)")
     }
 
     @objc func addCodexOAuthAccountAction() {
@@ -3595,6 +4151,338 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 }
 
 // MARK: - 진입점
+
+if CommandLine.arguments.contains("--teamcodex-dashboard-selftest") {
+    func pool(_ count: Int) -> TeamCodexPoolHealth {
+        TeamCodexPoolHealth(
+            checkedAt: Date(),
+            serverReachable: true,
+            serverPort: 3457,
+            serverPid: nil,
+            currentAccount: count > 0 ? "account-0" : nil,
+            currentAccountUuid: count > 0 ? "uuid-0" : nil,
+            switchThresholdPercent: 98,
+            accounts: (0..<count).map { index in
+                TeamCodexPoolAccount(
+                    name: "account-\(index)",
+                    accountUuid: "uuid-\(index)",
+                    isCurrent: index == 0,
+                    enabled: true,
+                    status: index == 0 ? "active" : "available",
+                    errorReason: nil,
+                    usableFromProxy: nil,
+                    sessionPercent: nil,
+                    sessionResetAt: nil,
+                    weeklyPercent: nil,
+                    weeklyResetAt: nil,
+                    inflight: 0,
+                    maxConcurrent: 3,
+                    totalRequests: 0,
+                    totalTokens: 0
+                )
+            }
+        )
+    }
+
+    func snapshot(_ count: Int, signature: Int) -> TeamCodexConfigSnapshot {
+        TeamCodexConfigSnapshot(
+            signature: signature,
+            accounts: (0..<count).map {
+                TeamCodexConfiguredAccount(
+                    name: "account-\($0)",
+                    accountUuid: "uuid-\($0)",
+                    enabled: true
+                )
+            }
+        )
+    }
+
+    func account(
+        _ name: String,
+        uuid: String?,
+        current: Bool = false,
+        requests: Int = 7
+    ) -> TeamCodexPoolAccount {
+        TeamCodexPoolAccount(
+            name: name,
+            accountUuid: uuid,
+            isCurrent: current,
+            enabled: true,
+            status: current ? "active" : "available",
+            errorReason: nil,
+            usableFromProxy: nil,
+            sessionPercent: nil,
+            sessionResetAt: nil,
+            weeklyPercent: nil,
+            weeklyResetAt: nil,
+            inflight: 0,
+            maxConcurrent: 3,
+            totalRequests: requests,
+            totalTokens: 0
+        )
+    }
+
+    func pool(
+        accounts: [TeamCodexPoolAccount],
+        currentAccount: String?,
+        currentAccountUuid: String?
+    ) -> TeamCodexPoolHealth {
+        TeamCodexPoolHealth(
+            checkedAt: Date(),
+            serverReachable: true,
+            serverPort: 3457,
+            serverPid: nil,
+            currentAccount: currentAccount,
+            currentAccountUuid: currentAccountUuid,
+            switchThresholdPercent: 98,
+            accounts: accounts
+        )
+    }
+
+    for count in 0...32 {
+        let health = pool(count)
+        precondition(CodexStatusView.poolRowCount(for: health) == count)
+        precondition(
+            CodexStatusView.poolSectionHeight(for: health)
+                == 62 + CGFloat(max(1, count)) * 36
+        )
+    }
+
+    _ = NSApplication.shared
+    let transitions = [0, 1, 4, 5, 4, 8, 0]
+    let initial = pool(transitions[0])
+    let dashboard = StatusMenuDashboardView(frame: NSRect(
+        x: 0,
+        y: 0,
+        width: StatusMenuDashboardView.preferredWidth,
+        height: StatusMenuDashboardView.preferredHeight(
+            teamClaude: nil,
+            codex: nil,
+            teamCodex: initial,
+            usage: nil
+        )
+    ))
+    dashboard.configure(
+        teamClaude: nil,
+        codex: nil,
+        teamCodex: initial,
+        usage: nil,
+        parallelCount: 0,
+        active: false,
+        isMeasuringTeamClaude: false,
+        teamClaudeMeasureDetail: nil,
+        onMeasureTeamClaude: nil
+    )
+    for count in transitions.dropFirst() {
+        let health = pool(count)
+        dashboard.updateContent(
+            teamClaude: nil,
+            codex: nil,
+            teamCodex: health,
+            usage: nil,
+            parallelCount: 0,
+            active: false,
+            isMeasuringTeamClaude: false,
+            teamClaudeMeasureDetail: nil,
+            onMeasureTeamClaude: nil
+        )
+        precondition(
+            dashboard.frame.height == StatusMenuDashboardView.preferredHeight(
+                teamClaude: nil,
+                codex: nil,
+                teamCodex: health,
+                usage: nil
+            )
+        )
+    }
+
+    var watchState = TeamCodexConfigWatchState()
+    watchState.seed(snapshot(0, signature: 100))
+    let addGeneration = watchState.observe(snapshot(1, signature: 101))
+    let staleAddContext = watchState.refreshContext(configSignature: 101)
+    let removeGeneration = watchState.observe(snapshot(0, signature: 102))
+    guard let addGeneration, let removeGeneration else {
+        preconditionFailure("Rapid add/remove must advance config generations")
+    }
+    precondition(addGeneration < removeGeneration)
+    precondition(
+        !watchState.accepts(
+            staleAddContext,
+            currentConfigSignature: 102
+        )
+    )
+    let latestContext = watchState.refreshContext(configSignature: 102)
+    precondition(
+        watchState.accepts(
+            latestContext,
+            currentConfigSignature: 102
+        )
+    )
+    var missingConfigState = TeamCodexConfigWatchState()
+    precondition(missingConfigState.observe(snapshot(1, signature: 101)) == 1)
+
+    let missingHome = FileManager.default.temporaryDirectory
+        .appendingPathComponent("cc-menubar-teamcodex-missing-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(
+        at: missingHome,
+        withIntermediateDirectories: true
+    )
+    defer { try? FileManager.default.removeItem(at: missingHome) }
+    guard let missingSnapshot = teamCodexConfigSnapshot(home: missingHome.path) else {
+        preconditionFailure("A missing TeamCodex config must be observed as an empty fleet")
+    }
+    precondition(missingSnapshot.accounts.isEmpty)
+    var removedConfigState = TeamCodexConfigWatchState()
+    removedConfigState.seed(snapshot(1, signature: 600))
+    precondition(removedConfigState.observe(missingSnapshot) == 1)
+
+    let legacyHome = FileManager.default.temporaryDirectory
+        .appendingPathComponent("cc-menubar-teamcodex-legacy-\(UUID().uuidString)")
+    let legacyConfigDirectory = legacyHome.appendingPathComponent(".config")
+    let legacyConfigURL = legacyConfigDirectory.appendingPathComponent("teamcodex.json")
+    try FileManager.default.createDirectory(
+        at: legacyConfigDirectory,
+        withIntermediateDirectories: true
+    )
+    defer { try? FileManager.default.removeItem(at: legacyHome) }
+    let legacyAData = try JSONSerialization.data(withJSONObject: [
+        "accounts": [["name": "legacy", "accountId": "legacy-a"]],
+    ])
+    try legacyAData.write(to: legacyConfigURL)
+    guard let legacyA = teamCodexConfigSnapshot(home: legacyHome.path) else {
+        preconditionFailure("A legacy accountId-only config must produce a snapshot")
+    }
+    precondition(legacyA.accounts.first?.accountUuid == "legacy-a")
+    let legacyBData = try JSONSerialization.data(withJSONObject: [
+        "accounts": [["name": "legacy", "accountId": "legacy-b"]],
+    ])
+    try legacyBData.write(to: legacyConfigURL)
+    guard let legacyB = teamCodexConfigSnapshot(home: legacyHome.path) else {
+        preconditionFailure("A replaced legacy accountId-only config must produce a snapshot")
+    }
+    precondition(legacyB.accounts.first?.accountUuid == "legacy-b")
+    var legacyConfigState = TeamCodexConfigWatchState()
+    legacyConfigState.seed(legacyA)
+    precondition(legacyConfigState.observe(legacyB) == 1)
+
+    var convergenceCoordinator = TeamCodexConfigRefreshCoordinator()
+    precondition(convergenceCoordinator.request(generation: 1))
+    precondition(convergenceCoordinator.shouldContinue(generation: 1))
+    precondition(!convergenceCoordinator.request(generation: 2))
+    precondition(!convergenceCoordinator.request(generation: 3))
+    precondition(!convergenceCoordinator.shouldContinue(generation: 1))
+    precondition(convergenceCoordinator.finish(generation: 1))
+    precondition(convergenceCoordinator.request(generation: 3))
+    precondition(convergenceCoordinator.shouldContinue(generation: 3))
+    precondition(!convergenceCoordinator.finish(generation: 3))
+
+    let codexLoginCommand = teamClaudeTerminalCommand(
+        executable: "/tmp/teamclaude",
+        commandTitle: "Codex OAuth 계정 추가",
+        arguments: ["codex", "login"],
+        codexMode: true
+    )
+    precondition(!codexLoginCommand.contains("status=$?"))
+    precondition(!codexLoginCommand.contains("launchctl kickstart"))
+    let claudeLoginCommand = teamClaudeTerminalCommand(
+        executable: "/tmp/teamclaude",
+        commandTitle: "Claude OAuth 계정 추가",
+        arguments: ["login"],
+        codexMode: false
+    )
+    precondition(claudeLoginCommand.contains("exit_code=$?"))
+
+    for (liveCount, configuredCount) in [(0, 1), (4, 5), (5, 4), (8, 0)] {
+        let configured = snapshot(configuredCount, signature: configuredCount)
+        let aligned = teamCodexPoolHealth(aligning: pool(liveCount), to: configured)
+        precondition(aligned.accounts.count == configuredCount)
+        precondition(teamCodexTopologyMatches(snapshot: configured, pool: aligned))
+    }
+    let replacement = TeamCodexConfigSnapshot(
+        signature: 500,
+        accounts: [
+            TeamCodexConfiguredAccount(
+                name: "account-0",
+                accountUuid: "uuid-replacement",
+                enabled: true
+            ),
+        ]
+    )
+    let replaced = teamCodexPoolHealth(aligning: pool(1), to: replacement)
+    precondition(replaced.accounts[0].accountUuid == "uuid-replacement")
+    precondition(replaced.accounts[0].status == "configured")
+    precondition(replaced.currentAccount == nil)
+    precondition(replaced.currentAccountUuid == nil)
+    let mixedSnapshot = TeamCodexConfigSnapshot(
+        signature: 501,
+        accounts: [
+            TeamCodexConfiguredAccount(name: "a", accountUuid: "uuid-a", enabled: true),
+            TeamCodexConfiguredAccount(name: "b", accountUuid: "uuid-b", enabled: true),
+        ]
+    )
+    let mixed = teamCodexPoolHealth(
+        aligning: pool(
+            accounts: [
+                account("a", uuid: "uuid-a"),
+                account("b", uuid: nil, current: true, requests: 9),
+            ],
+            currentAccount: "b",
+            currentAccountUuid: nil
+        ),
+        to: mixedSnapshot
+    )
+    precondition(mixed.accounts[1].accountUuid == "uuid-b")
+    precondition(mixed.accounts[1].totalRequests == 9)
+    precondition(mixed.currentAccount == "b")
+
+    let duplicateSnapshot = TeamCodexConfigSnapshot(
+        signature: 502,
+        accounts: [
+            TeamCodexConfiguredAccount(name: "duplicate", accountUuid: nil, enabled: true),
+            TeamCodexConfiguredAccount(name: "duplicate", accountUuid: nil, enabled: true),
+        ]
+    )
+    let duplicate = teamCodexPoolHealth(
+        aligning: pool(
+            accounts: [
+                account("duplicate", uuid: nil, current: true),
+                account("duplicate", uuid: nil, current: true),
+            ],
+            currentAccount: "duplicate",
+            currentAccountUuid: nil
+        ),
+        to: duplicateSnapshot
+    )
+    precondition(duplicate.accounts.allSatisfy { $0.status == "configured" })
+    precondition(duplicate.accounts.allSatisfy { !$0.isCurrent })
+    precondition(duplicate.currentAccount == nil)
+
+    let duplicateUuidSnapshot = TeamCodexConfigSnapshot(
+        signature: 503,
+        accounts: [
+            TeamCodexConfiguredAccount(name: "first", accountUuid: "duplicate-uuid", enabled: true),
+            TeamCodexConfiguredAccount(name: "second", accountUuid: "duplicate-uuid", enabled: true),
+        ]
+    )
+    let duplicateUuid = teamCodexPoolHealth(
+        aligning: pool(
+            accounts: [
+                account("first", uuid: "duplicate-uuid", current: true),
+                account("second", uuid: "duplicate-uuid", current: true),
+            ],
+            currentAccount: "first",
+            currentAccountUuid: "duplicate-uuid"
+        ),
+        to: duplicateUuidSnapshot
+    )
+    precondition(duplicateUuid.accounts.allSatisfy { $0.status == "configured" })
+    precondition(duplicateUuid.accounts.allSatisfy { !$0.isCurrent })
+    precondition(duplicateUuid.currentAccount == nil)
+    precondition(duplicateUuid.currentAccountUuid == nil)
+
+    print("TEAMCODEX-DASHBOARD-SELFTEST: transitions, missing config, legacy accountId replacement, single-flight convergence, shell, UUID/legacy/mixed/duplicate-name/duplicate-UUID identity, 0...32 heights passed")
+    exit(0)
+}
 
 if let snapshotIndex = CommandLine.arguments.firstIndex(of: "--teamcodex-snapshot") {
     let outputPath = CommandLine.arguments.indices.contains(snapshotIndex + 1)

@@ -263,6 +263,20 @@ enum TeamClaudeMeasurementIssue: Equatable {
     }
 }
 
+func teamClaudeCanReauthenticate(
+    enabled: Bool,
+    status: String,
+    source: String?,
+    provider: String?,
+    errorReason: String?
+) -> Bool {
+    enabled
+        && status == "error"
+        && (source ?? "").lowercased() == "oauth"
+        && (provider ?? "anthropic").lowercased() == "anthropic"
+        && errorReason != "subscription-disabled"
+}
+
 struct TeamClaudeQuotaWindowState: Equatable {
     let utilization: Double?
     let resetAtMs: Int64?

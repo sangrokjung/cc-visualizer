@@ -237,6 +237,49 @@ struct TeamClaudeStatusLogicTests {
             fablePercent: nil, lastUsed: now, now: now
         ) == .fableMissing)
 
+        precondition(teamClaudeCanReauthenticate(
+            enabled: true,
+            status: "error",
+            source: "oauth",
+            provider: "anthropic",
+            errorReason: "auth-revoked"
+        ))
+        precondition(!teamClaudeCanReauthenticate(
+            enabled: true,
+            status: "active",
+            source: "oauth",
+            provider: "anthropic",
+            errorReason: nil
+        ))
+        precondition(!teamClaudeCanReauthenticate(
+            enabled: false,
+            status: "error",
+            source: "oauth",
+            provider: "anthropic",
+            errorReason: "auth-revoked"
+        ))
+        precondition(!teamClaudeCanReauthenticate(
+            enabled: true,
+            status: "error",
+            source: "apikey",
+            provider: "anthropic",
+            errorReason: "auth-revoked"
+        ))
+        precondition(!teamClaudeCanReauthenticate(
+            enabled: true,
+            status: "error",
+            source: "oauth",
+            provider: "codex",
+            errorReason: "auth-revoked"
+        ))
+        precondition(!teamClaudeCanReauthenticate(
+            enabled: true,
+            status: "error",
+            source: "oauth",
+            provider: "anthropic",
+            errorReason: "subscription-disabled"
+        ))
+
         let nowMs = Int64(now.timeIntervalSince1970 * 1000)
         precondition(teamClaudeCurrentQuotaUtilization(
             0.9, resetAtMs: nowMs - 1, nowMs: nowMs

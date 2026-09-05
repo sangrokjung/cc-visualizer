@@ -43,3 +43,7 @@ AGENTS.md
 # 외부 공유 전 사람 검토가 필요한 로컬 초안
 docs/employee-email-draft.md
 docs/qjc-webapp-download-page-pr.md
+
+# 파이썬 바이트코드 (.py 원본만 추적한다)
+__pycache__/
+*.pyc

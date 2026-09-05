@@ -48,6 +48,10 @@
 - [x] Codex 세션 증분 캐시 — 변경된 JSONL만 재파싱하고 cache 파일 권한 0600 적용
 - [x] 메뉴 사전 구성 — 클릭 경로에서는 캐시된 메뉴를 즉시 표시하고 백그라운드에서 갱신
 - [x] Swift 로직 분리 및 테스트 — CodexStatus*, TeamClaudeStatusLogic, TeamCodexPoolStatus
+- [x] TeamCodex 계정 동기화 보강 — 모든 행 렌더링, 외부 add/remove 상시 감지, 최신 generation 차단
+  - 검증: `0→1`, `4→5`, `5→4`, `8→0`, config 삭제, rapid change single-flight, same-name UUID 교체, duplicate name/UUID fail-closed, `0...32` 높이 self-test
+  - 검증: qgate Swift 테스트·빌드와 실제 fixture snapshot
+  - 검증: 동일 snapshot의 `omo:review-work` 5개 적대적 lane
 - [ ] v2.0.0 GitHub Release 생성 및 직원 설치 검증
 
 ## 의존성

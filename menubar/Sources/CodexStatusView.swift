@@ -2,9 +2,12 @@ import Cocoa
 
 final class CodexStatusView: NSView {
     static let baseHeight: CGFloat = 406
+    static func poolRowCount(for pool: TeamCodexPoolHealth?) -> Int {
+        pool?.accounts.count ?? 0
+    }
     static func poolSectionHeight(for pool: TeamCodexPoolHealth?) -> CGFloat {
         guard let pool = pool else { return 0 }
-        return 62 + CGFloat(max(1, min(pool.accounts.count, 4))) * 36
+        return 62 + CGFloat(max(1, poolRowCount(for: pool))) * 36
     }
     static func preferredHeight(for pool: TeamCodexPoolHealth?) -> CGFloat {
         baseHeight + (pool == nil ? 0 : poolSectionHeight(for: pool) + 10)
@@ -131,7 +134,8 @@ final class CodexStatusView: NSView {
             let poolTone = !pool.serverReachable ? red : (pool.usableCount == 0 ? yellow : green)
             drawText("TeamCodex 계정 풀", poolRect.minX + 12, poolRect.minY + 9, subFont, text)
             pill(pool.statusLabel, x: poolRect.minX + 145, y: poolRect.minY + 5, color: poolTone)
-            drawRight("활성 \(pool.activeCount)/\(pool.accounts.count) · 사용 가능 \(pool.usableCount) · port \(pool.serverPort)", poolRect.maxX - 12, poolRect.minY + 10, smallFont, muted)
+            // 구독 종료(영구)와 운영자가 끈 계정(되돌릴 수 있음)이 함께 들어가므로 "영구"라고 쓰지 않는다.
+            drawRight("사용 가능 \(pool.usableCount) · 풀 \(pool.poolCount) · 제외 \(pool.excludedCount) · port \(pool.serverPort)", poolRect.maxX - 12, poolRect.minY + 10, smallFont, muted)
 
             let headerY = poolRect.minY + 36
             drawText("계정", poolRect.minX + 12, headerY, headFont, muted)
@@ -142,7 +146,7 @@ final class CodexStatusView: NSView {
             drawText("요청", poolRect.minX + 620, headerY, headFont, muted)
             drawText("토큰", poolRect.minX + 720, headerY, headFont, muted)
 
-            let rows = Array(pool.accounts.prefix(4))
+            let rows = pool.accounts
             if rows.isEmpty {
                 drawText("TeamCodex에 등록된 계정이 없습니다", poolRect.minX + 12, headerY + 25, rowFont, dim)
                 return
@@ -152,34 +156,46 @@ final class CodexStatusView: NSView {
                 if index % 2 == 1 {
                     fillRound(NSRect(x: poolRect.minX + 4, y: rowY - 2, width: poolRect.width - 8, height: 35), NSColor.white.withAlphaComponent(0.035), 7)
                 }
-                let quotaBlocked = account.isQuotaBlocked(
-                    switchThresholdPercent: pool.switchThresholdPercent
+                let accountState = teamCodexAccountState(
+                    account,
+                    switchThresholdPercent: pool.switchThresholdPercent,
+                    now: pool.checkedAt
                 )
-                let accountTone = !account.enabled
-                    ? dim
-                    : (account.isUsable(switchThresholdPercent: pool.switchThresholdPercent) ? green : yellow)
-                let marker = account.isCurrent ? "● " : "  "
-                let statusText: String
-                if quotaBlocked {
-                    statusText = "제한"
-                } else {
-                    switch account.status {
-                    case "active": statusText = "사용 중"
-                    case "available": statusText = "대기"
-                    case "disabled": statusText = "비활성"
-                    case "throttled": statusText = "제한"
-                    case "exhausted": statusText = "소진"
-                    case "error": statusText = "오류"
-                    case "configured": statusText = "설정됨"
-                    default: statusText = account.status
-                    }
+                let quotaBlocked = accountState == .limited
+                // 영구 제외(구독 종료·수동 제외)는 가장 조용하게, 일시 한도는 노랑, 진짜 오류는 빨강.
+                let accountTone: NSColor
+                switch accountState {
+                case .retired, .excluded: accountTone = dim
+                case .failed: accountTone = red
+                case .endDateReached, .limited, .paused: accountTone = yellow
+                case .serving: accountTone = green
+                case .other: accountTone = muted
                 }
+                let marker = account.isCurrent ? "● " : "  "
+                // 오류 사유는 두 렌더러(Claude 표·Codex 풀)가 같은 canonical 라벨을 쓴다는 회귀 가드.
+                let statusText = accountState == .failed
+                    ? teamAccountErrorReasonLabel(account.errorReason)
+                    : teamCodexAccountStateLabel(
+                        accountState,
+                        status: account.status,
+                        errorReason: account.errorReason
+                    )
                 drawText(marker + account.name, poolRect.minX + 12, rowY, rowFont, accountTone)
                 drawText(statusText, poolRect.minX + 250, rowY, rowFont, accountTone)
+                if let note = teamCodexAccountNote(
+                    account,
+                    switchThresholdPercent: pool.switchThresholdPercent,
+                    now: pool.checkedAt
+                ) {
+                    drawText(note, poolRect.minX + 12, rowY + 17, smallFont, dim)
+                }
                 drawText(formatCodexPercent(account.sessionPercent), poolRect.minX + 355, rowY, rowFont, limitTone(account.sessionPercent))
                 drawText(formatCodexPercent(account.weeklyPercent), poolRect.minX + 445, rowY, rowFont, limitTone(account.weeklyPercent))
-                drawText(formatTeamCodexResetRemaining(account.sessionResetAt), poolRect.minX + 355, rowY + 17, smallFont, quotaBlocked ? accountTone : dim)
-                drawText(formatTeamCodexResetRemaining(account.weeklyResetAt), poolRect.minX + 445, rowY + 17, smallFont, dim)
+                // 돌아오지 않는 계정에 초기화 카운트다운을 그리면 "곧 복귀"로 오해된다.
+                if !account.isPermanentlyOut(now: pool.checkedAt) {
+                    drawText(formatTeamCodexResetRemaining(account.sessionResetAt), poolRect.minX + 355, rowY + 17, smallFont, quotaBlocked ? accountTone : dim)
+                    drawText(formatTeamCodexResetRemaining(account.weeklyResetAt), poolRect.minX + 445, rowY + 17, smallFont, dim)
+                }
                 drawText("\(account.inflight)/\(account.maxConcurrent)", poolRect.minX + 530, rowY, rowFont, muted)
                 drawText("\(account.totalRequests)", poolRect.minX + 620, rowY, rowFont, muted)
                 drawText(formatCodexTokens(account.totalTokens), poolRect.minX + 720, rowY, rowFont, muted)
