@@ -22,7 +22,7 @@ CLI/Tauri 수정, 프록시 인증 정책 변경, 계정 추가/삭제/재인증
 - 오류가 해소된 다음 정상 응답부터 이름·쿼터를 복구한다.
 - 로컬 HTTP fixture가 실제 Swift loader와 렌더링에 쓰는 상태 변환을 실행한다. 정상/빈 키/잘못된 키/혼합 익명/잘못된 JSON/redirect/실제 drift를 검증한다.
 - GitHub Actions에서 메뉴바 변경 PR 및 릴리스 전에 회귀 테스트와 Swift 빌드를 실행한다.
-- main에는 메뉴바 기반 기능이 아직 없어 기존 GitHub 작업 브랜치를 PR의 base로 사용한다. 미공개 다른 기능 커밋은 포함하지 않는다.
+- 이번 수정이 의존하는 최신 TeamClaude·TeamCodex 메뉴바 기반이 main에 없어 기존 GitHub 작업 브랜치를 PR의 base로 사용한다. main에도 메뉴바 소스 자체는 존재한다. 미공개 다른 기능 커밋은 포함하지 않는다.
 
 ## Risks / Concerns
 기존 키를 사용하는 클라이언트 배선이므로 L 등급으로 검토한다. 키를 로그·증거·리뷰 번들에 기록하지 않는다. 운영 원본 config는 읽기 전용. 관련 없는 작업트리 변경은 제외한다. 사용자 “문제 해결해”가 직전 설명한 수정의 승인이다.
@@ -35,3 +35,12 @@ CLI/Tauri 수정, 프록시 인증 정책 변경, 계정 추가/삭제/재인증
 
 ## Verification / Observability / Runbook
 실제 기존 바이너리 --selftest에서 32행, unknown 16행, configured 16행을 재현했다. 회귀 테스트는 익명 응답과 인증 응답의 차이, 헤더 전달, 실패 JSON, 리다이렉트 차단을 확인한다. 새 바이너리 --selftest 및 앱 화면/런타임 로그에서 정상 계정 수와 drift=0을 확인한다. 독립 정확성·보안 검토 결과는 연결된 plan에 기록한다.
+
+
+## 최종 인수 결과 — 2026-09-06
+
+[PR #10](https://github.com/sangrokjung/cc-visualizer/pull/10)을 `feat/weekly-monthly-krw-usage`에 머지했다. 소스 `3c12a232ab221615220d163b7b31161e1aa08268`, 머지 `7a382dce4853e1847e07bbfda13c0d7473b7f0fa`다.
+
+인증·익명·혼합·malformed·redirect·실제 drift 회귀 테스트 6개와 Swift 빌드, 동일 프로세스 정상→익명→정상 quota cache 전이 추가 검증이 통과했다. CI 바이너리의 실제 서버 조회는 16행·unknown 0·configured 0이었다. PR 및 머지 후 CI도 통과했다. 링크와 독립 검토 결과는 [실행 계획 및 검증 기록](../plans/2026-09-06-teamclaude-menubar-identity.md)에 기록했다.
+
+운영 앱 재빌드·재기동 인수는 이전 로컬 긴급 수정 단계의 결과다. 최종 GitHub 재발 방지 버전은 CI 바이너리의 selftest까지 검증했으며 운영 재설치는 하지 않았다. GUI 픽셀 검증과 공식 gate receipt는 확보되지 않았다. 독립 검토 PASS와 공식 승인 미발급을 구분한다.
