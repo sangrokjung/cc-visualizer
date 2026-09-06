@@ -85,6 +85,7 @@ struct TeamClaudeHealth {
     let accounts: [TeamClaudeAccountHealth]
     let hints: [String]
     let host: TeamClaudeHostMetrics?
+    var statusIdentityAvailable: Bool = true
 
     // 호스트 CPU/RAM 한 줄 요약 (표시할 값이 없으면 nil → 라인 생략)
     var hostSummaryText: String? {
@@ -119,6 +120,7 @@ struct TeamClaudeHealth {
     }
 
     var titleSlot: String {
+        if !statusIdentityAvailable { return "Claude 조회 인증 확인" }
         let total = max(accountTotal, accountConfigured)
         return teamClaudeTitleSlot(TeamClaudeHeadlineInput(
             serverReachable: serverReachable,
@@ -246,7 +248,7 @@ func readTeamClaudeJSON(_ path: String) -> [String: Any]? {
     return obj
 }
 
-func teamClaudeConfiguredRows(_ config: [String: Any]?) -> [TeamClaudeAccountHealth] {
+func teamClaudeConfiguredRows(_ config: [String: Any]?, identityAvailable: Bool = true) -> [TeamClaudeAccountHealth] {
     let accounts = tcArray(config?["accounts"]) ?? []
     return accounts.compactMap { account in
         guard let name = tcString(account["name"]), !name.isEmpty else { return nil }
@@ -255,7 +257,7 @@ func teamClaudeConfiguredRows(_ config: [String: Any]?) -> [TeamClaudeAccountHea
             isCurrent: false,
             enabled: tcBool(account["enabled"]) ?? true,
             isUsable: false,
-            status: "configured",
+            status: identityAvailable ? "configured" : "identity-unavailable",
             source: tcString(account["source"]) ?? tcString(account["type"]),
             totalTokens: 0,
             totalRequests: 0,
@@ -266,32 +268,15 @@ func teamClaudeConfiguredRows(_ config: [String: Any]?) -> [TeamClaudeAccountHea
             fablePercent: nil,
             fableResetSeconds: nil,
             probedAt: nil,
-            measurementIssue: tcBool(account["enabled"]) == false ? .disabled : .serverNotSynced
+            measurementIssue: tcBool(account["enabled"]) == false ? .disabled
+                : (identityAvailable ? .serverNotSynced : .statusIdentityUnavailable)
         )
     }
 }
 
-func fetchTeamClaudeStatus(port: Int) -> [String: Any]? {
-    guard let url = URL(string: "http://127.0.0.1:\(port)/teamclaude/status") else { return nil }
-    var request = URLRequest(url: url)
-    request.timeoutInterval = 2.5
-
-    let semaphore = DispatchSemaphore(value: 0)
-    var result: [String: Any]?
-    let task = URLSession.shared.dataTask(with: request) { data, response, _ in
-        defer { semaphore.signal() }
-        guard let http = response as? HTTPURLResponse,
-              (200..<300).contains(http.statusCode),
-              let data = data,
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return
-        }
-        result = obj
-    }
-    task.resume()
-    _ = semaphore.wait(timeout: .now() + 3)
-    task.cancel()
-    return result
+func fetchTeamClaudeStatus(port: Int, apiKey: String?) -> [String: Any]? {
+    guard let data = teamCodexFetchStatus(port: port, apiKey: apiKey) else { return nil }
+    return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
 }
 
 func triggerTeamClaudeQuotaProbe(port: Int, model: String) -> Int? {
@@ -455,20 +440,27 @@ func computeTeamClaudeRetryAfterSeconds(accounts: [[String: Any]], threshold: Do
     return teamClaudeRetryAfterSeconds(accounts: states, threshold: threshold, nowMs: nowMs)
 }
 
-func loadTeamClaudeHealth() -> TeamClaudeHealth {
-    let home = NSHomeDirectory()
+func loadTeamClaudeHealth(home: String = NSHomeDirectory()) -> TeamClaudeHealth {
     let config = readTeamClaudeJSON("\(home)/.config/teamclaude.json")
     let server = readTeamClaudeJSON("\(home)/.config/teamclaude.server.json")
     let port = tcInt(server?["port"])
         ?? tcInt(tcDict(config?["proxy"])?["port"])
         ?? 3456
-    let status = fetchTeamClaudeStatus(port: port)
-    let accounts = tcArray(status?["accounts"]) ?? []
+    let status = fetchTeamClaudeStatus(
+        port: port,
+        apiKey: tcString(tcDict(config?["proxy"])?["apiKey"])
+    )
+    let rawAccounts = tcArray(status?["accounts"])
+    let identityAvailable = status == nil || rawAccounts?.allSatisfy {
+        guard let name = $0["name"] as? String else { return false }
+        return !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    } == true
+    let accounts = identityAvailable ? (rawAccounts ?? []) : []
     let currentAccount = tcString(status?["currentAccount"])
     let threshold = tcDouble(status?["switchThreshold"])
         ?? tcDouble(config?["switchThreshold"])
         ?? 0.98
-    let configuredRows = teamClaudeConfiguredRows(config)
+    let configuredRows = teamClaudeConfiguredRows(config, identityAvailable: identityAvailable)
     let configAccounts = configuredRows.count
     let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
 
@@ -587,7 +579,7 @@ func loadTeamClaudeHealth() -> TeamClaudeHealth {
     }
 
     let liveNames = Set(accountRows.map(\.name))
-    let accountDrift = config == nil
+    let accountDrift = config == nil || !identityAvailable
         ? TeamClaudeAccountDrift(missingFromServer: [], extraOnServer: [], stateMismatch: [])
         : teamClaudeAccountDrift(
             configuredNames: configuredRows.map(\.name),
@@ -595,7 +587,9 @@ func loadTeamClaudeHealth() -> TeamClaudeHealth {
             configuredEnabled: configuredRows.reduce(into: [String: Bool]()) { $0[$1.name] = $1.enabled },
             serverEnabled: accountRows.reduce(into: [String: Bool]()) { $0[$1.name] = $1.enabled }
         )
-    let missingConfiguredRows = configuredRows.filter { accountDrift.missingFromServer.contains($0.name) }
+    let missingConfiguredRows = identityAvailable
+        ? configuredRows.filter { accountDrift.missingFromServer.contains($0.name) }
+        : configuredRows
     accountRows.append(contentsOf: missingConfiguredRows)
     disabled += missingConfiguredRows.filter { !$0.enabled }.count
     let measurementPending = accountRows.filter { $0.measurementIssue?.canMeasureNow == true }.count
@@ -614,10 +608,13 @@ func loadTeamClaudeHealth() -> TeamClaudeHealth {
         allAccountsError: !accounts.isEmpty && error == accounts.count,
         quotaLimitedCount: quotaLimited,
         hasOtherWarning: fableOver > 0 || throttled > 0 || exhausted > 0 || disabled > 0
-            || measurementPending > 0 || !accountDrift.isEmpty
+            || measurementPending > 0 || !accountDrift.isEmpty || !identityAvailable
     ))
 
     var hints: [String] = []
+    if !identityAvailable {
+        hints.append("계정 식별 정보 없음 · 상태 조회 인증 확인 필요")
+    }
     if !reachable {
         hints.append("teamclaude 서버 연결 실패")
     }
@@ -629,7 +626,7 @@ func loadTeamClaudeHealth() -> TeamClaudeHealth {
     } else if fableOver > 0 {
         hints.append("일부 계정의 Fable 주간 쿼터가 임계치 이상")
     }
-    if !missingConfiguredRows.isEmpty {
+    if identityAvailable && !missingConfiguredRows.isEmpty {
         hints.append("설정 계정 \(missingConfiguredRows.count)개 서버 미반영 · 재시작 필요")
     }
     if !accountDrift.extraOnServer.isEmpty {
@@ -693,7 +690,8 @@ func loadTeamClaudeHealth() -> TeamClaudeHealth {
         retryAfterSeconds: retryAfter,
         accounts: accountRows,
         hints: hints,
-        host: hostMetrics
+        host: hostMetrics,
+        statusIdentityAvailable: identityAvailable
     )
 }
 
@@ -859,6 +857,7 @@ func teamClaudeHealthMergingQuota(
     candidate: TeamClaudeHealth,
     previous: TeamClaudeHealth?
 ) -> TeamClaudeHealth {
+    guard candidate.statusIdentityAvailable else { return candidate }
     let previousByName = (previous?.accounts ?? []).reduce(into: [String: TeamClaudeAccountHealth]()) {
         $0[$1.name] = $1
     }
@@ -1635,7 +1634,8 @@ final class TeamClaudeTableView: NSView {
         let topY = card.minY + 14
         drawText("TeamClaude", innerX, topY, titleFont, text)
         pill(health.serverReachable ? "실행중" : "오프라인", x: innerX + 122, y: topY - 2, color: health.serverReachable ? green : red)
-        let integrationLabel = health.accountConfigDrift == 0 ? "연동 정상" : "연동 불일치 \(health.accountConfigDrift)"
+        let integrationLabel = !health.statusIdentityAvailable ? "상태 조회 인증 확인"
+            : (health.accountConfigDrift == 0 ? "연동 정상" : "연동 불일치 \(health.accountConfigDrift)")
         drawText("port \(health.serverPort ?? 0)  ·  pid \(health.serverPid.map(String.init) ?? "-")  ·  \(integrationLabel)", innerX, topY + 29, subFont, health.accountConfigDrift == 0 ? muted : yellow)
         let hostLineShown = health.hostSummaryText != nil
         if let hostText = health.hostSummaryText {
@@ -1656,6 +1656,10 @@ final class TeamClaudeTableView: NSView {
             actionColor = blue
             actionTitle = "계정 사용량 측정 중"
             actionDetail = measurementDetail ?? "잠시만 기다려 주세요"
+        } else if !health.statusIdentityAvailable {
+            actionColor = yellow
+            actionTitle = "상태 조회 인증 확인 필요"
+            actionDetail = "계정 설정의 프록시 연결 정보를 확인하세요"
         } else if health.accountConfigDrift > 0 {
             actionColor = yellow
             actionTitle = "\(health.accountConfigDrift)개 계정 연동 불일치"
