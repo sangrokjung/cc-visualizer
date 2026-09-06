@@ -8,7 +8,7 @@ Claude 메뉴바 조회는 인증 헤더 없이 status를 받아 이름 없는 �
 ## Requirements / Acceptance
 - 로컬 설정의 proxy.apiKey를 기존 teamCodexFetchStatus(port:apiKey:)에 전달한다.
 - 기존 localhost URL, identity 헤더, 리다이렉트 차단을 재사용한다. 새 외부 수신자는 없다.
-- 정상 응답은 JSON object로 파싱하며 실패/비정상 JSON은 nil을 반환한다.
+- 정상 응답은 JSON object로 파싱한다. 전송·HTTP 실패는 nil, HTTP 성공의 비정상 JSON은 빈 object로 구분해 오프라인 자동 복구를 막는다.
 - 실제 서버 조회 시 unknown과 허위 configured 행은 0이고 표시 계정 수는 실제 계정 수와 같다.
 - 앱 재빌드 및 재기동을 확인한다. 프록시/계정 설정은 변경하지 않는다.
 

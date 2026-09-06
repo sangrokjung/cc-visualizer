@@ -276,7 +276,7 @@ func teamClaudeConfiguredRows(_ config: [String: Any]?, identityAvailable: Bool 
 
 func fetchTeamClaudeStatus(port: Int, apiKey: String?) -> [String: Any]? {
     guard let data = teamCodexFetchStatus(port: port, apiKey: apiKey) else { return nil }
-    return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
 }
 
 func triggerTeamClaudeQuotaProbe(port: Int, model: String) -> Int? {

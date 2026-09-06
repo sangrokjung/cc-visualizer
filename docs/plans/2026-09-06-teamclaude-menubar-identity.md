@@ -15,6 +15,8 @@ Spec: docs/specs/2026-09-06-teamclaude-menubar-identity.md
 - 디버깅 가설: 서버 장애는 HTTP 200으로 배제, stale 화면만의 문제는 독립 바이너리 재현으로 배제, identity 헤더 누락은 헤더 유무에 따른 실제 HTTP 결과로 확인했다.
 - 리뷰·머지 절차: 커밋 후 full SHA를 고정해 목표/QA/품질/보안/맥락 5개 독립 lane과 runtime audit를 수행하고, 결과는 작업트리 외부 원장에 보관한다. GitHub CI 통과 후 해당 SHA를 지정해 PR 머지한다.
 - 롤백: PR revert로 GitHub 변경을 되돌릴 수 있다. 운영 바이너리는 이전 긴급 수정 버전을 유지하므로 원격 이전 기능으로 덮어쓰지 않는다.
+- 보안 리뷰 보강: HTTP 200의 malformed JSON도 네트워크 장애와 구분해 조회 인증 경고로 처리한다. 자동 재시작 금지를 회귀 케이스에 포함했다.
+- 공식 게이트: 격리 작업트리에서 begin과 unittest run-evidence는 정상 수락했다. dispatch-review의 secret scanner는 기존 GitHub secrets 참조 두 줄과 Swift optional binding 한 줄을 비밀 값으로 오탐했다. 값 유출은 없으며 설정 변경·스캐너 우회는 하지 않는다. 독립 lane 결과 및 GitHub CI와 이 인프라 제한을 분리 기록한다.
 
 ## 이전 로컬 긴급 수정 이력
 

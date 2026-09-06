@@ -133,7 +133,8 @@ print(String(decoding: try JSONSerialization.data(withJSONObject: payload), as: 
 
     def test_anonymous_response_never_duplicates_or_restarts(self):
         for mode, key in [("normal", ""), ("normal", "wrong"), ("anonymous", "fixture-value"),
-                          ("mixed", "fixture-value"), ("missing-accounts", "fixture-value")]:
+                          ("mixed", "fixture-value"), ("missing-accounts", "fixture-value"),
+                          ("malformed", "fixture-value")]:
             with self.subTest(mode=mode, key=key):
                 self.server.mode = mode
                 result = self.fetch(key)
@@ -161,12 +162,11 @@ print(String(decoding: try JSONSerialization.data(withJSONObject: payload), as: 
             self.assertEqual(result["drift"], expected)
             self.assertTrue(result["recovery"])
 
-    def test_http_and_json_errors_are_not_healthy(self):
-        for mode in ["error", "malformed"]:
-            self.server.mode = mode
-            result = self.fetch()
-            self.assertFalse(result["reachable"])
-            self.assertEqual(result["usable"], 0)
+    def test_http_errors_are_not_healthy(self):
+        self.server.mode = "error"
+        result = self.fetch()
+        self.assertFalse(result["reachable"])
+        self.assertEqual(result["usable"], 0)
 
     def test_redirect_does_not_forward_credentials(self):
         sink = http.server.ThreadingHTTPServer(("127.0.0.1", 0), StatusHandler)
