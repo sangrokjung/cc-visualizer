@@ -32,3 +32,14 @@ menubar/.build/
 .claude/scheduled_tasks.lock
 .claude/sync-all-plan.json
 .claude/sync-all-report.json
+
+# 로컬 에이전트 하네스·실행 증거 (인증/세션 스냅샷 포함 가능)
+.codex/
+.omo/
+.superpowers/
+AGENTS.md
+.claude/plan-*.md
+
+# 외부 공유 전 사람 검토가 필요한 로컬 초안
+docs/employee-email-draft.md
+docs/qjc-webapp-download-page-pr.md

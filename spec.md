@@ -83,12 +83,17 @@
 ## Feature 9: Usage (사용 통계)
 ### 요구사항
 1. 전체 세션 사용 통계 대시보드
-2. 도구 사용 순위, 일별 활동, 프로젝트별 활동, 훅 이벤트 분포
-3. 에이전트 스폰 테이블
+2. 오늘·주간·월간·누적 토큰과 비용
+3. USD/KRW 환산과 환율 캐시
+4. Claude/Codex/Gemini provider 및 model별 집계
+5. 도구 사용 순위, 일별 활동, 프로젝트별 활동, 훅 이벤트 분포
+6. 에이전트 스폰 테이블
 ### 데이터 소스
 - data/usage-stats.json (scan-usage.ts 생성)
+- Tauri `fetch_ccusage_daily` / `fetch_ccusage_weekly` / `fetch_ccusage_monthly`
+- Tauri `fetch_usd_krw_rate`
 ### 현재 상태
-- v1 완료
+- v2 완료 (2026-07-24): 주간·월간·누적, KRW, provider/model breakdown 통합
 
 ## Feature 10: Agent Office (에이전트 오피스)
 ### 요구사항
@@ -127,22 +132,41 @@
 ## Feature 12: macOS 메뉴바 데몬 (menubar/)
 ### 요구사항
 1. cc-visualizer와 독립된 Swift NSStatusItem 네이티브 데몬 (LSUIElement)
-2. 메뉴바: 펄스 도트(활성 초록/idle 회색) + 7일 비용 스파크라인(NSImage) + 7슬롯 5초 롤링
-3. 7슬롯: 오늘 비용/오늘 토큰/누적 비용/누적 토큰/병렬 세션/주간 비용/주력 모델
-4. 드롭다운 일별 추이:
+2. 메뉴바: 펄스 도트(활성 초록/idle 회색) + 7일 비용 스파크라인(NSImage) + 사용량 롤링
+3. 롤링: 오늘·주간·월간·누적 비용($/₩), 토큰, 병렬 세션, Codex 비용, 주력 모델
+4. 드롭다운:
    - 14일 추이 막대 차트(TrendChartView) — 날짜축 라벨 + 피크 일자/금액 표시
    - 최근 7일 일별 상세(DailyRowView × 7) — 날짜 + 인라인 미니바 + 비용 + 토큰 (오늘 초록 강조)
    - 병렬 세션 게이지(ParallelGaugeView) — 비율별 색변화(청록→주황)
-5. 활동 감지: ~/.claude/projects/ 디렉토리 mtime 60초 이내 → ⚡ 활성 표시
-6. 병렬 감지: `pgrep -f '^claude'` 인스턴스 수
+   - Claude/Codex 모델 및 provider별 월간 사용량
+   - TeamClaude와 TeamCodex 계정별 상태·quota·동시 요청
+   - Codex 5시간/7일 reset 남은 시간
+5. 활동 감지: ~/.claude/projects/ 및 ~/.codex/sessions의 최근 변경
+6. 병렬 감지: Claude/Codex/Hermes 관련 프로세스
+7. 계정 추가: 메뉴에서 TeamClaude/TeamCodex OAuth 로그인 실행
+8. 반응속도: 메뉴 사전 구성 + Codex JSONL 증분 캐시
 ### 데이터 소스
-- `npx ccusage daily --json` (fnm symlink 직접 spawn, tmp 파일 redirect로 142KB pipe deadlock 회피)
+- `npx ccusage {daily,weekly,monthly} --json` (fnm symlink 직접 spawn, tmp 파일 redirect로 pipe deadlock 회피)
+- `~/.codex/sessions/**/*.jsonl` + `~/.codex/cache/cc-menubar-session-stats-v1.json`
+- TeamClaude runtime health + TeamCodex `/teamclaude/status`
 - 동시 호출 가드(`isFetching`) — 60초 주기 호출이 겹쳐 ccusage 자식 무한 누적되는 버그 차단 (426 좀비 사고)
 ### 빌드/배포
 - menubar/build.sh (swiftc -O) → LaunchAgent (com.qjc.cc-menubar.plist, 로그인 자동시작)
 ### 현재 상태
-- v1 완료 (2026-05-22): CPU 0.7~1.7%, 60초 ccusage 갱신, 1초 펄스/5초 슬롯/15초 활동 타이머
-- 일별 추이 추가 (2026-05-22): 14일 차트 날짜축 + 7일 상세 리스트 + 동시 호출 가드
+- v2 구현 완료 (2026-07-24): Claude/Codex 통합 관제, reset 표시, 계정 추가, 증분 캐시, 메뉴 prewarm
+
+## Feature 13: AI 계정 진단
+### 요구사항
+1. TeamClaude 프록시와 계정 인증 상태를 한 화면에서 진단
+2. TeamCodex 다계정 풀의 온라인 여부, 현재 계정, 5시간/7일 사용률, 동시 요청 표시
+3. quota 미측정·오프라인·오류를 추측값과 구분
+4. 사용자 요청으로 즉시 새로고침
+### 데이터 소스
+- Tauri `fetch_teamclaude_health`
+- Tauri `fetch_teamcodex_pool`
+- TeamCodex localhost status API
+### 현재 상태
+- v1 구현 완료 (2026-07-24): React `RuntimeHealthView` + Swift 메뉴바 양쪽 표면 제공
 
 ## 공통: 검색
 ### 요구사항

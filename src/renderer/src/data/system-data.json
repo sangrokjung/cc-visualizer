@@ -1,5 +1,5 @@
 {
-  "scanTimestamp": "2026-05-26T14:26:58.188Z",
+  "scanTimestamp": "2026-06-02T02:13:51.745Z",
   "agents": [
     {
       "id": "a11y-reviewer",
@@ -2359,7 +2359,7 @@
     {
       "id": "sync-gdrive-publisher",
       "name": "sync-gdrive-publisher",
-      "description": "Google Drive 미러 전담. 고객 문서/회의록/PRD/sync 리포트를 /QJC/팀공유/<project>/{prds,meetings,customers,sync-reports}/ 자동 폴더 구조에 미러. gws-drive-sync.sh 활용 + appProperties.qjc_source_sha로 멱등성. L3 redact + L4 abort. context-sync-lead Hub가 dispatch.",
+      "description": "Google Drive 공유드라이브(Shared Drive) 미러 전담. 고객 문서/회의록/PRD/sync 리포트를 QJC 공유드라이브(고객_컨설팅 등)의 <project>/{prds,meetings,sync-reports,changelog}/ 폴더 구조에 미러. gws-drive-sync.sh --drive-id 경유(My Drive 아님 — 팀 전체 공유) + appProperties.qjc_source_sha로 멱등성. L3 redact + L4 abort. context-sync-lead Hub가 dispatch.",
       "model": "sonnet",
       "tools": [
         "Read",
@@ -2993,6 +2993,13 @@
       "hasSubcommands": false
     },
     {
+      "id": "deal-room",
+      "name": "Deal Room 생성 스킬",
+      "description": "고객용 \"Deal Room\" 웹 페이지(제안서 + 계약서 + 다음 미팅 예약)를 생성한다.",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
       "id": "debugging-strategies",
       "name": "debugging-strategies",
       "description": "디버깅 기법, 프로파일링 도구, 분석 전략 레퍼런스. /debugging-strategies로 수동 호출. 자동 프로세스 강제는 systematic-debugging 스킬이 담당.",
@@ -3541,7 +3548,7 @@
     {
       "id": "project-sync",
       "name": "/project-sync — 프로젝트 동기화 단일 진입점",
-      "description": "프로젝트 동기화 단일 진입 — 고객 문서·미팅·PRD·CLAUDE.md/rules를 한 명령어로 GitHub + Google Drive + 큐봇 알림까지 (5 spoke Hub-and-Spoke)",
+      "description": "프로젝트 동기화 단일 진입 — 고객 문서·미팅·PRD·CLAUDE.md/rules를 한 명령어로 GitHub + Google Drive + 큐봇 알림까지 (5 spoke Hub-and-Spoke). 2026-05-29 housekeeping scan 통합.",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -3563,6 +3570,13 @@
       "id": "project",
       "name": "/project - 프로젝트 관리",
       "description": "프로젝트 관리 — 대시보드, 상세 조회, 추가, 태스크 연결, 아카이브, 워크플로우 단계, PRD, 미팅",
+      "type": "skill-file",
+      "hasSubcommands": false
+    },
+    {
+      "id": "proposal-web",
+      "name": "/proposal-web — 데모 + 견적 통합 웹 제안페이지 + 무료 배포",
+      "description": "프로토타입 데모 + 견적서를 고객용 단일 웹 제안페이지로 통합하고 GitHub Pages(무료)로 배포. 데모와 견적을 한눈에 보여주는 B2B 제안 도구.",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -3834,8 +3848,8 @@
     },
     {
       "id": "sync-docs",
-      "name": "/sync-docs - 문서 동기화 (v7)",
-      "description": "prompt_plan.md, spec.md, CLAUDE.md + rules/ 문서 동기화 (v7)",
+      "name": "/sync-docs - 문서 동기화 (v7.1)",
+      "description": "prompt_plan.md, spec.md, CLAUDE.md + rules/ 문서 동기화 (v7.1 — 흩어진 파일 housekeeping scan 통합)",
       "type": "skill-file",
       "hasSubcommands": false
     },
@@ -4702,445 +4716,469 @@
     {
       "id": "aeo-geo-9strategies",
       "name": "AEO/GEO 9 Strategies (Princeton/KDD 2024)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/aeo-geo-9strategies.md",
+      "path": "/Users/sangrok/.claude/rules/aeo-geo-9strategies.md",
       "priority": "normal"
     },
     {
       "id": "agents-v2",
       "name": "Agent Orchestration",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/agents-v2.md",
+      "path": "/Users/sangrok/.claude/rules/agents-v2.md",
       "priority": "critical"
     },
     {
       "id": "ai-research",
       "name": "AI Research 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/ai-research.md",
+      "path": "/Users/sangrok/.claude/rules/ai-research.md",
       "priority": "critical"
     },
     {
       "id": "answer-provenance",
       "name": "답변 출처 추적 정책 (Answer Provenance, IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/answer-provenance.md",
+      "path": "/Users/sangrok/.claude/rules/answer-provenance.md",
+      "priority": "critical"
+    },
+    {
+      "id": "anti-slop-design",
+      "name": "Anti-Slop 디자인 거버넌스 (IMPORTANT)",
+      "path": "/Users/sangrok/.claude/rules/anti-slop-design.md",
       "priority": "critical"
     },
     {
       "id": "bizcard-auto-detect",
       "name": "명함 자동 감지 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/bizcard-auto-detect.md",
+      "path": "/Users/sangrok/.claude/rules/bizcard-auto-detect.md",
       "priority": "important"
     },
     {
       "id": "business-model-design",
       "name": "비즈니스 모델 설계(BizModel) 거버넌스 규칙 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/business-model-design.md",
+      "path": "/Users/sangrok/.claude/rules/business-model-design.md",
       "priority": "critical"
     },
     {
       "id": "cert-pipeline",
       "name": "/cert-pipeline 자동화 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/cert-pipeline.md",
+      "path": "/Users/sangrok/.claude/rules/cert-pipeline.md",
       "priority": "critical"
     },
     {
       "id": "chrome-devtools",
       "name": "Chrome DevTools MCP 라우팅·거버넌스 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/chrome-devtools.md",
+      "path": "/Users/sangrok/.claude/rules/chrome-devtools.md",
       "priority": "critical"
     },
     {
       "id": "civil-law",
       "name": "Civil Law (민사) 에이전트 트리거 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/civil-law.md",
+      "path": "/Users/sangrok/.claude/rules/civil-law.md",
       "priority": "critical"
     },
     {
       "id": "cli-anything",
       "name": "CLI-Anything 사용 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/cli-anything.md",
+      "path": "/Users/sangrok/.claude/rules/cli-anything.md",
       "priority": "critical"
     },
     {
       "id": "cli-tools",
       "name": "CLI Tools 활용 규칙 (Phase 1: jc / hyperfine / gitleaks / atuin)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/cli-tools.md",
+      "path": "/Users/sangrok/.claude/rules/cli-tools.md",
       "priority": "normal"
     },
     {
       "id": "coding-style",
       "name": "Coding Style",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/coding-style.md",
+      "path": "/Users/sangrok/.claude/rules/coding-style.md",
       "priority": "normal"
     },
     {
       "id": "context-sync-lead",
       "name": "context-sync-lead 라우팅 + 자동/수동 경계 (2026-05-08 신설)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/context-sync-lead.md",
+      "path": "/Users/sangrok/.claude/rules/context-sync-lead.md",
       "priority": "critical"
     },
     {
       "id": "contract-engineering",
       "name": "컨트랙트 엔지니어링 (Contract Engineering, IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/contract-engineering.md",
+      "path": "/Users/sangrok/.claude/rules/contract-engineering.md",
       "priority": "critical"
     },
     {
       "id": "contract-legal",
       "name": "계약법/민사법률 자동 라우팅",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/contract-legal.md",
+      "path": "/Users/sangrok/.claude/rules/contract-legal.md",
       "priority": "critical"
     },
     {
       "id": "dark-mode-audit",
       "name": "다크 모드 양방향 검토 의무 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/dark-mode-audit.md",
+      "path": "/Users/sangrok/.claude/rules/dark-mode-audit.md",
       "priority": "critical"
     },
     {
       "id": "data-policy",
       "name": "데이터 3분할 정책 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/data-policy.md",
+      "path": "/Users/sangrok/.claude/rules/data-policy.md",
       "priority": "critical"
     },
     {
       "id": "design-doc-governance",
       "name": "DESIGN.md 거버넌스 규칙 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/design-doc-governance.md",
+      "path": "/Users/sangrok/.claude/rules/design-doc-governance.md",
       "priority": "critical"
     },
     {
       "id": "design-engineer",
       "name": "Design Engineer 룰 (web-designer 확장)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/design-engineer.md",
+      "path": "/Users/sangrok/.claude/rules/design-engineer.md",
       "priority": "normal"
     },
     {
       "id": "design-extract",
       "name": "design-extract 스킬 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/design-extract.md",
+      "path": "/Users/sangrok/.claude/rules/design-extract.md",
       "priority": "critical"
     },
     {
       "id": "detail-page",
       "name": "상세페이지 자동 제작 (detail-page-creator) 라우팅 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/detail-page.md",
+      "path": "/Users/sangrok/.claude/rules/detail-page.md",
       "priority": "critical"
     },
     {
       "id": "dev-team",
       "name": "Dev Team Routing Rules",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/dev-team.md",
+      "path": "/Users/sangrok/.claude/rules/dev-team.md",
       "priority": "normal"
     },
     {
       "id": "discord-notify",
       "name": "Discord 팀 알림 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/discord-notify.md",
+      "path": "/Users/sangrok/.claude/rules/discord-notify.md",
+      "priority": "critical"
+    },
+    {
+      "id": "disk-cleanup",
+      "name": "디스크 자동 청소 거버넌스 (CRITICAL)",
+      "path": "/Users/sangrok/.claude/rules/disk-cleanup.md",
       "priority": "critical"
     },
     {
       "id": "doc-sync",
       "name": "프로젝트 문서 동기화 정책 (전역, Phase 11)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/doc-sync.md",
+      "path": "/Users/sangrok/.claude/rules/doc-sync.md",
       "priority": "critical"
     },
     {
       "id": "document-production",
       "name": "문서 제작 파이프라인 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/document-production.md",
+      "path": "/Users/sangrok/.claude/rules/document-production.md",
       "priority": "critical"
     },
     {
       "id": "docx-professional",
       "name": "DOCX 문서 줄띄움·가독성 거버넌스 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/docx-professional.md",
+      "path": "/Users/sangrok/.claude/rules/docx-professional.md",
       "priority": "critical"
     },
     {
       "id": "email",
       "name": "이메일 규칙 (Email Rules)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/email.md",
+      "path": "/Users/sangrok/.claude/rules/email.md",
       "priority": "critical"
     },
     {
       "id": "fastcampus-qa-bot",
       "name": "패스트캠퍼스 수강생 Q&A 봇 운영 규칙 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/fastcampus-qa-bot.md",
+      "path": "/Users/sangrok/.claude/rules/fastcampus-qa-bot.md",
       "priority": "critical"
     },
     {
       "id": "first-principles",
       "name": "제1원칙 사고 에이전트 트리거 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/first-principles.md",
+      "path": "/Users/sangrok/.claude/rules/first-principles.md",
       "priority": "critical"
     },
     {
       "id": "geolocation",
       "name": "거리/경로/장소 검색 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/geolocation.md",
+      "path": "/Users/sangrok/.claude/rules/geolocation.md",
       "priority": "critical"
     },
     {
       "id": "git-workflow-v2",
       "name": "Git Workflow",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/git-workflow-v2.md",
+      "path": "/Users/sangrok/.claude/rules/git-workflow-v2.md",
       "priority": "normal"
     },
     {
       "id": "goal-hook-condition",
       "name": "/goal Hook Condition 작성 규칙 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/goal-hook-condition.md",
+      "path": "/Users/sangrok/.claude/rules/goal-hook-condition.md",
       "priority": "critical"
     },
     {
       "id": "golden-principles",
       "name": "Golden Principles",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/golden-principles.md",
+      "path": "/Users/sangrok/.claude/rules/golden-principles.md",
       "priority": "critical"
     },
     {
       "id": "gws",
       "name": "Google Workspace CLI (gws) 사용 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/gws.md",
+      "path": "/Users/sangrok/.claude/rules/gws.md",
       "priority": "critical"
     },
     {
       "id": "hermes-pm-instance",
       "name": "QJC PM 전용 Hermes Profile (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/hermes-pm-instance.md",
+      "path": "/Users/sangrok/.claude/rules/hermes-pm-instance.md",
       "priority": "critical"
     },
     {
       "id": "hometax-sync",
       "name": "홈택스 매출 동기화 규칙 (`/hometax-sync` + hometax-processor)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/hometax-sync.md",
+      "path": "/Users/sangrok/.claude/rules/hometax-sync.md",
       "priority": "critical"
     },
     {
       "id": "image-generation",
       "name": "이미지 생성 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/image-generation.md",
+      "path": "/Users/sangrok/.claude/rules/image-generation.md",
       "priority": "critical"
     },
     {
       "id": "image-provider-routing",
       "name": "이미지 프로바이더 자동 라우팅",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/image-provider-routing.md",
+      "path": "/Users/sangrok/.claude/rules/image-provider-routing.md",
       "priority": "critical"
     },
     {
       "id": "interaction",
       "name": "Interaction Rules",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/interaction.md",
+      "path": "/Users/sangrok/.claude/rules/interaction.md",
       "priority": "critical"
     },
     {
       "id": "knowledge-work-routing",
       "name": "Knowledge Work Plugins 라우팅 규칙 (2026-05-26)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/knowledge-work-routing.md",
+      "path": "/Users/sangrok/.claude/rules/knowledge-work-routing.md",
       "priority": "critical"
     },
     {
       "id": "labor-consultant",
       "name": "노무사(Labor Consultant) 에이전트 자동 트리거 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/labor-consultant.md",
+      "path": "/Users/sangrok/.claude/rules/labor-consultant.md",
       "priority": "critical"
     },
     {
       "id": "launchctl-hygiene",
       "name": "launchctl 에이전트 위생 정책 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/launchctl-hygiene.md",
+      "path": "/Users/sangrok/.claude/rules/launchctl-hygiene.md",
       "priority": "critical"
     },
     {
       "id": "lazyweb-mcp",
       "name": "Lazyweb MCP 통합 정책 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/lazyweb-mcp.md",
+      "path": "/Users/sangrok/.claude/rules/lazyweb-mcp.md",
       "priority": "critical"
     },
     {
       "id": "ledger-sync-protocol",
       "name": "5곳 동기 저장 프로토콜 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/ledger-sync-protocol.md",
+      "path": "/Users/sangrok/.claude/rules/ledger-sync-protocol.md",
       "priority": "critical"
     },
     {
       "id": "mcp-token-policy",
       "name": "MCP 토큰 정책 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/mcp-token-policy.md",
+      "path": "/Users/sangrok/.claude/rules/mcp-token-policy.md",
       "priority": "critical"
     },
     {
       "id": "mediation-negotiation",
       "name": "조정/협상(Mediation-Negotiation) 에이전트 트리거 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/mediation-negotiation.md",
+      "path": "/Users/sangrok/.claude/rules/mediation-negotiation.md",
       "priority": "critical"
     },
     {
       "id": "mediation",
       "name": "Mediation/Negotiation 에이전트 트리거 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/mediation.md",
+      "path": "/Users/sangrok/.claude/rules/mediation.md",
       "priority": "critical"
     },
     {
       "id": "memory-aware-hub",
       "name": "Memory-Aware Hub 운영 표준 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/memory-aware-hub.md",
+      "path": "/Users/sangrok/.claude/rules/memory-aware-hub.md",
       "priority": "critical"
     },
     {
       "id": "memory-policy",
       "name": "메모리 정책 (Memory Policy, IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/memory-policy.md",
+      "path": "/Users/sangrok/.claude/rules/memory-policy.md",
       "priority": "critical"
     },
     {
       "id": "meta-improvement",
       "name": "Meta Improvement Loop",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/meta-improvement.md",
+      "path": "/Users/sangrok/.claude/rules/meta-improvement.md",
       "priority": "critical"
     },
     {
       "id": "notification-hooks",
       "name": "알림 훅 작성 표준 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/notification-hooks.md",
+      "path": "/Users/sangrok/.claude/rules/notification-hooks.md",
       "priority": "critical"
     },
     {
       "id": "notion-idempotency",
       "name": "Notion 멱등성 정책 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/notion-idempotency.md",
+      "path": "/Users/sangrok/.claude/rules/notion-idempotency.md",
       "priority": "critical"
     },
     {
       "id": "performance-marketing",
       "name": "퍼포먼스 마케팅 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/performance-marketing.md",
+      "path": "/Users/sangrok/.claude/rules/performance-marketing.md",
       "priority": "critical"
     },
     {
       "id": "personal-os",
       "name": "Personal OS Rules",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/personal-os.md",
+      "path": "/Users/sangrok/.claude/rules/personal-os.md",
       "priority": "critical"
     },
     {
       "id": "pipeline-metrics",
       "name": "파이프라인 메트릭 (Pipeline Metrics, IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/pipeline-metrics.md",
+      "path": "/Users/sangrok/.claude/rules/pipeline-metrics.md",
       "priority": "critical"
     },
     {
       "id": "project-architect",
       "name": "프로젝트 아키텍처(Architect) 에이전트 트리거 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/project-architect.md",
+      "path": "/Users/sangrok/.claude/rules/project-architect.md",
       "priority": "critical"
     },
     {
       "id": "push-before-ci",
       "name": "Push 전 CI 사전 검증 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/push-before-ci.md",
+      "path": "/Users/sangrok/.claude/rules/push-before-ci.md",
       "priority": "critical"
     },
     {
       "id": "qjc-auto",
       "name": "QJC 자동 정리 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/qjc-auto.md",
+      "path": "/Users/sangrok/.claude/rules/qjc-auto.md",
       "priority": "critical"
     },
     {
       "id": "qjc-reporting-protocol",
       "name": "QJC 보고 체계 프로토콜 (Claude Code 하네스 룰)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/qjc-reporting-protocol.md",
+      "path": "/Users/sangrok/.claude/rules/qjc-reporting-protocol.md",
       "priority": "critical"
     },
     {
       "id": "ralph-loop",
       "name": "Ralph Loop (다중 턴 자율 작업)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/ralph-loop.md",
+      "path": "/Users/sangrok/.claude/rules/ralph-loop.md",
       "priority": "normal"
     },
     {
       "id": "reasoning-sandwich",
       "name": "Reasoning Sandwich 패턴 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/reasoning-sandwich.md",
+      "path": "/Users/sangrok/.claude/rules/reasoning-sandwich.md",
       "priority": "important"
     },
     {
       "id": "receiving-review",
       "name": "코드 리뷰 수신 프로토콜",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/receiving-review.md",
+      "path": "/Users/sangrok/.claude/rules/receiving-review.md",
       "priority": "normal"
     },
     {
       "id": "research",
       "name": "범용 연구 에이전트 (research-pi) 트리거",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/research.md",
+      "path": "/Users/sangrok/.claude/rules/research.md",
       "priority": "critical"
     },
     {
       "id": "revenue-processing",
       "name": "매출 처리 규칙 (revenue-processor + /revenue)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/revenue-processing.md",
+      "path": "/Users/sangrok/.claude/rules/revenue-processing.md",
       "priority": "critical"
     },
     {
       "id": "saju-file-management",
       "name": "사주 문서 저장 규칙 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/saju-file-management.md",
+      "path": "/Users/sangrok/.claude/rules/saju-file-management.md",
       "priority": "critical"
     },
     {
       "id": "session",
       "name": "Session Lifecycle",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/session.md",
+      "path": "/Users/sangrok/.claude/rules/session.md",
       "priority": "important"
     },
     {
       "id": "skill-routing-daily-report",
       "name": "daily-report Skill 즉시 호출 규칙 (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/skill-routing-daily-report.md",
+      "path": "/Users/sangrok/.claude/rules/skill-routing-daily-report.md",
       "priority": "critical"
     },
     {
       "id": "slides-web",
       "name": "slides-web 디자인 거버넌스 룰",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/slides-web.md",
+      "path": "/Users/sangrok/.claude/rules/slides-web.md",
       "priority": "normal"
     },
     {
       "id": "supabase-mcp",
       "name": "Supabase MCP (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/supabase-mcp.md",
+      "path": "/Users/sangrok/.claude/rules/supabase-mcp.md",
       "priority": "critical"
     },
     {
       "id": "sync-all",
       "name": "/sync-all 사용 규칙",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/sync-all.md",
+      "path": "/Users/sangrok/.claude/rules/sync-all.md",
       "priority": "critical"
     },
     {
       "id": "sync-drift-scanner",
       "name": "sync-drift-scan.sh 공유 진단 엔진 계약 (Phase 15)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/sync-drift-scanner.md",
+      "path": "/Users/sangrok/.claude/rules/sync-drift-scanner.md",
+      "priority": "critical"
+    },
+    {
+      "id": "sync-housekeeping",
+      "name": "흩어진 파일 정리 거버넌스 (sync-housekeeping, IMPORTANT)",
+      "path": "/Users/sangrok/.claude/rules/sync-housekeeping.md",
+      "priority": "critical"
+    },
+    {
+      "id": "tailscale-runtime",
+      "name": "Tailscale 런타임 운영 규칙 (CRITICAL)",
+      "path": "/Users/sangrok/.claude/rules/tailscale-runtime.md",
       "priority": "critical"
     },
     {
       "id": "verification",
       "name": "Verification Before Completion (CRITICAL)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/verification.md",
+      "path": "/Users/sangrok/.claude/rules/verification.md",
       "priority": "critical"
     },
     {
       "id": "video-production",
       "name": "영상 제작 거버넌스 규칙 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/video-production.md",
+      "path": "/Users/sangrok/.claude/rules/video-production.md",
       "priority": "important"
     },
     {
       "id": "youtube-subtitle",
       "name": "YouTube 자막 추출 (IMPORTANT)",
-      "path": "/Users/sangrok/qjc-office/dotclaude/rules/youtube-subtitle.md",
+      "path": "/Users/sangrok/.claude/rules/youtube-subtitle.md",
       "priority": "critical"
     }
   ],
@@ -6199,13 +6237,15 @@
   "memory": {
     "autoMemory": {
       "path": "/Users/sangrok/.claude/projects/-Users-sangrok/memory",
-      "fileCount": 32,
+      "fileCount": 37,
       "files": [
         "MEMORY.md",
         "experiences.jsonl",
         "feedback_auto_classifier_self_modify_block.md",
         "feedback_cc_auth_setup.md",
+        "feedback_ckm_override_sync_20260601.md",
         "feedback_goal_hook_deadlock_20260522.md",
+        "feedback_goal_hook_universal_quantifier_20260530.md",
         "feedback_harness_resync_20260521.md",
         "feedback_hook_output.md",
         "feedback_image_immediate_execution.md",
@@ -6213,6 +6253,7 @@
         "feedback_naming_confusion.md",
         "feedback_no_bias.md",
         "feedback_orchestrator_self_call_loop.md",
+        "feedback_report_always_pdf_with_charts.md",
         "feedback_skill_reference_autoload.md",
         "feedback_skill_trigger_collision_resolution.md",
         "feedback_subagent_mcp_inheritance.md",
@@ -6227,10 +6268,12 @@
         "reference_karpathy_knowledge_wiki.md",
         "reference_landing_review_skeptical_20260512.md",
         "reference_lazyweb_mcp_integration.md",
+        "reference_macos_tahoe_airdrop_icloud_recovery.md",
         "reference_mcp_token_setup_20260422.md",
         "reference_permission_audit_20260512.md",
         "reference_supabase_mcp_singleton_20260427.md",
         "reference_super_research_isolation_refactor.md",
+        "reference_tailscale_disconnect_recovery_20260530.md",
         "reference_typeui_integration_20260421.md",
         "user_qjc_website.md"
       ]
@@ -6264,6 +6307,10 @@
         },
         {
           "name": "codex-reviewer",
+          "fileCount": 0
+        },
+        {
+          "name": "context-sync-lead",
           "fileCount": 0
         },
         {
@@ -6311,6 +6358,10 @@
           "fileCount": 1
         },
         {
+          "name": "planner",
+          "fileCount": 0
+        },
+        {
           "name": "product-strategist",
           "fileCount": 2
         },
@@ -6327,8 +6378,12 @@
           "fileCount": 9
         },
         {
-          "name": "research-pi",
+          "name": "quotation",
           "fileCount": 0
+        },
+        {
+          "name": "research-pi",
+          "fileCount": 2
         },
         {
           "name": "researcher",
@@ -6390,9 +6445,9 @@
   },
   "stats": {
     "agentCount": 207,
-    "skillCount": 191,
+    "skillCount": 193,
     "hookCount": 100,
-    "ruleCount": 74,
+    "ruleCount": 78,
     "pipelineCount": 18,
     "mcpServerCount": 46
   }

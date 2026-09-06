@@ -103,6 +103,9 @@ jobs:
       - name: 체크아웃
         uses: actions/checkout@v4
 
+      - name: TeamClaude 상태 식별 회귀 테스트
+        run: python3 menubar/Tests/test_teamclaude_status_identity.py -v
+
       - name: 메뉴바 빌드
         run: bash menubar/build.sh
 

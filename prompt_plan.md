@@ -41,8 +41,17 @@
 - [x] 메뉴바 시각화 — 펄스 도트 + 7일 스파크라인 + 7슬롯 롤링(누적/병렬 포함) + 드롭다운 14일 차트 + 병렬 게이지
 - [x] 병렬 세션 감지 — pgrep 기반 동시 실행 Claude 인스턴스 수 표시
 
+## Phase 7: Claude/Codex 통합 관제 + 메뉴 반응속도 (2026-07-24)
+- [x] Usage — daily/weekly/monthly native 집계 + USD/KRW 환산 + provider/model별 비용·토큰
+- [x] AI 계정 진단 — TeamClaude health + TeamCodex 다계정 풀을 React 화면에 통합
+- [x] macOS 메뉴바 — Claude/Codex/TeamClaude/TeamCodex 상태, 계정 추가, quota reset 남은 시간 표시
+- [x] Codex 세션 증분 캐시 — 변경된 JSONL만 재파싱하고 cache 파일 권한 0600 적용
+- [x] 메뉴 사전 구성 — 클릭 경로에서는 캐시된 메뉴를 즉시 표시하고 백그라운드에서 갱신
+- [x] Swift 로직 분리 및 테스트 — CodexStatus*, TeamClaudeStatusLogic, TeamCodexPoolStatus
+- [ ] v2.0.0 GitHub Release 생성 및 직원 설치 검증
+
 ## 의존성
 - Phase 2 (Agent Office)는 Phase 1 완료 후 진행 — **완료 (Phase 2B까지)**
 - Phase 3 (UX 통합)은 Phase 2 완료 후 진행 — 다음 작업
 - Phase 4 (실시간 세션)는 Phase 2와 병렬 진행 — **부분 완료 (기반 + Agent Office 연동)**
-- Phase 5 (테스트/패키징)는 Phase 1-4 완료 후 진행 — 테스트 완료, 패키징 남음
+- Phase 5 (테스트/패키징)는 Phase 1-4 완료 후 진행 — 테스트 완료, v2.0.0 패키징 남음

@@ -20,7 +20,7 @@ Claude Code 시스템 시각화 도구. 에이전트, 스킬, 훅, 룰, 파이�
 ```bash
 npm run dev          # Vite 개발 서버 (포트 5173, --host 필수)
 npm run build        # tsc && vite build (noEmit은 tsconfig)
-npm run test         # vitest run (23 files, 193 tests)
+npm run test         # vitest run
 npm run scan         # system-data.json 재생성
 npm run scan:usage   # 사용 통계 재생성 (usage 뷰용)
 npm run tauri        # Tauri CLI (npm run tauri dev / build)
@@ -38,10 +38,14 @@ bash menubar/build.sh                                          # swiftc 컴파�
 launchctl load ~/Library/LaunchAgents/com.qjc.cc-menubar.plist # 로그인 자동 시작 등록
 ```
 
-- 메뉴바: 펄스 도트(활성=초록/idle=회색) + 7일 비용 스파크라인 + 7슬롯 롤링(오늘/토큰/누적/총/병렬/주간/모델)
-- 드롭다운: 14일 추이 막대 차트 + 병렬 세션 게이지
-- 데이터: `npx ccusage daily --json` (fnm symlink 직접 spawn, 142KB JSON은 tmp 파일 redirect로 pipe deadlock 회피)
-- 병렬 감지: `pgrep -f '^claude'` 인스턴스 수
+- 메뉴바: 펄스 도트(활성=초록/idle=회색) + 7일 비용 스파크라인 + 롤링 슬롯(오늘$/오늘₩/토큰/주간/이번달$/이번달₩/누적₩/병렬/코덱스$/최다모델)
+- 드롭다운: 14일 추이 막대 차트 + 병렬 세션 게이지 + 오늘/이번주/이번달/누적 비용($+₩) + 환율 + **모델별 (이번 달)** 섹션(`ProviderSummaryView` 색점+분할 비례 바 + ModelRowView 상위 6모델 $/₩, codex 포함)
+- 데이터: `npx ccusage {daily,weekly,monthly} --json` 순차 호출(isFetching 가드 → 좀비 방지) — 주간/월간/누적을 native CLI와 일치하게 산출, 실패 시 daily 파생 폴백. fnm symlink 직접 spawn, 142KB JSON은 tmp 파일 redirect로 pipe deadlock 회피
+- 모델 추적: `parseModelBreakdown`(이번 달 modelBreakdowns) + `providerOf`(claude/gpt·codex/gemini 분류) → Claude/Codex/Gemini 제공자별 + 모델별 비용. codex(gpt-*) 가시 추적. `shortenModelName`은 8자리 날짜 접미사 제거+공백 버전(TS `modelLabel` 정합), `formatCost` 천단위 구분
+- 환율: open.er-api.com 라이브 USD→KRW + UserDefaults 12h 캐시 + 폴백 1450 (`fetchUsdKrwRate`/`formatKRW`)
+- AI 계정: TeamClaude + TeamCodex(`127.0.0.1:3457`) 다계정 상태, 5시간/7일 quota와 reset 남은 시간, OAuth 계정 추가 액션
+- Codex 캐시: `~/.codex/cache/cc-menubar-session-stats-v1.json` 증분 파싱 캐시(0600) + 메뉴 prewarm
+- 병렬 감지: Claude/Codex/Hermes 관련 프로세스 수
 
 ## 직원 배포 (docs/INSTALL-for-employees.md)
 
@@ -56,13 +60,15 @@ launchctl load ~/Library/LaunchAgents/com.qjc.cc-menubar.plist # 로그인 자�
 
 ```
 src/renderer/src/
-├── features/     # 9개 뷰 (dashboard, agent-map, agent-office 등)
+├── features/     # 10개 뷰 (dashboard, agent-map, agent-office, runtime-health 등)
 │   └── dashboard/GamificationPanel.tsx  # 레벨/XP/스트릭/업적 (lib/gamification.ts)
 ├── lib/          # types.ts(zod), gamification.ts, DataProvider.tsx, api.ts, agent-category-map.ts, parsers/
+│                 # token-aggregation.ts(ccusage 주/월/누적 집계 + 모델/제공자 분해 codex 추적), fx.ts(USD→KRW), hooks/{use-global-token-stats,use-usd-krw-rate}.ts
 ├── data/         # system-data.json (정적 스냅샷) + ccusage-snapshot.json (dev 폴백, gitignore)
 └── App.tsx       # ViewType 상태로 뷰 전환
 src-tauri/src/    # Rust 백엔드 (commands, file_watcher, session_watcher)
-menubar/Sources/  # macOS 메뉴바 Swift 데몬 (main.swift) — 위 "맥 메뉴바 데몬" 참조
+menubar/Sources/  # macOS 메뉴바 Swift 데몬 — main.swift + CodexStatus* + TeamClaude/TeamCodex 로직
+menubar/Tests/    # 메뉴바 파싱·상태·레이아웃 Swift 테스트
 __tests__/        # Vitest 테스트 (프로젝트 루트)
 ```
 
