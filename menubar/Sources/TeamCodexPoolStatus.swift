@@ -195,14 +195,35 @@ private func teamCodexReadObject(_ path: String) -> [String: Any]? {
     return try? teamCodexObject(from: data)
 }
 
-private func teamCodexFetchStatus(port: Int) -> Data? {
+final class TeamCodexStatusRedirectDelegate: NSObject, URLSessionTaskDelegate {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @Sendable @escaping (URLRequest?) -> Void
+    ) {
+        completionHandler(nil)
+    }
+}
+
+func teamCodexFetchStatus(port: Int, apiKey: String?) -> Data? {
     guard let url = URL(string: "http://127.0.0.1:\(port)/teamclaude/status") else { return nil }
     var request = URLRequest(url: url)
     request.timeoutInterval = 2.5
+    if let apiKey, !apiKey.isEmpty {
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("1", forHTTPHeaderField: "x-teamcodex-status-identity")
+    }
 
     let semaphore = DispatchSemaphore(value: 0)
     var result: Data?
-    let task = URLSession.shared.dataTask(with: request) { data, response, _ in
+    let statusSession = URLSession(
+        configuration: .ephemeral,
+        delegate: TeamCodexStatusRedirectDelegate(),
+        delegateQueue: nil
+    )
+    let task = statusSession.dataTask(with: request) { data, response, _ in
         defer { semaphore.signal() }
         guard let http = response as? HTTPURLResponse,
               (200..<300).contains(http.statusCode) else {
@@ -213,6 +234,7 @@ private func teamCodexFetchStatus(port: Int) -> Data? {
     task.resume()
     _ = semaphore.wait(timeout: .now() + 3)
     task.cancel()
+    statusSession.invalidateAndCancel()
     return result
 }
 
@@ -226,7 +248,7 @@ func loadTeamCodexPoolHealth(home: String = NSHomeDirectory()) -> TeamCodexPoolH
     let port = teamCodexInt(server?["port"]) ?? teamCodexInt(proxy?["port"]) ?? 3457
     let serverPid = teamCodexInt(server?["pid"])
 
-    if let data = teamCodexFetchStatus(port: port),
+    if let data = teamCodexFetchStatus(port: port, apiKey: teamCodexString(proxy?["apiKey"])),
        let health = try? teamCodexPoolHealth(from: data, port: port, serverPid: serverPid) {
         return health
     }

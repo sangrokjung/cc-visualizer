@@ -212,6 +212,7 @@ func teamClaudeShouldAttemptRecoveryForDrift(
 
 enum TeamClaudeMeasurementIssue: Equatable {
     case disabled
+    case statusIdentityUnavailable
     case serverNotSynced
     case accountError
     case throttled
@@ -226,7 +227,7 @@ enum TeamClaudeMeasurementIssue: Equatable {
         switch self {
         case .serverNotSynced, .accountError, .staleSession, .sessionMissing, .weeklyMissing, .fableMissing:
             return true
-        case .disabled, .throttled, .exhausted, .quotaBlocked:
+        case .disabled, .statusIdentityUnavailable, .throttled, .exhausted, .quotaBlocked:
             return false
         }
     }
@@ -238,6 +239,7 @@ enum TeamClaudeMeasurementIssue: Equatable {
     var displayText: String {
         switch self {
         case .disabled: return "비활성 계정"
+        case .statusIdentityUnavailable: return "상태 조회 인증 확인 필요"
         case .serverNotSynced: return "서버 동기화 필요"
         case .accountError: return "인증 확인 필요"
         case .throttled: return "일시 제한 해제 대기"
@@ -253,6 +255,7 @@ enum TeamClaudeMeasurementIssue: Equatable {
     var compactText: String {
         switch self {
         case .disabled: return "비활성"
+        case .statusIdentityUnavailable: return "조회인증"
         case .serverNotSynced: return "동기화"
         case .accountError: return "인증확인"
         case .throttled: return "제한대기"

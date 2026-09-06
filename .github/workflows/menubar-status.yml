@@ -1,0 +1,39 @@
+name: Menubar Status
+
+on:
+  pull_request:
+    paths:
+      - 'menubar/**'
+      - '.github/workflows/menubar-status.yml'
+      - '.github/workflows/release.yml'
+  push:
+    branches:
+      - main
+      - feat/weekly-monthly-krw-usage
+    paths:
+      - 'menubar/**'
+      - '.github/workflows/menubar-status.yml'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  menubar-status:
+    name: 메뉴바 상태 회귀 테스트 및 빌드
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: TeamClaude 상태 식별 회귀 테스트
+        run: python3 menubar/Tests/test_teamclaude_status_identity.py -v
+
+      - name: 메뉴바 빌드
+        run: bash menubar/build.sh
