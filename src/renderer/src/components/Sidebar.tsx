@@ -8,6 +8,7 @@ const views: { id: ViewType; label: string; icon: string }[] = [
   { id: 'agent-map', label: '에이전트 맵', icon: '🔗' },
   { id: 'architecture', label: '시스템 아키텍처', icon: '🏗' },
   { id: 'live-monitor', label: '실시간 모니터', icon: '📡' },
+  { id: 'runtime-health', label: 'AI 계정 진단', icon: '🩺' },
   { id: 'catalog', label: '카탈로그', icon: '📚' },
   { id: 'systems', label: '자동화 생태계', icon: '⚙' },
   { id: 'usage', label: '사용 통계', icon: '📈' },

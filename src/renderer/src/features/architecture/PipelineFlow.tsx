@@ -179,8 +179,9 @@ export default function PipelineFlow() {
     <div className="h-full flex flex-col">
       {/* 드롭다운 */}
       <div className="flex items-center gap-3 px-4 py-2 bg-gray-900 border-b border-gray-800">
-        <label className="text-xs text-gray-500">파이프라인:</label>
+        <label htmlFor="pipeline-flow-select" className="text-xs text-gray-500">파이프라인:</label>
         <select
+          id="pipeline-flow-select"
           value={selected}
           onChange={handleSelect}
           className="bg-gray-800 text-gray-200 text-xs border border-gray-700 rounded px-2 py-1 focus:outline-none focus:border-blue-500"

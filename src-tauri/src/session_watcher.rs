@@ -98,7 +98,11 @@ fn find_latest_jsonl(last_scan: &mut u64) -> Option<PathBuf> {
     }
 
     changed_dirs.sort_by(|a, b| b.1.cmp(&a.1));
-    let limit = if *last_scan == 0 { 5 } else { changed_dirs.len() };
+    let limit = if *last_scan == 0 {
+        5
+    } else {
+        changed_dirs.len()
+    };
 
     for (dir_path, _) in changed_dirs.iter().take(limit) {
         if let Ok(files) = fs::read_dir(dir_path) {
@@ -145,6 +149,25 @@ fn truncate_utf8_safe(s: &str, max_bytes: usize) -> String {
     s[..idx].to_string()
 }
 
+/// 파일 끝 `max_bytes` 영역에서, 깨진 첫 라인을 버리고 다음 newline 이후 본문을 반환한다.
+/// 시작 byte 인덱스를 char boundary로 보정하여 멀티바이트(한글 등) 중간 슬라이싱 panic을 방어한다.
+/// (기존 `content[byte_idx..]` 직접 슬라이싱은 byte_idx가 문자 중간이면 panic → 워처 스레드 사망)
+fn tail_lines_after_newline(content: &str, max_bytes: u64) -> &str {
+    let len = content.len() as u64;
+    let start = len.saturating_sub(max_bytes);
+    if start == 0 {
+        return content;
+    }
+    let mut byte_idx = start as usize;
+    while byte_idx < content.len() && !content.is_char_boundary(byte_idx) {
+        byte_idx += 1;
+    }
+    match content[byte_idx..].find('\n') {
+        Some(i) => &content[byte_idx + i + 1..],
+        None => "",
+    }
+}
+
 fn parse_line(line: &str) -> Vec<SessionEvent> {
     // 실제 Claude Code JSONL 구조:
     // - type: "assistant" → message.content[] 에 tool_use 블록 포함
@@ -159,12 +182,14 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
         Err(_) => return vec![],
     };
 
-    let id = raw.get("uuid")
+    let id = raw
+        .get("uuid")
         .or_else(|| raw.get("messageId"))
         .and_then(|v| v.as_str())
         .map(String::from)
         .unwrap_or_else(uuid_simple);
-    let ts = raw.get("timestamp")
+    let ts = raw
+        .get("timestamp")
         .and_then(|v| v.as_str())
         .map(String::from)
         .unwrap_or_else(now_iso);
@@ -175,7 +200,8 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
     match entry_type {
         "assistant" => {
             // message.content[] 순회 — tool_use 블록 추출
-            if let Some(content) = raw.get("message")
+            if let Some(content) = raw
+                .get("message")
                 .and_then(|m| m.get("content"))
                 .and_then(|c| c.as_array())
             {
@@ -209,10 +235,23 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
                                 timestamp: ts.clone(),
                                 r#type: "agent_spawn".into(),
                                 data: SessionEventData {
-                                    agent_id: Some(block.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string()),
+                                    agent_id: Some(
+                                        block
+                                            .get("id")
+                                            .and_then(|v| v.as_str())
+                                            .unwrap_or("")
+                                            .to_string(),
+                                    ),
                                     agent_name: Some(agent_name.to_string()),
-                                    text: Some(format!("{} ({}{})", desc, model,
-                                        if subagent_type.is_empty() { String::new() } else { format!(", {}", subagent_type) }
+                                    text: Some(format!(
+                                        "{} ({}{})",
+                                        desc,
+                                        model,
+                                        if subagent_type.is_empty() {
+                                            String::new()
+                                        } else {
+                                            format!(", {}", subagent_type)
+                                        }
                                     )),
                                     ..Default::default()
                                 },
@@ -258,7 +297,8 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
 
         "user" => {
             // tool_result 블록 추출
-            if let Some(content) = raw.get("message")
+            if let Some(content) = raw
+                .get("message")
                 .and_then(|m| m.get("content"))
                 .and_then(|c| c.as_array())
             {
@@ -269,7 +309,8 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
                             timestamp: ts.clone(),
                             r#type: "tool_result".into(),
                             data: SessionEventData {
-                                tool_name: block.get("tool_use_id")
+                                tool_name: block
+                                    .get("tool_use_id")
                                     .and_then(|v| v.as_str())
                                     .map(|s| s.chars().take(20).collect()),
                                 ..Default::default()
@@ -306,7 +347,8 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
         _ => {
             if let Some(hook_infos) = raw.get("hookInfos").and_then(|h| h.as_array()) {
                 for info in hook_infos {
-                    let hook_name = info.get("hookName")
+                    let hook_name = info
+                        .get("hookName")
                         .or_else(|| info.get("command"))
                         .and_then(|v| v.as_str())
                         .unwrap_or("");
@@ -316,7 +358,10 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
                             timestamp: ts.clone(),
                             r#type: "hook".into(),
                             data: SessionEventData {
-                                hook_event: raw.get("type").and_then(|v| v.as_str()).map(String::from),
+                                hook_event: raw
+                                    .get("type")
+                                    .and_then(|v| v.as_str())
+                                    .map(String::from),
                                 hook_name: Some(hook_name.to_string()),
                                 ..Default::default()
                             },
@@ -333,7 +378,9 @@ fn parse_line(line: &str) -> Vec<SessionEvent> {
 
 fn uuid_simple() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let d = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
+    let d = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
     format!("{:x}-{:x}", d.as_secs(), d.subsec_nanos())
 }
 
@@ -377,7 +424,11 @@ mod tests {
     fn unknown_line_emits_no_event() {
         let line = r#"{"type":"attachment","data":"..."}"#;
         let events = parse_line(line);
-        assert_eq!(events.len(), 0, "attachment 같은 알 수 없는 타입은 emit 안 함");
+        assert_eq!(
+            events.len(),
+            0,
+            "attachment 같은 알 수 없는 타입은 emit 안 함"
+        );
     }
 
     #[test]
@@ -405,6 +456,27 @@ mod tests {
         let events = parse_line("not json");
         assert!(events.is_empty());
     }
+
+    #[test]
+    fn tail_lines_full_content_when_under_max() {
+        let content = "a\nb\nc";
+        assert_eq!(tail_lines_after_newline(content, 1024), content);
+    }
+
+    #[test]
+    fn tail_lines_drops_partial_first_line() {
+        // 끝 8바이트 영역 → 깨진 첫 라인 버리고 다음 newline 이후부터
+        let content = "line1\nline2\nline3\n";
+        assert_eq!(tail_lines_after_newline(content, 8), "line3\n");
+    }
+
+    #[test]
+    fn tail_lines_no_panic_on_multibyte_cut() {
+        // start byte가 한글(3바이트) 중간에 떨어지는 케이스 — 기존 직접 슬라이싱은 panic 했다.
+        // "가나다라마바사아자차"(30B) + "\n"(1B) + "TAIL_LINE"(9B) = 40B, max 12 → start=28(차 중간)
+        let content = "가나다라마바사아자차\nTAIL_LINE";
+        assert_eq!(tail_lines_after_newline(content, 12), "TAIL_LINE");
+    }
 }
 
 /// 가장 최근 JSONL의 마지막 256KB 백필 이벤트 emit.
@@ -412,22 +484,11 @@ mod tests {
 pub fn backfill_latest_session(app: &AppHandle) -> Result<usize, String> {
     let mut last_scan: u64 = 0;
     let path = find_latest_jsonl(&mut last_scan).ok_or("no jsonl found")?;
-    let file_size = path.metadata().map_err(|e| e.to_string())?.len();
     let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
 
-    // 백필 영역 — 1MB (메모리 부담 작고 수십-수백 이벤트 확보)
+    // 백필 영역 — 1MB (메모리 부담 작고 수십-수백 이벤트 확보). char boundary 보정 포함.
     const BACKFILL_BYTES: u64 = 1024 * 1024;
-    let backfill_start = file_size.saturating_sub(BACKFILL_BYTES);
-    let backfill_content: &str = if backfill_start == 0 {
-        content.as_str()
-    } else {
-        let byte_idx = backfill_start as usize;
-        let safe_idx = content[byte_idx..]
-            .find('\n')
-            .map(|i| byte_idx + i + 1)
-            .unwrap_or(content.len());
-        &content[safe_idx..]
-    };
+    let backfill_content: &str = tail_lines_after_newline(&content, BACKFILL_BYTES);
 
     let session_id = path
         .file_stem()
@@ -479,19 +540,9 @@ pub fn start_session_watcher(app: AppHandle) {
                     // 파일이 작으면 전체, 크면 끝에서 1MB만.
                     let file_size = path.metadata().map(|m| m.len()).unwrap_or(0);
                     const BACKFILL_BYTES: u64 = 1024 * 1024;
-                    let backfill_start = file_size.saturating_sub(BACKFILL_BYTES);
                     if let Ok(content) = fs::read_to_string(path) {
-                        let backfill_content = if backfill_start == 0 {
-                            content.as_str()
-                        } else {
-                            // 중간에서 자르면 깨진 라인 — 첫 newline 이후부터
-                            let byte_idx = backfill_start as usize;
-                            let safe_idx = content[byte_idx..]
-                                .find('\n')
-                                .map(|i| byte_idx + i + 1)
-                                .unwrap_or(content.len());
-                            &content[safe_idx..]
-                        };
+                        // 끝 1MB만, char boundary 보정으로 한글 중간 슬라이싱 panic 방어
+                        let backfill_content = tail_lines_after_newline(&content, BACKFILL_BYTES);
                         let mut count = 0;
                         for line in backfill_content.lines() {
                             if line.trim().is_empty() {

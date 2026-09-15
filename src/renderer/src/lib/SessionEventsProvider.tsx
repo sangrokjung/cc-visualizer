@@ -94,11 +94,14 @@ export function SessionEventsProvider({ children }: { children: ReactNode }) {
     api
       .onSessionEvent(handleEvent)
       .then((unlisten) => {
+        // 등록 도중 언마운트되었으면 즉시 unlisten (ref에만 담으면 cleanup이 못 부른다 → 리스너 누수)
+        if (cancelled) {
+          unlisten()
+          return
+        }
         unlistenEventRef.current = unlisten
         // listen 등록 완료 후 명시적 백필 요청 (race condition 방어)
-        if (!cancelled) {
-          api.backfillSession().catch(() => {})
-        }
+        api.backfillSession().catch(() => {})
       })
       .catch((e) => {
         // eslint-disable-next-line no-console
@@ -107,6 +110,10 @@ export function SessionEventsProvider({ children }: { children: ReactNode }) {
     api
       .onSessionId((id: string) => setSessionId(id))
       .then((unlisten) => {
+        if (cancelled) {
+          unlisten()
+          return
+        }
         unlistenIdRef.current = unlisten
       })
       .catch(() => {})

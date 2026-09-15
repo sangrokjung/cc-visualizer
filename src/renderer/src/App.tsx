@@ -4,7 +4,7 @@ import Layout from './components/Layout'
 import SearchBar from './components/SearchBar'
 import { useRefreshShortcut } from './lib/use-refresh-shortcut'
 
-export type ViewType = 'dashboard' | 'agent-map' | 'architecture' | 'live-monitor' | 'catalog' | 'systems' | 'usage' | 'process' | 'agent-office'
+export type ViewType = 'dashboard' | 'agent-map' | 'architecture' | 'live-monitor' | 'runtime-health' | 'catalog' | 'systems' | 'usage' | 'process' | 'agent-office'
 
 export default function App() {
   const [activeView, setActiveView] = useState<ViewType>('dashboard')

@@ -22,11 +22,23 @@ export function useFileWatcher() {
   }, [])
 
   useEffect(() => {
-    api.onFileChanged(handleEvent).then((unlisten) => {
-      unlistenRef.current = unlisten
-    })
+    let cancelled = false
+    api
+      .onFileChanged(handleEvent)
+      .then((unlisten) => {
+        // 등록 도중 언마운트되면 즉시 unlisten (ref만 채우면 cleanup이 못 부름 → 리스너 누수)
+        if (cancelled) {
+          unlisten()
+          return
+        }
+        unlistenRef.current = unlisten
+      })
+      .catch(() => {
+        // 비-Tauri(Vite dev) 환경에서는 listen이 reject — 조용히 무시
+      })
 
     return () => {
+      cancelled = true
       unlistenRef.current?.()
     }
   }, [handleEvent])

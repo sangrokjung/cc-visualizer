@@ -71,7 +71,8 @@ export function ObjectTypePanel({ activeFilter, onFilterChange, onItemSelect }: 
   // 정렬된 카테고리 목록 (에이전트 수 내림차순)
   const sortedCategories = useMemo(() => {
     return Object.entries(agentsByCategory)
-      .sort((a, b) => b[1].length - a[1].length)
+      // 동점(같은 개수)일 때 이름순 2차 정렬 — 매 렌더 순서가 바뀌는 비결정성 제거
+      .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))
       .map(([cat]) => cat)
   }, [agentsByCategory])
 

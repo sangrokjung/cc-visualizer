@@ -1,7 +1,9 @@
 import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync } from 'fs'
+import { homedir } from 'os'
 import { join, dirname } from 'path'
 
-const HOME = process.env.HOME || '/Users/sangrok'
+// 실행 머신마다 다른 HOME. 미설정 시 os.homedir() 폴백 (sangrok 하드코딩 제거).
+const HOME = process.env.HOME || homedir()
 const PROJECTS_DIR = join(HOME, '.claude/projects')
 
 interface UsageStats {

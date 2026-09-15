@@ -1,75 +1,130 @@
 {
-  "scanTimestamp": "2026-05-21T01:49:40.195Z",
+  "scanTimestamp": "2026-06-02T02:13:56.926Z",
   "summary": {
-    "totalEvents": 294347,
-    "totalSessions": 346,
-    "totalProjects": 206
+    "totalEvents": 533220,
+    "totalSessions": 581,
+    "totalProjects": 309
   },
   "projects": [
     {
-      "name": "content-automation",
-      "events": 43660,
-      "sessions": 70
+      "name": "qjc-webapp",
+      "events": 57819,
+      "sessions": 74
     },
     {
-      "name": "qjc-webapp",
-      "events": 31759,
-      "sessions": 39
+      "name": "content-automation",
+      "events": 50452,
+      "sessions": 76
     },
     {
       "name": "qjc-os",
-      "events": 19152,
-      "sessions": 14
+      "events": 22796,
+      "sessions": 23
     },
     {
       "name": "sangrok",
-      "events": 12800,
-      "sessions": 55
-    },
-    {
-      "name": "패스트캠퍼스",
-      "events": 11575,
-      "sessions": 9
-    },
-    {
-      "name": "qjc-os-컨텐츠-자동화-브리핑",
-      "events": 9948,
-      "sessions": 1
-    },
-    {
-      "name": "instructor-automation",
-      "events": 9190,
-      "sessions": 19
-    },
-    {
-      "name": "QJC",
-      "events": 9014,
-      "sessions": 16
-    },
-    {
-      "name": "qjc-webapp-design-improvement-20260506",
-      "events": 7968,
-      "sessions": 4
-    },
-    {
-      "name": "멋쟁이사자처럼",
-      "events": 7328,
-      "sessions": 3
-    },
-    {
-      "name": "-Users-sangrok-content-automation",
-      "events": 6810,
-      "sessions": 70
+      "events": 20694,
+      "sessions": 115
     },
     {
       "name": "qjc-webapp-main-page-redesign",
-      "events": 6753,
-      "sessions": 3
+      "events": 19001,
+      "sessions": 9
+    },
+    {
+      "name": "qjc-webapp-ai-native",
+      "events": 17105,
+      "sessions": 7
+    },
+    {
+      "name": "qjc-os-컨텐츠-자동화-브리핑",
+      "events": 16029,
+      "sessions": 2
     },
     {
       "name": "yt-factory",
-      "events": 5506,
-      "sessions": 13
+      "events": 15111,
+      "sessions": 35
+    },
+    {
+      "name": "패스트캠퍼스",
+      "events": 11013,
+      "sessions": 6
+    },
+    {
+      "name": "dashboard",
+      "events": 10791,
+      "sessions": 29
+    },
+    {
+      "name": "qjc-webapp-singularity-builders-landing",
+      "events": 10214,
+      "sessions": 5
+    },
+    {
+      "name": "qjc-webapp-sb-landing-improvement",
+      "events": 9946,
+      "sessions": 7
+    },
+    {
+      "name": "-Users-sangrok-projects-qjc-webapp",
+      "events": 9944,
+      "sessions": 73
+    },
+    {
+      "name": "cc-visualizer",
+      "events": 8855,
+      "sessions": 6
+    },
+    {
+      "name": "-Users-sangrok-content-automation",
+      "events": 8788,
+      "sessions": 76
+    },
+    {
+      "name": "멋쟁이사자처럼",
+      "events": 8184,
+      "sessions": 4
+    },
+    {
+      "name": "qjc-webapp-consulting-review",
+      "events": 7936,
+      "sessions": 8
+    },
+    {
+      "name": "QJC",
+      "events": 7801,
+      "sessions": 26
+    },
+    {
+      "name": "qjc-os-동기화-스킬-검토",
+      "events": 7240,
+      "sessions": 1
+    },
+    {
+      "name": "qjc-webapp-landing-coupon-improvement",
+      "events": 6718,
+      "sessions": 7
+    },
+    {
+      "name": "qjc-os-AI-PM-생성",
+      "events": 5815,
+      "sessions": 4
+    },
+    {
+      "name": "qjc-webapp-sb-improvements-20260524",
+      "events": 5580,
+      "sessions": 5
+    },
+    {
+      "name": "hermes-agent-class",
+      "events": 5534,
+      "sessions": 6
+    },
+    {
+      "name": "instructor-automation",
+      "events": 5524,
+      "sessions": 9
     },
     {
       "name": "content-automation-reels",
@@ -77,84 +132,29 @@
       "sessions": 1
     },
     {
-      "name": "-Users-sangrok-projects-qjc-webapp",
-      "events": 4034,
-      "sessions": 39
-    },
-    {
-      "name": "dashboard",
-      "events": 3743,
-      "sessions": 11
-    },
-    {
       "name": "-Users-sangrok-qjc-office-qjc-os",
-      "events": 3724,
-      "sessions": 14
-    },
-    {
-      "name": "marketing-team",
-      "events": 3538,
-      "sessions": 3
-    },
-    {
-      "name": "qjc-os-AI-PM-생성",
-      "events": 3509,
-      "sessions": 1
-    },
-    {
-      "name": "qjc-webapp-컨설팅-오픈",
-      "events": 3425,
-      "sessions": 1
+      "events": 4747,
+      "sessions": 23
     },
     {
       "name": "-Users-sangrok",
-      "events": 3027,
-      "sessions": 54
+      "events": 4721,
+      "sessions": 113
     },
     {
-      "name": "-Users-sangrok-Library-Mobile-Documents-com-apple-CloudDocs-Desktop-QJC-01-------------------",
-      "events": 2937,
-      "sessions": 9
-    },
-    {
-      "name": "qjc-webapp-ai-native",
-      "events": 2600,
+      "name": "qjc-os-일일-리포트",
+      "events": 4606,
       "sessions": 1
     },
     {
-      "name": "-Users-sangrok-Library-Mobile-Documents-com-apple-CloudDocs-Desktop-QJC",
-      "events": 2561,
-      "sessions": 16
+      "name": "qjc-os-analytics-compare-data-quality",
+      "events": 4141,
+      "sessions": 5
     },
     {
-      "name": "qjc-webapp-chatbot",
-      "events": 2439,
-      "sessions": 3
-    },
-    {
-      "name": "-Users-sangrok-qjc-office-qjc-os------------",
-      "events": 2145,
-      "sessions": 1
-    },
-    {
-      "name": "samyook-ai-center",
-      "events": 2116,
-      "sessions": 1
-    },
-    {
-      "name": "hermes-agent-class",
-      "events": 2102,
-      "sessions": 8
-    },
-    {
-      "name": "글로벌AI교육협회",
-      "events": 1879,
-      "sessions": 2
-    },
-    {
-      "name": "qjc-os-동기화-스킬-검토",
-      "events": 1758,
-      "sessions": 1
+      "name": "-Users-sangrok-yt-factory",
+      "events": 3923,
+      "sessions": 35
     }
   ],
   "toolUsage": [],
@@ -162,149 +162,154 @@
   "hookEvents": [],
   "dailyActivity": [
     {
-      "date": "2026-04-16",
-      "events": 1742,
-      "sessions": 1
-    },
-    {
-      "date": "2026-04-17",
-      "events": 2,
-      "sessions": 1
-    },
-    {
-      "date": "2026-04-20",
-      "events": 4197,
-      "sessions": 2
-    },
-    {
-      "date": "2026-04-21",
-      "events": 2461,
-      "sessions": 1
-    },
-    {
-      "date": "2026-04-22",
-      "events": 2835,
-      "sessions": 1
-    },
-    {
-      "date": "2026-04-23",
-      "events": 1682,
-      "sessions": 3
-    },
-    {
-      "date": "2026-04-24",
-      "events": 1104,
-      "sessions": 2
-    },
-    {
-      "date": "2026-04-25",
-      "events": 143,
-      "sessions": 1
-    },
-    {
-      "date": "2026-04-27",
-      "events": 537,
-      "sessions": 2
-    },
-    {
-      "date": "2026-04-28",
-      "events": 762,
-      "sessions": 3
-    },
-    {
-      "date": "2026-04-29",
-      "events": 1348,
-      "sessions": 3
-    },
-    {
       "date": "2026-04-30",
       "events": 552,
       "sessions": 2
     },
     {
       "date": "2026-05-01",
-      "events": 3563,
-      "sessions": 4
+      "events": 22,
+      "sessions": 1
     },
     {
       "date": "2026-05-02",
-      "events": 2391,
-      "sessions": 6
+      "events": 323,
+      "sessions": 1
     },
     {
       "date": "2026-05-03",
-      "events": 2232,
-      "sessions": 4
+      "events": 1011,
+      "sessions": 2
     },
     {
       "date": "2026-05-04",
-      "events": 4741,
-      "sessions": 9
+      "events": 2373,
+      "sessions": 5
     },
     {
       "date": "2026-05-05",
-      "events": 5544,
-      "sessions": 14
+      "events": 3253,
+      "sessions": 4
     },
     {
       "date": "2026-05-06",
-      "events": 11928,
-      "sessions": 18
+      "events": 7481,
+      "sessions": 6
     },
     {
       "date": "2026-05-07",
-      "events": 21697,
-      "sessions": 54
+      "events": 6945,
+      "sessions": 15
     },
     {
       "date": "2026-05-08",
-      "events": 38651,
-      "sessions": 75
+      "events": 7376,
+      "sessions": 15
     },
     {
       "date": "2026-05-09",
-      "events": 4653,
-      "sessions": 21
+      "events": 1294,
+      "sessions": 7
     },
     {
       "date": "2026-05-10",
-      "events": 6115,
-      "sessions": 22
+      "events": 1533,
+      "sessions": 7
     },
     {
       "date": "2026-05-11",
-      "events": 15316,
-      "sessions": 39
+      "events": 2947,
+      "sessions": 15
     },
     {
       "date": "2026-05-12",
-      "events": 24542,
-      "sessions": 68
+      "events": 13154,
+      "sessions": 28
     },
     {
       "date": "2026-05-13",
-      "events": 40943,
-      "sessions": 70
+      "events": 24080,
+      "sessions": 37
     },
     {
       "date": "2026-05-14",
-      "events": 9013,
-      "sessions": 29
+      "events": 8870,
+      "sessions": 25
     },
     {
       "date": "2026-05-19",
-      "events": 17509,
+      "events": 17512,
       "sessions": 99
     },
     {
       "date": "2026-05-20",
-      "events": 25117,
+      "events": 25596,
       "sessions": 70
     },
     {
       "date": "2026-05-21",
-      "events": 6041,
-      "sessions": 25
+      "events": 47315,
+      "sessions": 63
+    },
+    {
+      "date": "2026-05-22",
+      "events": 63727,
+      "sessions": 66
+    },
+    {
+      "date": "2026-05-23",
+      "events": 47800,
+      "sessions": 75
+    },
+    {
+      "date": "2026-05-24",
+      "events": 13176,
+      "sessions": 35
+    },
+    {
+      "date": "2026-05-25",
+      "events": 2970,
+      "sessions": 8
+    },
+    {
+      "date": "2026-05-26",
+      "events": 32076,
+      "sessions": 75
+    },
+    {
+      "date": "2026-05-27",
+      "events": 20583,
+      "sessions": 80
+    },
+    {
+      "date": "2026-05-28",
+      "events": 13047,
+      "sessions": 65
+    },
+    {
+      "date": "2026-05-29",
+      "events": 41736,
+      "sessions": 50
+    },
+    {
+      "date": "2026-05-30",
+      "events": 10349,
+      "sessions": 38
+    },
+    {
+      "date": "2026-05-31",
+      "events": 4600,
+      "sessions": 8
+    },
+    {
+      "date": "2026-06-01",
+      "events": 25564,
+      "sessions": 74
+    },
+    {
+      "date": "2026-06-02",
+      "events": 4719,
+      "sessions": 23
     }
   ]
 }

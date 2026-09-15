@@ -143,6 +143,81 @@ export const SYSTEM_CATEGORY_COLORS: Record<string, string> = {
   'video-automation': '#00A396',
 }
 
+export const RuntimeHealthStatusSchema = z.enum(['ok', 'warning', 'error'])
+export type RuntimeHealthStatus = z.infer<typeof RuntimeHealthStatusSchema>
+
+export const TeamClaudeHealthSchema = z.object({
+  checkedAt: z.string(),
+  overallStatus: RuntimeHealthStatusSchema,
+  teamclaude: z.object({
+    config: z.object({
+      present: z.boolean(),
+      accountCount: z.number(),
+      switchThreshold: z.number(),
+      maxConcurrentPerAccount: z.number().nullable(),
+      sessionAffinity: z.boolean(),
+    }),
+    server: z.object({
+      running: z.boolean(),
+      reachable: z.boolean(),
+      port: z.number().nullable(),
+      pid: z.number().nullable(),
+      startedAt: z.string().nullable(),
+    }),
+    accounts: z.object({
+      total: z.number(),
+      configured: z.number(),
+      active: z.number(),
+      throttled: z.number(),
+      exhausted: z.number(),
+      error: z.number(),
+      disabled: z.number(),
+      inflight: z.number(),
+      capacity: z.number(),
+    }),
+    quota: z.object({
+      fableWeekly: z.object({
+        knownAccounts: z.number(),
+        overThreshold: z.number(),
+        allOverThreshold: z.boolean(),
+        minPercent: z.number().nullable(),
+        maxPercent: z.number().nullable(),
+        avgPercent: z.number().nullable(),
+        soonestResetAt: z.string().nullable(),
+      }),
+    }),
+    retryAfterSeconds: z.number().nullable(),
+  }),
+  routing: z.object({
+    currentProcessProxySet: z.boolean(),
+    defaultClaudeClearsProxy: z.boolean(),
+    teamclaudeConfigPresent: z.boolean(),
+  }),
+  hints: z.array(z.string()),
+})
+export type TeamClaudeHealth = z.infer<typeof TeamClaudeHealthSchema>
+
+export const TeamCodexPoolSchema = z.object({
+  checkedAt: z.string(),
+  serverReachable: z.boolean(),
+  serverPort: z.number().nullable(),
+  currentAccount: z.string().nullable(),
+  switchThresholdPercent: z.number(),
+  accounts: z.array(z.object({
+    name: z.string(),
+    isCurrent: z.boolean(),
+    enabled: z.boolean(),
+    status: z.string(),
+    sessionPercent: z.number().nullable(),
+    weeklyPercent: z.number().nullable(),
+    inflight: z.number(),
+    maxConcurrent: z.number(),
+    totalRequests: z.number(),
+    totalTokens: z.number(),
+  })),
+})
+export type TeamCodexPool = z.infer<typeof TeamCodexPoolSchema>
+
 // -- 실시간 세션 이벤트 --
 export const SessionEventTypeSchema = z.enum([
   'user', 'assistant', 'tool_use', 'tool_result',

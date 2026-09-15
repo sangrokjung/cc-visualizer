@@ -67,4 +67,11 @@ describe('Sidebar — 데이터 새로고침', () => {
     const btn = screen.getByRole('button', { name: /⟳ 데이터 새로고침/ }) as HTMLButtonElement
     expect(btn.disabled).toBe(false)
   })
+
+  it('AI 계정 진단 항목 클릭 시 runtime-health 뷰로 이동한다', () => {
+    const onViewChange = vi.fn()
+    render(<Sidebar activeView="dashboard" onViewChange={onViewChange} />)
+    fireEvent.click(screen.getByRole('button', { name: /AI 계정 진단/ }))
+    expect(onViewChange).toHaveBeenCalledWith('runtime-health')
+  })
 })

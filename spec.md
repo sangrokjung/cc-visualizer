@@ -83,12 +83,17 @@
 ## Feature 9: Usage (사용 통계)
 ### 요구사항
 1. 전체 세션 사용 통계 대시보드
-2. 도구 사용 순위, 일별 활동, 프로젝트별 활동, 훅 이벤트 분포
-3. 에이전트 스폰 테이블
+2. 오늘·주간·월간·누적 토큰과 비용
+3. USD/KRW 환산과 환율 캐시
+4. Claude/Codex/Gemini provider 및 model별 집계
+5. 도구 사용 순위, 일별 활동, 프로젝트별 활동, 훅 이벤트 분포
+6. 에이전트 스폰 테이블
 ### 데이터 소스
 - data/usage-stats.json (scan-usage.ts 생성)
+- Tauri `fetch_ccusage_daily` / `fetch_ccusage_weekly` / `fetch_ccusage_monthly`
+- Tauri `fetch_usd_krw_rate`
 ### 현재 상태
-- v1 완료
+- v2 완료 (2026-07-24): 주간·월간·누적, KRW, provider/model breakdown 통합
 
 ## Feature 10: Agent Office (에이전트 오피스)
 ### 요구사항
@@ -127,22 +132,59 @@
 ## Feature 12: macOS 메뉴바 데몬 (menubar/)
 ### 요구사항
 1. cc-visualizer와 독립된 Swift NSStatusItem 네이티브 데몬 (LSUIElement)
-2. 메뉴바: 펄스 도트(활성 초록/idle 회색) + 7일 비용 스파크라인(NSImage) + 7슬롯 5초 롤링
-3. 7슬롯: 오늘 비용/오늘 토큰/누적 비용/누적 토큰/병렬 세션/주간 비용/주력 모델
-4. 드롭다운 일별 추이:
+2. 메뉴바: 펄스 도트(활성 초록/idle 회색) + 7일 비용 스파크라인(NSImage) + 사용량 롤링
+3. 롤링: 오늘·주간·월간·누적 비용($/₩), 토큰, 병렬 세션, Codex 비용, 주력 모델
+4. 드롭다운:
    - 14일 추이 막대 차트(TrendChartView) — 날짜축 라벨 + 피크 일자/금액 표시
    - 최근 7일 일별 상세(DailyRowView × 7) — 날짜 + 인라인 미니바 + 비용 + 토큰 (오늘 초록 강조)
    - 병렬 세션 게이지(ParallelGaugeView) — 비율별 색변화(청록→주황)
-5. 활동 감지: ~/.claude/projects/ 디렉토리 mtime 60초 이내 → ⚡ 활성 표시
-6. 병렬 감지: `pgrep -f '^claude'` 인스턴스 수
+   - Claude/Codex 모델 및 provider별 월간 사용량
+   - TeamClaude와 TeamCodex 계정별 상태·quota·동시 요청
+   - Codex 5시간/7일 reset 남은 시간
+5. 활동 감지: ~/.claude/projects/ 및 ~/.codex/sessions의 최근 변경
+6. 병렬 감지: Claude/Codex/Hermes 관련 프로세스
+7. 계정 추가: 메뉴에서 TeamClaude/TeamCodex OAuth 로그인 실행
+8. 반응속도: 메뉴 사전 구성 + Codex JSONL 증분 캐시
 ### 데이터 소스
-- `npx ccusage daily --json` (fnm symlink 직접 spawn, tmp 파일 redirect로 142KB pipe deadlock 회피)
+- `npx ccusage {daily,weekly,monthly} --json` (fnm symlink 직접 spawn, tmp 파일 redirect로 pipe deadlock 회피)
+- `~/.codex/sessions/**/*.jsonl` + `~/.codex/cache/cc-menubar-session-stats-v1.json`
+- TeamClaude runtime health + TeamCodex `/teamclaude/status`
 - 동시 호출 가드(`isFetching`) — 60초 주기 호출이 겹쳐 ccusage 자식 무한 누적되는 버그 차단 (426 좀비 사고)
 ### 빌드/배포
 - menubar/build.sh (swiftc -O) → LaunchAgent (com.qjc.cc-menubar.plist, 로그인 자동시작)
 ### 현재 상태
-- v1 완료 (2026-05-22): CPU 0.7~1.7%, 60초 ccusage 갱신, 1초 펄스/5초 슬롯/15초 활동 타이머
-- 일별 추이 추가 (2026-05-22): 14일 차트 날짜축 + 7일 상세 리스트 + 동시 호출 가드
+- v2 구현 완료 (2026-07-24): Claude/Codex 통합 관제, reset 표시, 계정 추가, 증분 캐시, 메뉴 prewarm
+
+### TeamCodex 계정 동기화 보강 (2026-07-31)
+- **Problem**: 대시보드가 최대 4개 계정만 그렸고, 메뉴의 로그인 액션에서 시작한 일회성 감시에 의존해 외부 CLI 삭제·연속 변경을 놓칠 수 있었다.
+- **Goal**: `~/.config/teamcodex.json`의 계정 추가·삭제·순서·활성 상태 변경을 상시 감지하고, 대시보드 행과 높이를 최신 구성에 맞춘다.
+- **Non-goals**: TeamCodex proxy의 저장·SIGHUP·quota·라우팅 정책은 변경하지 않으며 서버를 재시작하지 않는다.
+- **Requirements**: 모든 계정 행 렌더링, 1초 topology 감지, config 파일 부재를 0계정 상태로 관찰, 최신 generation만 반영, live status 지연 시 config 기준 행 우선 정렬과 단일 in-flight bounded retry, UUID-first 계정 정체성 결합.
+- **Acceptance criteria**: `0→1`, `4→5`, `5→4`, `8→0`, config 삭제, 빠른 연속 add/remove의 이전 retry 조기 중단·최신 retry 1회 수렴, 같은 이름의 다른 UUID 교체, 중복 이름·중복 UUID current ambiguity의 fail-closed, 임의 계정 수 `0...32`의 행 수·높이 검증이 통과한다.
+- **Risks**: config와 live status가 수렴하는 짧은 구간에는 quota가 없는 `configured` 행이 보일 수 있으며, 화면을 넘는 높이는 기존 menu scroll container가 담당한다.
+- **Verification**: Swift source test, `--teamcodex-dashboard-selftest`, menubar build, fixture snapshot, `omo:review-work` 5개 lane.
+
+### TeamCodex 계정 상태 낱말 정리 (2026-09-06)
+- **Problem**: 상태 칸이 프록시 `status`만 읽어, ① 구독이 끝난 계정과 이번 주 한도만 찬 계정이 똑같이 "제한"으로 보이고 ② 운영자가 끈 계정이 "사용 중"으로 보이며 ③ 구독 종료가 "오류"로 보이고 ④ 요약줄이 꺼 둔 계정까지 "활성"으로 셌다.
+- **Goal**: 계정 한 줄만 보고 "이 계정은 돌아온다 / 돌아오지 않는다"를 판단할 수 있게 한다.
+- **Non-goals**: 패널 레이아웃·색 팔레트 재설계, 프록시 계약 변경, 계정 이름·플랜·날짜 하드코딩.
+- **Requirements**: `subscription`(state·endsAt)과 `planType` 디코드, `구독종료 → 오류 → 비활성 → 설정/대기 → 한도소진 → 사용 중` 우선순위, 보조줄로 복귀 여부 명시, 영구 제외 행에는 초기화 카운트다운 미표시, `사용 가능 · 풀 · 영구제외` 요약, Claude 풀 표와 같은 낱말(`비활성`).
+- **Acceptance criteria**: ① `enabled=false`인데 `status="active"`인 행이 "사용 중"·"한도소진"으로 보이지 않는다 ② 꺼 두었는데 인증도 깨진 계정은 오류 사유를 그대로 표시한다(병합 경로가 status를 `disabled`로 덮어도 `errorReason`으로 판정) ③ `cancellation-scheduled`가 `endsAt`을 넘기면 종료로 본다 ④ `usable` 필드가 없는 행(오프라인·프록시 미로드)은 "사용 가능"으로 세지 않는다 ⑤ 구독 종료 `errorReason`이 "오류"가 아니라 "구독종료"로 나온다.
+- **Risks**: 프록시가 `errorReason`을 status와 무관하게 채우기 시작하면 오류 판정이 넓어진다(현 계약은 `status=="error"`일 때만 non-null).
+- **Verification**: `TeamCodexPoolStatusTests`(125 assertions) 포함 Swift 테스트 4종, `menubar/build.sh`, launchd 재기동, 라이브 프록시 라벨 표 + `--teamcodex-snapshot` 실렌더 확인.
+
+## Feature 13: AI 계정 진단
+### 요구사항
+1. TeamClaude 프록시와 계정 인증 상태를 한 화면에서 진단
+2. TeamCodex 다계정 풀의 온라인 여부, 현재 계정, 5시간/7일 사용률, 동시 요청 표시
+3. quota 미측정·오프라인·오류를 추측값과 구분
+4. 사용자 요청으로 즉시 새로고침
+### 데이터 소스
+- Tauri `fetch_teamclaude_health`
+- Tauri `fetch_teamcodex_pool`
+- TeamCodex localhost status API
+### 현재 상태
+- v1 구현 완료 (2026-07-24): React `RuntimeHealthView` + Swift 메뉴바 양쪽 표면 제공
 
 ## 공통: 검색
 ### 요구사항

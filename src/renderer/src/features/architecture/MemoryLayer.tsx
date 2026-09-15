@@ -9,7 +9,8 @@ type MemorySystem = {
 const MEMORY_SYSTEMS: MemorySystem[] = [
   {
     name: 'Auto Memory',
-    path: '~/.claude/projects/-Users-sangrok/memory/',
+    // {home} = 홈 경로를 / → - 로 인코딩 (PC마다 다름, 특정 사용자 하드코딩 금지)
+    path: '~/.claude/projects/{home}/memory/',
     description: '기술 패턴, 인프라 설정, 개발 인사이트 저장. 대화 간 자동 지속.',
     icon: 'M',
     color: 'border-blue-500 bg-blue-500/10 text-blue-400',

@@ -14,9 +14,8 @@ const PRIORITY_LABEL: Record<string, string> = {
   normal: 'NORMAL',
 }
 
-function resolveHomePath(p: string): string {
-  return p.replace(/^~/, '/Users/sangrok')
-}
+// 경로는 read_file IPC(commands.rs)가 ~ 를 home_dir() 로 직접 확장하므로 rule.path를 그대로 전달한다.
+// (절대경로도 그대로 통과 — 특정 사용자 하드코딩 없음)
 
 type Props = {
   rules: RuleFile[]
@@ -45,7 +44,7 @@ export default function RulesList({ rules }: Props) {
         {rules.map((rule) => (
           <button
             key={rule.name}
-            onClick={() => setPreviewPath(resolveHomePath(rule.path))}
+            onClick={() => setPreviewPath(rule.path)}
             className="text-left bg-gray-800/60 border border-gray-700/50 rounded-lg px-3 py-2 hover:bg-gray-800 hover:border-gray-600 transition-colors"
           >
             <div className="flex items-center gap-2 mb-1">

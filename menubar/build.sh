@@ -7,10 +7,10 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/.build"
 BINARY="$BUILD_DIR/cc-menubar"
-SOURCE="$SCRIPT_DIR/Sources/main.swift"
+SOURCES=("$SCRIPT_DIR"/Sources/*.swift)
 
 echo "▶ cc-menubar 빌드 시작..."
-echo "  소스: $SOURCE"
+echo "  소스: ${SOURCES[*]}"
 echo "  출력: $BINARY"
 
 mkdir -p "$BUILD_DIR"
@@ -20,7 +20,7 @@ swiftc \
     -framework Cocoa \
     -framework Foundation \
     -target arm64-apple-macosx13.0 \
-    "$SOURCE" \
+    "${SOURCES[@]}" \
     -o "$BINARY"
 
 chmod +x "$BINARY"

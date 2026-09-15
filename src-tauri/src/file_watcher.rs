@@ -55,10 +55,24 @@ pub fn start_file_watcher(app: AppHandle) {
             (home.join(".claude/rules"), WatchGroup::ClaudeSystem),
             (home.join(".claude/settings.json"), WatchGroup::ClaudeSystem),
             // SSOT 실제 경로 (symlink가 없거나 notify가 target 추적 안 할 때 안전망)
-            (home.join("qjc-office/dotclaude/agents"), WatchGroup::ClaudeSystem),
-            (home.join("qjc-office/dotclaude/commands"), WatchGroup::ClaudeSystem),
-            (home.join("qjc-office/dotclaude/rules"), WatchGroup::ClaudeSystem),
-            // 파이프라인 정의 파일 (scanPipelines 가 직접 읽음)
+            (
+                home.join("qjc-office/dotclaude/agents"),
+                WatchGroup::ClaudeSystem,
+            ),
+            (
+                home.join("qjc-office/dotclaude/commands"),
+                WatchGroup::ClaudeSystem,
+            ),
+            (
+                home.join("qjc-office/dotclaude/rules"),
+                WatchGroup::ClaudeSystem,
+            ),
+            // 파이프라인 정의 파일 (scanPipelines 가 직접 읽음) — 표준 위치 + QJC SSOT 둘 다.
+            // 존재하지 않는 경로는 아래 valid_specs 필터에서 제거되므로 다른 PC에서 안전.
+            (
+                home.join(".claude/reference/agent-pipeline.md"),
+                WatchGroup::ClaudeSystem,
+            ),
             (
                 home.join("qjc-office/dotclaude/reference/agent-pipeline.md"),
                 WatchGroup::ClaudeSystem,
@@ -76,17 +90,18 @@ pub fn start_file_watcher(app: AppHandle) {
         }
 
         let (tx, rx) = mpsc::channel::<Event>();
-        let mut watcher: RecommendedWatcher = match notify::recommended_watcher(move |res: Result<Event, _>| {
-            if let Ok(event) = res {
-                let _ = tx.send(event);
-            }
-        }) {
-            Ok(w) => w,
-            Err(e) => {
-                eprintln!("[file-watcher] 와처 생성 실패: {e}");
-                return;
-            }
-        };
+        let mut watcher: RecommendedWatcher =
+            match notify::recommended_watcher(move |res: Result<Event, _>| {
+                if let Ok(event) = res {
+                    let _ = tx.send(event);
+                }
+            }) {
+                Ok(w) => w,
+                Err(e) => {
+                    eprintln!("[file-watcher] 와처 생성 실패: {e}");
+                    return;
+                }
+            };
 
         for (path, _) in &valid_specs {
             let mode = if path.is_dir() {
@@ -101,7 +116,10 @@ pub fn start_file_watcher(app: AppHandle) {
 
         eprintln!(
             "[file-watcher] 감시 시작: {:?}",
-            valid_specs.iter().map(|(p, _)| p.display().to_string()).collect::<Vec<_>>()
+            valid_specs
+                .iter()
+                .map(|(p, _)| p.display().to_string())
+                .collect::<Vec<_>>()
         );
 
         // claude-system-changed 디바운스용 마지막 emit 시각
@@ -145,10 +163,7 @@ pub fn start_file_watcher(app: AppHandle) {
                         if should_emit {
                             last_system_emit = Some(now);
                             let _ = app.emit("claude-system-changed", ());
-                            eprintln!(
-                                "[file-watcher] claude-system-changed: {}",
-                                path.display()
-                            );
+                            eprintln!("[file-watcher] claude-system-changed: {}", path.display());
                         }
                     }
                     None => {} // 알 수 없는 경로 무시

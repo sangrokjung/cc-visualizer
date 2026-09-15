@@ -1,4 +1,5 @@
 import type { FileChangeEvent } from '../../lib/types'
+import { shortenHomePath } from '../../lib/format-path'
 
 const TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
   add: { icon: '+', color: 'text-green-400 bg-green-500/20 border-green-500/30' },
@@ -9,11 +10,6 @@ const TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
 function formatTime(ts: number): string {
   const d = new Date(ts)
   return d.toLocaleTimeString('ko-KR', { hour12: false })
-}
-
-function shortenPath(fullPath: string): string {
-  const home = '/Users/sangrok'
-  return fullPath.startsWith(home) ? '~' + fullPath.slice(home.length) : fullPath
 }
 
 type Props = {
@@ -30,7 +26,7 @@ export default function TimelineEvent({ event }: Props) {
       </span>
       <div className="flex-1 min-w-0">
         <code className="block text-[11px] text-gray-300 font-mono truncate">
-          {shortenPath(event.path)}
+          {shortenHomePath(event.path)}
         </code>
       </div>
       <span className="text-[10px] text-gray-500 whitespace-nowrap font-mono">

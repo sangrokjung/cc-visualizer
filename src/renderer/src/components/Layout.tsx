@@ -8,6 +8,7 @@ const DashboardView = lazy(() => import('../features/dashboard/DashboardView'))
 const AgentMapView = lazy(() => import('../features/agent-map/AgentMapView'))
 const ArchitectureView = lazy(() => import('../features/architecture/ArchitectureView'))
 const LiveMonitorView = lazy(() => import('../features/live-monitor/LiveMonitorView'))
+const RuntimeHealthView = lazy(() => import('../features/runtime-health/RuntimeHealthView'))
 const CatalogView = lazy(() => import('../features/catalog/CatalogView'))
 const SystemsView = lazy(() => import('../features/systems/SystemsView'))
 const UsageView = lazy(() => import('../features/usage/UsageView'))
@@ -48,6 +49,11 @@ export default function Layout({ activeView }: Props) {
         {activeView === 'live-monitor' && (
           <ViewErrorBoundary viewName="실시간 모니터">
             <LiveMonitorView />
+          </ViewErrorBoundary>
+        )}
+        {activeView === 'runtime-health' && (
+          <ViewErrorBoundary viewName="AI 계정 진단">
+            <RuntimeHealthView />
           </ViewErrorBoundary>
         )}
         {activeView === 'catalog' && (

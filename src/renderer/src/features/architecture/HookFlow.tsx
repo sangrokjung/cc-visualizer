@@ -173,8 +173,9 @@ function EventNode({ group }: { group: EventGroup }) {
 
       {/* 매처 트리 */}
       <div>
-        {group.matchers.map((m, i) => (
-          <MatcherNode key={i} group={m} color={color} />
+        {group.matchers.map((m) => (
+          // content 기반 key — index key는 matcher 재정렬 시 로컬 expanded 상태가 엉뚱한 항목에 남는다
+          <MatcherNode key={`${group.event}-${m.matcher}`} group={m} color={color} />
         ))}
       </div>
     </div>
