@@ -109,7 +109,9 @@ struct TeamClaudeHealth {
     var isWarning: Bool { overallStatus == "warning" }
     var isError: Bool { overallStatus == "error" }
     var measurementPendingCount: Int {
-        accounts.filter { $0.measurementIssue?.canMeasureNow == true }.count
+        zip(accounts, fableAvailability()).filter { row, availability in
+            row.measurementIssue?.canMeasureNow == true && availability.subscriptionAppearance != .ended
+        }.count
     }
     var measurementUnavailableCount: Int {
         accounts.filter { $0.measurementIssue?.isMeasurementUnavailable == true }.count
@@ -120,6 +122,9 @@ struct TeamClaudeHealth {
 
     var titleSlot: String {
         let total = max(accountTotal, accountConfigured)
+        if serverReachable && accountConfigDrift == 0 {
+            return "Claude Fable 사용 가능 \(fableAvailability().filter { $0.state == .ready }.count)/\(total)"
+        }
         return teamClaudeTitleSlot(TeamClaudeHeadlineInput(
             serverReachable: serverReachable,
             accountConfigDrift: accountConfigDrift,
@@ -160,6 +165,16 @@ struct TeamClaudeAccountHealth {
     let fableResetSeconds: Int?
     let probedAt: Date?
     let measurementIssue: TeamClaudeMeasurementIssue?
+    var usableFromProxy: Bool? = nil
+    var fableMeasurementCurrent = false
+    var inflightCount: Int? = nil
+    var concurrentCapacity: Int? = nil
+    var subscriptionConfirmation: AccountSubscriptionConfirmation? = nil
+    var subscriptionEndReached = false
+    var subscriptionEndsAt: Date? = nil
+    var sessionResetAt: Date? = nil
+    var weeklyResetAt: Date? = nil
+    var fableResetAt: Date? = nil
 }
 
 private let _teamClaudeISOFormatter = ISO8601DateFormatter()
@@ -276,27 +291,9 @@ func teamClaudeConfiguredRows(_ config: [String: Any]?) -> [TeamClaudeAccountHea
     }
 }
 
-func fetchTeamClaudeStatus(port: Int) -> [String: Any]? {
-    guard let url = URL(string: "http://127.0.0.1:\(port)/teamclaude/status") else { return nil }
-    var request = URLRequest(url: url)
-    request.timeoutInterval = 2.5
-
-    let semaphore = DispatchSemaphore(value: 0)
-    var result: [String: Any]?
-    let task = URLSession.shared.dataTask(with: request) { data, response, _ in
-        defer { semaphore.signal() }
-        guard let http = response as? HTTPURLResponse,
-              (200..<300).contains(http.statusCode),
-              let data = data,
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return
-        }
-        result = obj
-    }
-    task.resume()
-    _ = semaphore.wait(timeout: .now() + 3)
-    task.cancel()
-    return result
+func fetchTeamClaudeStatus(port: Int, apiKey: String?) -> [String: Any]? {
+    guard let data = teamCodexFetchStatus(port: port, apiKey: apiKey) else { return nil }
+    return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
 }
 
 func triggerTeamClaudeQuotaProbe(port: Int, model: String) -> Int? {
@@ -344,7 +341,7 @@ func resolveClaudeExecutable() -> String {
 }
 
 func runTeamClaudeBareClaudeProbe(port: Int, apiKey: String?, model: String) -> Int32? {
-    guard let apiKey = apiKey, !apiKey.isEmpty else { return nil }
+    guard let apiKey, !apiKey.isEmpty else { return nil }
     let process = Process()
     let claude = resolveClaudeExecutable()
     if claude == "/usr/bin/env" {
@@ -460,15 +457,21 @@ func loadTeamClaudeHealth() -> TeamClaudeHealth {
     let port = tcInt(server?["port"])
         ?? tcInt(tcDict(config?["proxy"])?["port"])
         ?? 3456
-    let status = fetchTeamClaudeStatus(port: port)
+    let status = fetchTeamClaudeStatus(
+        port: port,
+        apiKey: tcString(tcDict(config?["proxy"])?["apiKey"])
+    )
+    return parseTeamClaudeHealth(config: config, server: server, status: status, port: port)
+}
+
+func parseTeamClaudeHealth(config: [String: Any]?, server: [String: Any]?,
+                          status: [String: Any]?, port: Int, now: Date = Date()) -> TeamClaudeHealth {
     let accounts = tcArray(status?["accounts"]) ?? []
     let currentAccount = tcString(status?["currentAccount"])
-    let threshold = tcDouble(status?["switchThreshold"])
-        ?? tcDouble(config?["switchThreshold"])
-        ?? 0.98
+    let threshold = teamClaudeQuotaNumber(status?["switchThreshold"]) ?? .nan
     let configuredRows = teamClaudeConfiguredRows(config)
     let configAccounts = configuredRows.count
-    let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
+    let nowMs = Int64(now.timeIntervalSince1970 * 1000)
 
     var active = 0
     var usable = 0
@@ -509,7 +512,7 @@ func loadTeamClaudeHealth() -> TeamClaudeHealth {
         let fable = tcDict(modelWeekly?["7d_oi"])
         let fableResetMs = parseTeamClaudeTimeMs(fable?["reset"])
         let fableUtilization = teamClaudeCurrentQuotaUtilization(
-            tcDouble(fable?["utilization"]),
+            teamClaudeQuotaNumber(fable?["utilization"]),
             resetAtMs: fableResetMs,
             nowMs: nowMs
         )
@@ -533,12 +536,12 @@ func loadTeamClaudeHealth() -> TeamClaudeHealth {
         let sessionResetMs = parseTeamClaudeTimeMs(quota?["unified5hReset"])
         let weeklyResetMs = parseTeamClaudeTimeMs(quota?["unified7dReset"])
         let sessionPercent = teamClaudeCurrentQuotaUtilization(
-            tcDouble(quota?["unified5h"]),
+            teamClaudeQuotaNumber(quota?["unified5h"]),
             resetAtMs: sessionResetMs,
             nowMs: nowMs
         ).map { $0 * 100 }
         let weeklyPercent = teamClaudeCurrentQuotaUtilization(
-            tcDouble(quota?["unified7d"]),
+            teamClaudeQuotaNumber(quota?["unified7d"]),
             resetAtMs: weeklyResetMs,
             nowMs: nowMs
         ).map { $0 * 100 }
@@ -567,7 +570,7 @@ func loadTeamClaudeHealth() -> TeamClaudeHealth {
             enabled: enabled,
             isUsable: isUsable,
             status: status,
-            errorReason: tcString(account["errorReason"]),
+            errorReason: teamClaudeErrorReason(account["errorReason"]),
             provider: tcString(account["provider"]),
             accountUuid: tcString(account["accountUuid"]),
             source: tcString(account["source"]) ?? tcString(account["type"]),
@@ -583,7 +586,17 @@ func loadTeamClaudeHealth() -> TeamClaudeHealth {
             fablePercent: fablePercent,
             fableResetSeconds: fablePercent == nil ? nil : secondsUntil(fable?["reset"], nowMs: nowMs),
             probedAt: lastUsed,
-            measurementIssue: measurementIssue
+            measurementIssue: measurementIssue,
+            usableFromProxy: teamClaudeStatusBool(account["usable"]),
+            fableMeasurementCurrent: teamClaudeStatusBool(account["enabled"]) != nil,
+            inflightCount: teamClaudeConcurrencyValue(account["inflight"]),
+            concurrentCapacity: teamClaudeConcurrencyValue(account["maxConcurrent"], positive: true),
+            subscriptionConfirmation: teamClaudeSubscriptionConfirmation(account["subscription"] as? [String: Any], now: Date(timeIntervalSince1970: Double(nowMs) / 1000)),
+            subscriptionEndReached: (account["subscription"] as? [String: Any])?["state"] as? String == "end-date-reached",
+            subscriptionEndsAt: parseTeamClaudeTimeMs((account["subscription"] as? [String: Any])?["endsAt"]).map { Date(timeIntervalSince1970: Double($0) / 1000) },
+            sessionResetAt: sessionResetMs.map { Date(timeIntervalSince1970: Double($0) / 1000) },
+            weeklyResetAt: weeklyResetMs.map { Date(timeIntervalSince1970: Double($0) / 1000) },
+            fableResetAt: parseTeamClaudeTimeMs(fable?["reset"]).map { Date(timeIntervalSince1970: Double($0) / 1000) }
         ))
     }
 
@@ -669,7 +682,7 @@ func loadTeamClaudeHealth() -> TeamClaudeHealth {
     }
 
     return TeamClaudeHealth(
-        checkedAt: Date(),
+        checkedAt: now,
         overallStatus: overallStatus,
         configPresent: config != nil,
         serverReachable: reachable,
@@ -727,7 +740,15 @@ func teamClaudeRetainingQuota(
             fablePercent: nil,
             fableResetSeconds: nil,
             probedAt: account.probedAt,
-            measurementIssue: account.measurementIssue
+            measurementIssue: account.measurementIssue,
+            usableFromProxy: account.usableFromProxy,
+            fableMeasurementCurrent: false,
+            inflightCount: account.inflightCount,
+            concurrentCapacity: account.concurrentCapacity,
+            subscriptionConfirmation: account.subscriptionConfirmation,
+            subscriptionEndReached: account.subscriptionEndReached,
+            subscriptionEndsAt: account.subscriptionEndsAt,
+            sessionResetAt: account.sessionResetAt, weeklyResetAt: account.weeklyResetAt, fableResetAt: account.fableResetAt
         )
     }
     let quotaPending = TeamClaudeHealth(
@@ -858,7 +879,18 @@ func teamClaudeAccountMergingQuota(
         fablePercent: fablePercent,
         fableResetSeconds: mergedPair?.fableResetSeconds ?? candidate.fableResetSeconds,
         probedAt: candidate.probedAt,
-        measurementIssue: measurementIssue
+        measurementIssue: measurementIssue,
+        usableFromProxy: candidate.usableFromProxy,
+        fableMeasurementCurrent: candidate.fableMeasurementCurrent
+            && candidate.sessionPercent != nil && candidate.weeklyPercent != nil && candidate.fablePercent != nil
+            && (candidate.sessionResetSeconds ?? 0) > 0 && (candidate.weeklyResetSeconds ?? 0) > 0
+            && (candidate.fableResetSeconds ?? 0) > 0,
+        inflightCount: candidate.inflightCount,
+        concurrentCapacity: candidate.concurrentCapacity,
+        subscriptionConfirmation: candidate.subscriptionConfirmation,
+        subscriptionEndReached: candidate.subscriptionEndReached,
+        subscriptionEndsAt: candidate.subscriptionEndsAt,
+        sessionResetAt: candidate.sessionResetAt, weeklyResetAt: candidate.weeklyResetAt, fableResetAt: candidate.fableResetAt
     )
 }
 
@@ -1596,14 +1628,39 @@ func dateFromYMD(_ ymd: String) -> Date? {
 final class TeamClaudeTableView: NSView {
     var health: TeamClaudeHealth? {
         didSet {
-            guard let health = health else { return }
-            let total = max(health.accountTotal, health.accountConfigured)
-            setAccessibilityLabel("TeamClaude, 활성 \(health.accountActive)/\(total), 라우팅 가능 \(health.accountUsable), 계정 연동 불일치 \(health.accountConfigDrift), 측정 필요 \(health.measurementPendingCount), 상태 확인 \(health.measurementUnavailableCount), 사용 한도 \(health.quotaLimitedCount), Fable 경고 \(health.fableOver), 상태 \(health.statusLabel)")
-            setAccessibilityHelp(health.measurementPendingCount > 0 ? "Return 키를 누르면 미측정 계정을 지금 측정합니다." : nil)
+            refreshTime()
             needsLayout = true
-            needsDisplay = true
         }
     }
+    private var refreshTimer: Timer?
+    private(set) var evaluatedAt = Date()
+
+    func refreshTime(now: Date = Date()) {
+        evaluatedAt = now
+        guard let health else { return }
+        let total = max(health.accountTotal, health.accountConfigured)
+        let availability = health.fableAvailability(now: now)
+        let ready = availability.filter { $0.state == .ready }.count
+        setAccessibilityLabel("TeamClaude, Fable 사용 가능 \(ready)/\(total), 라우팅 가능 \(health.accountUsable), 계정 연동 불일치 \(health.accountConfigDrift), 측정 필요 \(health.measurementPendingCount), 상태 확인 \(health.measurementUnavailableCount), 사용 한도 \(health.quotaLimitedCount), Fable 경고 \(health.fableOver), 상태 \(health.statusLabel)")
+        setAccessibilityHelp(health.measurementPendingCount > 0 ? "Return 키를 누르면 미측정 계정을 지금 측정합니다." : nil)
+        for (button, state) in zip(subscriptionButtons, availability) {
+            button.refreshTitle(now: now, appearance: state.subscriptionAppearance)
+        }
+        needsDisplay = true
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+        guard window != nil else { return }
+        refreshTime()
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.refreshTime() }
+        RunLoop.main.add(timer, forMode: .common)
+        refreshTimer = timer
+    }
+
+    deinit { refreshTimer?.invalidate() }
     var isMeasuring = false { didSet { needsDisplay = true } }
     var measurementDetail: String? { didSet { needsDisplay = true } }
     var onMeasure: (() -> Void)?
@@ -1613,12 +1670,15 @@ final class TeamClaudeTableView: NSView {
     private var reauthButtons: [NSButton] = []
     private var reauthButtonTargets: [ObjectIdentifier: (name: String, accountUuid: String?)] = [:]
     private var reauthSignature = ""
+    private var subscriptionButtons: [AccountSubscriptionButton] = []
+    private var subscriptionSignature = ""
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        setAccessibilityElement(false)
+        setAccessibilityElement(true)
+        setAccessibilityRole(.group)
     }
 
     required init?(coder: NSCoder) {
@@ -1627,8 +1687,10 @@ final class TeamClaudeTableView: NSView {
 
     private func reauthenticationRows() -> [(index: Int, name: String, accountUuid: String?)] {
         guard let health else { return [] }
+        let availability = health.fableAvailability(now: evaluatedAt)
         return health.accounts.enumerated().compactMap { index, row in
-            teamClaudeCanReauthenticate(
+            guard availability[index].subscriptionAppearance != .ended else { return nil }
+            return teamClaudeCanReauthenticate(
                 enabled: row.enabled,
                 status: row.status,
                 source: row.source,
@@ -1664,6 +1726,29 @@ final class TeamClaudeTableView: NSView {
         }
     }
 
+    private func ensureSubscriptionButtons() {
+        let rows = health?.accounts ?? []
+        let signature = rows.map { row in
+            let local = accountSubscriptionLocalAccount(provider: "anthropic", uuid: row.accountUuid, name: row.name)
+            return "\(local.uuid ?? "-"):\(row.name):\(local.plan ?? "-"):\(row.subscriptionConfirmation?.state.rawValue ?? "-"):\(row.subscriptionConfirmation?.date ?? "-"):\(row.subscriptionConfirmation?.checkedAt.timeIntervalSince1970 ?? 0)"
+        }.joined(separator: "|")
+        guard signature != subscriptionSignature else {
+            subscriptionButtons.forEach { $0.refreshTitle() }
+            return
+        }
+        subscriptionSignature = signature
+        subscriptionButtons.forEach { $0.removeFromSuperview() }
+        subscriptionButtons = rows.map { row in
+            let button = AccountSubscriptionButton(provider: "anthropic", accountUuid: row.accountUuid, accountName: row.name, confirmation: row.subscriptionConfirmation)
+            button.onChange = { [weak self] in
+                guard let self, let health = self.health else { return }
+                self.health = health
+            }
+            addSubview(button)
+            return button
+        }
+    }
+
     @objc private func reauthenticateButtonClicked(_ sender: NSButton) {
         guard let target = reauthButtonTargets[ObjectIdentifier(sender)] else { return }
         onReauthenticate?(target.name, target.accountUuid)
@@ -1672,22 +1757,28 @@ final class TeamClaudeTableView: NSView {
     override func layout() {
         super.layout()
         ensureReauthenticationButtons()
+        ensureSubscriptionButtons()
+        refreshTime(now: evaluatedAt)
         guard let health else { return }
         let card = bounds.insetBy(dx: 8, dy: 4)
         let innerX = card.minX + 16
         let topY = card.minY + 14
         let statY = topY + (health.hostSummaryText != nil ? 78 : 58)
-        let tableY = statY + 70
+        let tableY = statY + 88
         let buttonX = innerX + 750
         let buttonWidth = card.maxX - buttonX - 2
         let rows = reauthenticationRows()
         for (button, row) in zip(reauthButtons, rows) {
             button.frame = NSRect(
                 x: buttonX,
-                y: tableY + 34 + CGFloat(row.index) * 28 + 1,
+                y: tableY + 34 + CGFloat(row.index) * 72 + 1,
                 width: buttonWidth,
                 height: 24
             )
+        }
+        for (index, button) in subscriptionButtons.enumerated() {
+            button.frame = NSRect(x: innerX + 24, y: tableY + 34 + CGFloat(index) * 72 + 47,
+                                  width: card.width - 70, height: 22)
         }
     }
 
@@ -1782,12 +1873,12 @@ final class TeamClaudeTableView: NSView {
             strokeRound(rect, color.withAlphaComponent(0.38), 11)
             drawText(value, x + 8, y + 3.5, subFont, color)
         }
-        func stat(_ title: String, _ value: String, _ detail: String, x: CGFloat, y: CGFloat, width: CGFloat, color: NSColor) {
+        func stat(_ title: String, _ value: String, _ detail: String, x: CGFloat, y: CGFloat, width: CGFloat, color: NSColor, prominent: Bool = false) {
             let rect = NSRect(x: x, y: y, width: width, height: 54)
-            fillRound(rect, panel, 9)
-            strokeRound(rect, line.withAlphaComponent(0.8), 9)
-            drawText(title.uppercased(), x + 10, y + 8, headFont, muted)
-            drawText(value, x + 10, y + 25, NSFont.monospacedSystemFont(ofSize: 18, weight: .bold), color)
+            fillRound(rect, prominent ? color.withAlphaComponent(0.10) : panel, 9)
+            strokeRound(rect, prominent ? color.withAlphaComponent(0.45) : line.withAlphaComponent(0.8), 9)
+            drawText(title, x + 10, y + 7, headFont, prominent ? text : muted)
+            drawText(value, x + 10, y + 23, NSFont.monospacedSystemFont(ofSize: prominent ? 24 : 18, weight: .bold), color)
             drawText(detail, x + width - detail.size(withAttributes: attrs(smallFont, muted)).width - 10, y + 31, smallFont, muted)
         }
         func bar(_ percent: Double?, x: CGFloat, y: CGFloat, width: CGFloat, color: NSColor) {
@@ -1811,12 +1902,13 @@ final class TeamClaudeTableView: NSView {
             drawText(hostText, innerX, topY + 48, subFont, health.hostIsWarning ? red : muted)
         }
         let totalAccounts = max(health.accountTotal, health.accountConfigured)
-        let fableDetail = health.fableKnown > 0
-            ? "Fable \(health.fableOver)/\(totalAccounts) 경고 · \(health.fableKnown)측정"
-            : "Fable 미측정 · \(totalAccounts)계정"
+        let availability = health.fableAvailability(now: evaluatedAt)
+        subscriptionButtons.forEach { $0.refreshTitle(now: evaluatedAt) }
+        let ready = availability.filter { $0.state == .ready }.count
+        let limited = availability.filter { $0.state == .limited }.count
+        let excluded = availability.filter { $0.state == .excluded }.count
+        let unconfirmed = availability.filter { $0.state == .unconfirmed }.count
         let pendingCount = health.measurementPendingCount
-        let unavailableCount = health.measurementUnavailableCount
-        let quotaLimitedCount = health.quotaLimitedCount
         let actionRect = NSRect(x: card.maxX - 330, y: topY - 4, width: 314, height: 48)
         let actionColor: NSColor
         let actionTitle: String
@@ -1838,66 +1930,92 @@ final class TeamClaudeTableView: NSView {
                 actionDetail = "클릭하여 지금 측정"
             }
             measureActionRect = actionRect
-        } else if unavailableCount > 0 {
-            actionColor = red
-            actionTitle = "\(unavailableCount)개 계정 상태 확인 필요"
-            actionDetail = "일시 제한 해제 후 자동 복구"
-        } else if quotaLimitedCount > 0 {
+        } else if unconfirmed > 0 {
             actionColor = yellow
-            actionTitle = "\(quotaLimitedCount)개 계정 라우팅 한도 대기"
-            actionDetail = "세션·주간·Fable 중 하나 이상 · 리셋 후 자동 전환"
+            actionTitle = "\(unconfirmed)개 계정 확인 필요"
+            actionDetail = "최신 한도와 구독 종료일을 확인하세요"
+        } else if excluded > 0 {
+            actionColor = red
+            actionTitle = "\(excluded)개 계정 이용 제외"
+            actionDetail = "아래에서 구독·인증·비활성 상태 확인"
+        } else if limited > 0 {
+            actionColor = yellow
+            actionTitle = "\(limited)개 계정 한도·요청 대기"
+            actionDetail = "세션·전체 주간·Fable 모두 여유가 필요합니다"
         } else {
-            actionColor = green
-            actionTitle = "모든 계정 측정 완료"
-            actionDetail = fableDetail
+            actionColor = ready > 0 ? green : muted
+            actionTitle = ready > 0 ? "\(ready)개 계정 Fable 사용 가능" : "등록된 계정이 없습니다"
+            actionDetail = "세션·전체 주간·Fable 한도를 함께 확인"
         }
         fillRound(actionRect, actionColor.withAlphaComponent(0.11), 8)
         strokeRound(actionRect, actionColor.withAlphaComponent(0.45), 8)
-        let actionIcon = isMeasuring ? "↻" : (pendingCount > 0 || unavailableCount > 0 || quotaLimitedCount > 0 ? "!" : "✓")
+        let actionIcon = isMeasuring ? "↻" : (pendingCount > 0 || unconfirmed > 0 || excluded > 0 || limited > 0 ? "!" : "✓")
         drawText(actionIcon, actionRect.minX + 12, actionRect.minY + 8, titleFont, actionColor)
         drawText(clipped(actionTitle, 28), actionRect.minX + 40, actionRect.minY + 6, subFont, actionColor)
         drawText(clipped(actionDetail, 38), actionRect.minX + 40, actionRect.minY + 25, smallFont, muted)
 
         let statY = topY + (hostLineShown ? 78 : 58)
         let statW = (card.width - 32 - 27) / 4
-        stat("라우팅 가능", "\(health.accountUsable)/\(max(health.accountTotal, health.accountConfigured))", "accounts", x: innerX, y: statY, width: statW, color: health.accountUsable > 0 ? green : red)
-        stat("Fable", "\(health.fableOver)/\(totalAccounts)", "\(health.fableKnown)측정", x: innerX + statW + 9, y: statY, width: statW, color: health.fableOver > 0 ? red : green)
-        stat("최대", health.fableMaxPercent.map { String(format: "%.1f%%", $0) } ?? "-", "weekly", x: innerX + (statW + 9) * 2, y: statY, width: statW, color: health.fableOver > 0 ? red : yellow)
-        stat("다음 리셋", formatDurationShort(health.retryAfterSeconds), "soonest", x: innerX + (statW + 9) * 3, y: statY, width: statW, color: blue)
+        stat("Fable 사용 가능", "\(ready) / \(totalAccounts)", "계정", x: innerX, y: statY, width: statW, color: ready > 0 ? green : red, prominent: true)
+        stat("한도 · 요청 대기", "\(limited)", "계정", x: innerX + statW + 9, y: statY, width: statW, color: limited > 0 ? yellow : muted)
+        stat("구독 · 오류 · 비활성", "\(excluded)", "제외", x: innerX + (statW + 9) * 2, y: statY, width: statW, color: excluded > 0 ? red : muted)
+        stat("확인 필요", "\(unconfirmed)", "미확인", x: innerX + (statW + 9) * 3, y: statY, width: statW, color: unconfirmed > 0 ? yellow : muted)
 
-        let tableY = statY + 70
+        let readyNames = availability
+            .enumerated()
+            .filter { $0.element.state == .ready }
+            .map { $0.offset < health.accounts.count ? health.accounts[$0.offset].name : "" }
+            .filter { !$0.isEmpty }
+        let readySummary = readyNames.isEmpty
+            ? "사용 가능 계정 없음"
+            : "사용 가능 계정: " + clipped(readyNames.joined(separator: " · "), 72)
+        let availableStrip = NSRect(x: innerX, y: statY + 60, width: card.width - 32, height: 22)
+        fillRound(availableStrip, (ready > 0 ? green : muted).withAlphaComponent(0.10), 6)
+        drawText(readySummary, availableStrip.minX + 10, availableStrip.minY + 4, smallFont, ready > 0 ? green : muted)
+
+        let tableY = statY + 88
         fillRound(NSRect(x: innerX, y: tableY, width: card.width - 32, height: 30), panel2, 8)
         drawText("계정", innerX + 12, tableY + 8, headFont, muted)
-        drawText("세션", innerX + 270, tableY + 8, headFont, muted)
-        drawText("주간", innerX + 450, tableY + 8, headFont, muted)
-        drawText("fable", innerX + 620, tableY + 8, headFont, muted)
+        drawText("세션 5h", innerX + 270, tableY + 8, headFont, muted)
+        drawText("전체 주간", innerX + 450, tableY + 8, headFont, muted)
+        drawText("Fable 주간", innerX + 620, tableY + 8, headFont, muted)
         drawText("측정", innerX + 790, tableY + 8, headFont, muted)
 
         for (i, row) in health.accounts.enumerated() {
-            let y = tableY + 34 + CGFloat(i) * 28
-            let rowRect = NSRect(x: innerX, y: y, width: card.width - 32, height: 26)
-            if row.isCurrent {
+            let y = tableY + 34 + CGFloat(i) * 72
+            let rowRect = NSRect(x: innerX, y: y, width: card.width - 32, height: 70)
+            let state = availability[i]
+            let subscriptionMuted = state.subscriptionAppearance.isMuted
+            let inactive = NSColor(calibratedWhite: 0.62, alpha: 1)
+            let showCurrent = row.isCurrent && !subscriptionMuted
+            if showCurrent {
                 fillRound(rowRect, green.withAlphaComponent(0.13), 7)
                 strokeRound(rowRect, green.withAlphaComponent(0.32), 7)
             } else if i % 2 == 1 {
                 fillRound(rowRect, NSColor.white.withAlphaComponent(0.035), 7)
             }
-            let rowPair = teamClaudeQuotaPair(for: row)
-            let maxKnownQuota = [row.sessionPercent, rowPair?.weeklyPercent, rowPair?.fablePercent].compactMap { $0 }.max() ?? 0
-            let dotColor = row.isUsable ? green : (row.status == "error" || maxKnownQuota >= 98 ? red : (row.status == "configured" ? blue : yellow))
+            let dotColor = subscriptionMuted ? inactive : state.state == .ready ? green : state.state == .excluded ? red : yellow
+            drawText(state.reason, innerX + 24, y + 27, subFont, dotColor)
             fillRound(NSRect(x: innerX + 10, y: y + 9, width: 8, height: 8), dotColor, 4)
-            let nameColor = row.isCurrent ? green : (row.status == "configured" ? muted : text)
-            drawText((row.isCurrent ? ">" : " ") + clipped(row.name, 30), innerX + 24, y + 5, rowFont, nameColor)
+            let nameColor = subscriptionMuted ? inactive : showCurrent ? green : (row.status == "configured" ? muted : text)
+            drawText((showCurrent ? ">" : " ") + clipped(row.name, 30), innerX + 24, y + 5, rowFont, nameColor)
+            if state.subscriptionAppearance == .ended {
+                for offset: CGFloat in [270, 450, 620] {
+                    drawText("—", innerX + offset, y + 5, rowFont, inactive)
+                }
+                drawText("종료", innerX + 790, y + 5, smallFont, inactive)
+                continue
+            }
 
             let attempted = probeAttempted(row)
-            let session = teamClaudeSessionState(percent: row.sessionPercent, lastUsed: row.probedAt)
+            let session = teamClaudeSessionState(percent: row.sessionPercent, lastUsed: row.probedAt, now: evaluatedAt)
             let sessionPercent = session.percent
-            let sesColor = tone(sessionPercent)
-            drawText(percentText(sessionPercent), innerX + 270, y + 5, rowFont, sessionPercent == nil ? blue : sesColor)
+            let sesColor = subscriptionMuted ? inactive : tone(sessionPercent)
+            drawText(percentText(sessionPercent), innerX + 270, y + 5, rowFont, subscriptionMuted ? inactive : sessionPercent == nil ? blue : sesColor)
             bar(sessionPercent, x: innerX + 314, y: y + 10, width: 74, color: sesColor)
             let sessionDetail = session.isStale
                 ? (row.measurementIssue == .quotaBlocked ? "한도리셋" : "재측정")
-                : (sessionPercent != nil ? formatTeamClaudeDuration(row.sessionResetSeconds) : (attempted ? "확인필요" : "측정전"))
+                : (sessionPercent != nil ? teamClaudeResetLabel(row.sessionResetSeconds, checkedAt: health.checkedAt, now: evaluatedAt, resetAt: row.sessionResetAt) : (attempted ? "확인필요" : "측정전"))
             drawText(sessionDetail, innerX + 398, y + 5, smallFont, muted)
 
             // 주간·Fable 독립 표시 — 프록시는 재시작 후 Fable(7d_oi) 창을 의도적으로
@@ -1905,16 +2023,19 @@ final class TeamClaudeTableView: NSView {
             // 가드(teamClaudeQuotaPair)는 Fable 미측정 계정의 주간 표시까지 막아
             // 두 열 모두 "동기화중"으로 떨어뜨렸다 (2026-07-22 사고).
             let wkPercent = row.weeklyPercent
-            let wkColor = tone(wkPercent)
-            drawText(wkPercent != nil ? percentText(wkPercent) : "동기화중", innerX + 450, y + 5, rowFont, wkPercent != nil ? wkColor : yellow)
+            let wkColor = subscriptionMuted ? inactive : tone(wkPercent)
+            drawText(wkPercent != nil ? percentText(wkPercent) : "동기화중", innerX + 450, y + 5, rowFont, subscriptionMuted ? inactive : wkPercent != nil ? wkColor : yellow)
             bar(wkPercent, x: innerX + 494, y: y + 10, width: 74, color: wkColor)
-            drawText(formatTeamClaudeDuration(row.weeklyResetSeconds), innerX + 578, y + 5, smallFont, muted)
+            drawText(teamClaudeResetLabel(row.weeklyResetSeconds, checkedAt: health.checkedAt, now: evaluatedAt, resetAt: row.weeklyResetAt), innerX + 578, y + 5, smallFont, muted)
 
             let fbPercent = row.fablePercent
-            let fbColor = tone(fbPercent)
+            let fbColor = subscriptionMuted ? inactive : tone(fbPercent)
             drawText(fbPercent != nil ? percentText(fbPercent) : "측정전", innerX + 620, y + 5, rowFont, fbPercent != nil ? fbColor : muted)
             bar(fbPercent, x: innerX + 682, y: y + 10, width: 48, color: fbColor)
-            drawText(formatTeamClaudeDuration(row.fableResetSeconds), innerX + 738, y + 5, smallFont, muted)
+            if !teamClaudeCanReauthenticate(enabled: row.enabled, status: row.status,
+                source: row.source, provider: row.provider, errorReason: row.errorReason) {
+                drawText(teamClaudeResetLabel(row.fableResetSeconds, checkedAt: health.checkedAt, now: evaluatedAt, resetAt: row.fableResetAt), innerX + 738, y + 5, smallFont, muted)
+            }
             if teamClaudeCanReauthenticate(
                 enabled: row.enabled,
                 status: row.status,
@@ -1927,7 +2048,7 @@ final class TeamClaudeTableView: NSView {
                 let reasonText = teamAccountErrorReasonLabel(row.errorReason)
                 drawText(reasonText, innerX + 790, y + 5, smallFont, red)
             } else if let issue = row.measurementIssue {
-                if issue.canMeasureNow && !isMeasuring {
+                if issue.canMeasureNow && !isMeasuring && !subscriptionMuted {
                     let rowActionRect = NSRect(x: innerX + 780, y: y + 2, width: 58, height: 22)
                     fillRound(rowActionRect, yellow.withAlphaComponent(0.13), 6)
                     strokeRound(rowActionRect, yellow.withAlphaComponent(0.42), 6)
@@ -1946,19 +2067,164 @@ final class TeamClaudeTableView: NSView {
 
         let footerY = card.maxY - 33
         NSBezierPath.strokeLine(from: NSPoint(x: innerX, y: footerY - 8), to: NSPoint(x: card.maxX - 16, y: footerY - 8))
-        drawText("초록 <70%    노랑 70-89%    빨강 >=90%    현재 계정 강조", innerX, footerY, smallFont, muted)
+        let thresholdLabel = health.quotaThresholdPercent.isFinite ? String(format: "%.0f", health.quotaThresholdPercent) : "미확인"
+        drawText("Fable 가능 = 세션 + 전체 주간 + Fable 여유 · \(thresholdLabel)%부터 대기 · 미측정 제외", innerX, footerY, smallFont, muted)
     }
 }
+
+final class ServiceAvailabilitySummaryView: NSView {
+    static let preferredHeight: CGFloat = 240
+
+    var teamClaude: TeamClaudeHealth? { didSet { refreshSummary() } }
+    var teamCodex: TeamCodexPoolHealth? { didSet { refreshSummary() } }
+    var evaluatedAt = Date() { didSet { refreshSummary() } }
+
+    override var isFlipped: Bool { true }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setAccessibilityElement(true)
+        setAccessibilityRole(.group)
+        setAccessibilityLabel("사용 가능 현황")
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private func refreshSummary() {
+        let claudeNames: [String]
+        if let health = teamClaude {
+            let availability = health.fableAvailability(now: evaluatedAt)
+            claudeNames = health.accounts.enumerated().compactMap { index, account in
+                availability.indices.contains(index) && availability[index].state == .ready ? account.name : nil
+            }
+        } else {
+            claudeNames = []
+        }
+        let codexNames = teamCodex?.accounts
+            .filter { account in
+                guard let pool = teamCodex else { return false }
+                return account.isUsable(switchThresholdPercent: pool.switchThresholdPercent, now: evaluatedAt)
+            }
+            .map(\.name) ?? []
+        let claudeLabel = claudeNames.isEmpty ? "사용 가능 계정 없음" : claudeNames.joined(separator: " · ")
+        let codexLabel = codexNames.isEmpty ? "사용 가능 계정 없음" : codexNames.joined(separator: " · ")
+        setAccessibilityLabel("사용 가능 현황, TeamClaude \(claudeNames.count)개 \(claudeLabel), TeamCodex \(codexNames.count)개 \(codexLabel)")
+        needsDisplay = true
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let card = bounds.insetBy(dx: 8, dy: 4)
+        let bg = NSColor(calibratedRed: 0.06, green: 0.075, blue: 0.10, alpha: 0.97)
+        let panel = NSColor(calibratedRed: 0.12, green: 0.14, blue: 0.18, alpha: 1)
+        let line = NSColor(calibratedRed: 0.23, green: 0.27, blue: 0.34, alpha: 1)
+        let text = NSColor(calibratedRed: 0.92, green: 0.95, blue: 0.98, alpha: 1)
+        let muted = NSColor(calibratedRed: 0.55, green: 0.61, blue: 0.70, alpha: 1)
+        let green = NSColor(calibratedRed: 0.18, green: 0.82, blue: 0.48, alpha: 1)
+        let yellow = NSColor(calibratedRed: 0.93, green: 0.76, blue: 0.22, alpha: 1)
+        let red = NSColor(calibratedRed: 0.96, green: 0.26, blue: 0.32, alpha: 1)
+        let gray = NSColor(calibratedWhite: 0.62, alpha: 1)
+        let titleFont = NSFont.systemFont(ofSize: 24, weight: .bold)
+        let bodyFont = NSFont.systemFont(ofSize: 20, weight: .medium)
+        let monoFont = NSFont.monospacedSystemFont(ofSize: 32, weight: .bold)
+        let smallFont = NSFont.monospacedSystemFont(ofSize: 17, weight: .regular)
+
+        func attrs(_ font: NSFont, _ color: NSColor) -> [NSAttributedString.Key: Any] {
+            [.font: font, .foregroundColor: color]
+        }
+        func drawText(_ value: String, _ x: CGFloat, _ y: CGFloat, _ font: NSFont, _ color: NSColor) {
+            value.draw(at: NSPoint(x: x, y: y), withAttributes: attrs(font, color))
+        }
+        func fillRound(_ rect: NSRect, _ color: NSColor, _ radius: CGFloat) {
+            color.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
+        }
+        func strokeRound(_ rect: NSRect, _ color: NSColor, _ radius: CGFloat) {
+            color.setStroke()
+            let path = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
+            path.lineWidth = 1
+            path.stroke()
+        }
+        func namesForClaude() -> [String] {
+            guard let health = teamClaude else { return [] }
+            let availability = health.fableAvailability(now: evaluatedAt)
+            return health.accounts.enumerated().compactMap { index, account in
+                availability.indices.contains(index) && availability[index].state == .ready ? account.name : nil
+            }
+        }
+        func namesForCodex() -> [String] {
+            guard let pool = teamCodex else { return [] }
+            return pool.accounts.filter {
+                $0.isUsable(switchThresholdPercent: pool.switchThresholdPercent, now: evaluatedAt)
+            }.map(\.name)
+        }
+        func statusColor(_ count: Int, hasService: Bool, reachable: Bool) -> NSColor {
+            guard hasService else { return gray }
+            if !reachable { return red }
+            return count > 0 ? green : yellow
+        }
+
+        fillRound(card, bg, 14)
+        strokeRound(card, line, 14)
+        drawText("사용 가능 현황", card.minX + 16, card.minY + 10, titleFont, text)
+        drawText("지금 바로 요청을 받을 수 있는 계정", card.minX + 16, card.minY + 42, smallFont, muted)
+
+        let columnY = card.minY + 72
+        let columnGap: CGFloat = 8
+        let columnWidth = (card.width - 32 - columnGap) / 2
+        let namesClaude = namesForClaude()
+        let namesCodex = namesForCodex()
+        let claudeColor = statusColor(namesClaude.count, hasService: teamClaude != nil,
+                                      reachable: teamClaude?.serverReachable ?? false)
+        let codexColor = statusColor(namesCodex.count, hasService: teamCodex != nil,
+                                     reachable: teamCodex?.serverReachable ?? false)
+
+        let columns: [(String, [String], NSColor, String)] = [
+            ("TeamClaude", namesClaude, claudeColor,
+             teamClaude == nil ? "연동되지 않음" : (teamClaude?.serverReachable == true ? "Fable 기준" : "서버 오프라인")),
+            ("TeamCodex", namesCodex, codexColor,
+             teamCodex == nil ? "연동되지 않음" : (teamCodex?.serverReachable == true ? "Codex 풀 기준" : "서버 오프라인"))
+        ]
+        for (index, column) in columns.enumerated() {
+            let x = card.minX + 16 + CGFloat(index) * (columnWidth + columnGap)
+            let rect = NSRect(x: x, y: columnY, width: columnWidth, height: 148)
+            fillRound(rect, panel, 8)
+            strokeRound(rect, column.2.withAlphaComponent(0.42), 8)
+            fillRound(NSRect(x: x + 14, y: columnY + 17, width: 10, height: 10), column.2, 4)
+            drawText(column.0, x + 32, columnY + 10, bodyFont, text)
+            let countText = column.1.isEmpty ? "0개 사용 가능" : "\(column.1.count)개 사용 가능"
+            drawText(countText, x + 14, columnY + 40, monoFont, column.2)
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.lineBreakMode = .byTruncatingTail
+            let names = column.1.isEmpty ? [column.3] : Array(column.1.prefix(2))
+            for (row, name) in names.enumerated() {
+                name.draw(in: NSRect(x: x + 14, y: columnY + 84 + CGFloat(row) * 24,
+                                     width: columnWidth - 28, height: 24),
+                          withAttributes: [.font: smallFont, .foregroundColor: column.1.isEmpty ? muted : text,
+                                           .paragraphStyle: paragraph])
+            }
+            if column.1.count > 2 {
+                drawText("추가 계정은 아래 목록에서 확인", x + 14, columnY + 128,
+                         NSFont.systemFont(ofSize: 12), muted)
+            }
+        }
+    }
+}
+
 
 final class StatusMenuDashboardView: NSView {
     static let preferredWidth: CGFloat = 880
     static let maxTeamHeight: CGFloat = 596
     static let maxMenuDashboardHeight: CGFloat = 936
 
+    private var summaryView: ServiceAvailabilitySummaryView?
     private var teamClaudeView: TeamClaudeTableView?
     private var codexView: CodexStatusView?
     private var usageView: UsageDashboardView?
     private var renderedAccountCount = -1
+    private var renderedTeamClaudePresent = false
     private var renderedCodexPresent = false
     private var renderedTeamCodexAccountCount = -1
     private var renderedTeamCodexPresent = false
@@ -1968,8 +2234,8 @@ final class StatusMenuDashboardView: NSView {
     static func teamContentHeight(_ health: TeamClaudeHealth?) -> CGFloat {
         guard let health = health else { return 0 }
         // 호스트 라인이 표시될 때만 20pt 추가 (구버전 서버·미측정 시 여백 없음)
-        let base: CGFloat = health.hostSummaryText != nil ? 258 : 238
-        return base + CGFloat(health.accounts.count) * 28
+        let base: CGFloat = health.hostSummaryText != nil ? 276 : 256
+        return base + CGFloat(health.accounts.count) * 72
     }
 
     static func teamHeight(_ health: TeamClaudeHealth?) -> CGFloat {
@@ -1984,7 +2250,8 @@ final class StatusMenuDashboardView: NSView {
         let team = teamHeight(teamClaude)
         let codex = codexHeight(codex, teamCodex: teamCodex)
         let usage = UsageDashboardView.preferredHeight(for: usage)
-        return 8 + team + (team > 0 ? 4 : 0) + codex + (codex > 0 ? 4 : 0) + usage + 8
+        let summary = ServiceAvailabilitySummaryView.preferredHeight
+        return 8 + summary + 4 + team + (team > 0 ? 4 : 0) + codex + (codex > 0 ? 4 : 0) + usage + 8
     }
 
     func configure(
@@ -2002,11 +2269,20 @@ final class StatusMenuDashboardView: NSView {
     ) {
         subviews.removeAll()
         renderedAccountCount = teamClaude?.accounts.count ?? 0
+        renderedTeamClaudePresent = teamClaude != nil
         renderedCodexPresent = codex != nil
         renderedTeamCodexAccountCount = teamCodex?.accounts.count ?? 0
         renderedTeamCodexPresent = teamCodex != nil
         renderedUsageHeight = UsageDashboardView.preferredHeight(for: usage)
         var y: CGFloat = 4
+
+        let summary = ServiceAvailabilitySummaryView(frame: NSRect(x: 0, y: y, width: bounds.width, height: ServiceAvailabilitySummaryView.preferredHeight))
+        summary.teamClaude = teamClaude
+        summary.teamCodex = teamCodex
+        summary.evaluatedAt = Date()
+        addSubview(summary)
+        summaryView = summary
+        y += ServiceAvailabilitySummaryView.preferredHeight + 4
 
         if let teamClaude = teamClaude {
             let contentHeight = Self.teamContentHeight(teamClaude)
@@ -2073,6 +2349,7 @@ final class StatusMenuDashboardView: NSView {
         let accountCount = teamClaude?.accounts.count ?? 0
         let usageHeight = UsageDashboardView.preferredHeight(for: usage)
         let structureChanged = accountCount != renderedAccountCount
+            || (teamClaude != nil) != renderedTeamClaudePresent
             || (codex != nil) != renderedCodexPresent
             || (teamCodex?.accounts.count ?? 0) != renderedTeamCodexAccountCount
             || (teamCodex != nil) != renderedTeamCodexPresent
@@ -2095,6 +2372,9 @@ final class StatusMenuDashboardView: NSView {
             return
         }
 
+        summaryView?.teamClaude = teamClaude
+        summaryView?.teamCodex = teamCodex
+        summaryView?.evaluatedAt = Date()
         teamClaudeView?.health = teamClaude
         teamClaudeView?.isMeasuring = isMeasuringTeamClaude
         teamClaudeView?.measurementDetail = teamClaudeMeasureDetail
@@ -2754,8 +3034,10 @@ func teamCodexPoolHealth(
             subscriptionState: live.subscriptionState,
             subscriptionEndsAt: live.subscriptionEndsAt,
             planType: live.planType,
-            accountType: live.accountType,
-            providerName: live.providerName
+            accountType: live.accountType ?? configured.accountType,
+            providerName: live.providerName ?? configured.providerName,
+            codexResetCredits: live.codexResetCredits,
+            codexResetCreditsAt: live.codexResetCreditsAt
         )
     }
     let accountNames = Set(accounts.filter(\.enabled).map(\.name))
@@ -2789,7 +3071,9 @@ func teamCodexPoolHealth(
         currentAccount: currentAccount,
         currentAccountUuid: currentAccountUuid,
         switchThresholdPercent: pool.switchThresholdPercent,
-        accounts: accounts
+        accounts: accounts,
+        resetCreditsEnabled: pool.resetCreditsEnabled,
+        resetCreditsPolicy: pool.resetCreditsPolicy
     )
 }
 
@@ -3925,7 +4209,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let port = currentTeamClaude?.serverPort ?? 3456
         let model = preferredTeamClaudeProbeModel()
         let config = readTeamClaudeJSON("\(NSHomeDirectory())/.config/teamclaude.json")
-        let proxyApiKey = tcString(tcDict(config?["proxy"])?["apiKey"])
+        let proxyAuthorizationValue = tcString(tcDict(config?["proxy"])?["apiKey"])
         isMeasuringTeamClaude = true
         teamClaudeMeasureDetail = "OAuth 갱신 중"
         refreshOpenDashboard()
@@ -3972,7 +4256,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self?.refreshOpenDashboard()
                 self?.updateTitle()
             }
-            let exitCode = runTeamClaudeBareClaudeProbe(port: port, apiKey: proxyApiKey, model: model)
+            let exitCode = runTeamClaudeBareClaudeProbe(port: port, apiKey: proxyAuthorizationValue, model: model)
             let directStatus = exitCode == nil ? triggerTeamClaudeQuotaProbe(port: port, model: model) : nil
             print("TEAMCLAUDE-PROBE: refreshExit=\(refreshExit.map(String.init) ?? "nil") model=\(model) claudeExit=\(exitCode.map(String.init) ?? "nil") directStatus=\(directStatus.map(String.init) ?? "nil")")
             fflush(stdout)
@@ -4263,6 +4547,76 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
 // MARK: - 진입점
 
+if let summaryIndex = CommandLine.arguments.firstIndex(of: "--availability-summary-snapshot") {
+    let outputPath = CommandLine.arguments.indices.contains(summaryIndex + 1)
+        ? CommandLine.arguments[summaryIndex + 1]
+        : "/tmp/cc-availability-summary.png"
+    let app = NSApplication.shared
+    app.setActivationPolicy(.regular)
+    let view = ServiceAvailabilitySummaryView(frame: NSRect(x: 0, y: 0, width: StatusMenuDashboardView.preferredWidth, height: ServiceAvailabilitySummaryView.preferredHeight))
+    view.teamClaude = loadTeamClaudeHealth()
+    view.teamCodex = loadTeamCodexPoolHealth()
+    view.evaluatedAt = Date()
+    view.layoutSubtreeIfNeeded()
+    guard let image = view.bitmapImageRepForCachingDisplay(in: view.bounds),
+          let data = ({ view.cacheDisplay(in: view.bounds, to: image); return image.representation(using: .png, properties: [:]) })() else {
+        fputs("AVAILABILITY-SUMMARY: PNG 생성 실패\n", stderr)
+        exit(1)
+    }
+    do {
+        try data.write(to: URL(fileURLWithPath: outputPath), options: .atomic)
+        print("AVAILABILITY-SUMMARY: \(outputPath)")
+        exit(0)
+    } catch {
+        fputs("AVAILABILITY-SUMMARY: \(error)\n", stderr)
+        exit(1)
+    }
+}
+
+if CommandLine.arguments.contains("--account-subscription-qa") || CommandLine.arguments.contains("--reset-credits-qa") {
+    let app = NSApplication.shared
+    app.setActivationPolicy(.regular)
+    let resetQA = CommandLine.arguments.contains("--reset-credits-qa")
+    let now = Date()
+    let pool = TeamCodexPoolHealth(
+        checkedAt: Date(), serverReachable: true, serverPort: 3457, serverPid: nil,
+        currentAccount: nil, currentAccountUuid: nil, switchThresholdPercent: 98,
+        accounts: (0..<(resetQA ? 12 : 3)).map { index in
+            TeamCodexPoolAccount(name: "테스트 계정 \(index + 1)", accountUuid: "subscription-qa-\(index)",
+                                 isCurrent: index == 0, enabled: index != 3, status: index == 5 ? "error" : "active", errorReason: index == 5 ? "auth-revoked" : nil,
+                                 usableFromProxy: index == 0, sessionPercent: 15, sessionResetAt: now.addingTimeInterval(3600),
+                                 weeklyPercent: index == 1 ? 100 : 30, weeklyResetAt: now.addingTimeInterval(86400), inflight: 0, maxConcurrent: 3,
+                                 totalRequests: 12, totalTokens: 40000, subscriptionState: index == 4 ? "ended" : nil,
+                                 planType: index == 0 ? "pro" : "plus", accountType: "oauth", providerName: "codex",
+                                 codexResetCredits: index == 2 ? nil : (index == 1 ? 0 : 3),
+                                 codexResetCreditsAt: index == 6 ? now.addingTimeInterval(-601) : now)
+        }, resetCreditsEnabled: true, resetCreditsPolicy: "account"
+    )
+    let view = CodexStatusView(frame: NSRect(x: 0, y: 0, width: 880, height: CodexStatusView.preferredHeight(for: pool)))
+    view.pool = pool
+    let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 880, height: min(view.bounds.height, 720)), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+    window.title = resetQA ? "계정별 리셋권 검증" : "계정 구독 표시 검증"
+    let scroll = NSScrollView(frame: window.contentView!.bounds)
+    scroll.hasVerticalScroller = true
+    scroll.documentView = view
+    window.contentView = scroll
+    window.center()
+    window.makeKeyAndOrderFront(nil)
+    app.activate(ignoringOtherApps: true)
+    view.layoutSubtreeIfNeeded()
+    let buttons = view.subviews.compactMap { $0 as? AccountSubscriptionButton }
+    precondition(buttons.count == pool.accounts.count)
+    for pair in zip(buttons, buttons.dropFirst()) { precondition(!pair.0.frame.intersects(pair.1.frame)) }
+    if let image = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+        view.cacheDisplay(in: view.bounds, to: image)
+        if let data = image.representation(using: .png, properties: [:]) {
+            try? data.write(to: URL(fileURLWithPath: resetQA ? "/tmp/cc-reset-credits-qa.png" : "/tmp/cc-subscription-qa.png"))
+        }
+    }
+    app.run()
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--teamcodex-dashboard-selftest") {
     func pool(_ count: Int) -> TeamCodexPoolHealth {
         TeamCodexPoolHealth(
@@ -4355,11 +4709,60 @@ if CommandLine.arguments.contains("--teamcodex-dashboard-selftest") {
         precondition(CodexStatusView.poolRowCount(for: health) == count)
         precondition(
             CodexStatusView.poolSectionHeight(for: health)
-                == 62 + CGFloat(max(1, count)) * 36
+                == 112 + CGFloat(max(1, count)) * 56
         )
     }
 
+    var creditAccount = account("account-0", uuid: "uuid-0")
+    creditAccount.codexResetCredits = 3
+    creditAccount.codexResetCreditsAt = Date()
+    var creditPool = pool(accounts: [creditAccount], currentAccount: nil, currentAccountUuid: nil)
+    creditPool.resetCreditsEnabled = true
+    creditPool.resetCreditsPolicy = "account"
+    let creditAligned = teamCodexPoolHealth(aligning: creditPool, to: snapshot(2, signature: 100))
+    precondition(creditAligned.accounts[0].codexResetCredits == 3)
+    precondition(creditAligned.accounts[0].codexResetCreditsAt == creditAccount.codexResetCreditsAt)
+    precondition(creditAligned.accounts[1].codexResetCredits == nil)
+    precondition(creditAligned.resetCreditsPolicy == "account" && creditAligned.resetCreditsEnabled == true)
+
     _ = NSApplication.shared
+    func verifySubscriptionLayout(_ view: NSView, count: Int) {
+        view.layoutSubtreeIfNeeded()
+        let subscriptions = view.subviews.compactMap { $0 as? AccountSubscriptionButton }
+        precondition(subscriptions.count == count)
+        for button in subscriptions {
+            precondition(view.bounds.contains(button.frame))
+            precondition(button.attributedTitle.size().width < button.frame.width)
+            precondition(button.accessibilityLabel()?.contains("결제일") == true)
+            for other in view.subviews.compactMap({ $0 as? NSButton }) where other !== button {
+                precondition(!button.frame.intersects(other.frame))
+            }
+        }
+    }
+    let codexLayoutPool = pool(32)
+    let codexLayout = CodexStatusView(frame: NSRect(x: 0, y: 0, width: 880, height: CodexStatusView.preferredHeight(for: codexLayoutPool)))
+    codexLayout.pool = codexLayoutPool
+    verifySubscriptionLayout(codexLayout, count: 32)
+    let claudeRows = (0..<16).map { index in
+        TeamClaudeAccountHealth(name: "subscription-layout-\(index)", isCurrent: false, enabled: true, isUsable: false,
+            status: "error", errorReason: "auth-expired", provider: "anthropic", accountUuid: "subscription-layout-\(index)",
+            source: "oauth", totalTokens: 0, totalRequests: 0, sessionPercent: nil, sessionResetSeconds: nil,
+            weeklyPercent: nil, weeklyResetSeconds: nil, fablePercent: nil, fableResetSeconds: nil, probedAt: nil, measurementIssue: nil)
+    }
+    let claudeLayoutHealth = TeamClaudeHealth(checkedAt: Date(), overallStatus: "warning", configPresent: true,
+        serverReachable: true, serverPort: 3456, serverPid: nil, accountTotal: 16, accountConfigured: 16,
+        accountActive: 0, accountUsable: 0, accountThrottled: 0, accountExhausted: 0, accountError: 16,
+        accountDisabled: 0, accountConfigDrift: 0, inflight: 0, capacity: 48, fableKnown: 0, fableOver: 0,
+        fableMaxPercent: nil, fableAvgPercent: nil, quotaThresholdPercent: 98, retryAfterSeconds: nil,
+        accounts: claudeRows, hints: [], host: nil)
+    let claudeLayout = TeamClaudeTableView(frame: NSRect(x: 0, y: 0, width: 880, height: StatusMenuDashboardView.teamContentHeight(claudeLayoutHealth)))
+    claudeLayout.health = claudeLayoutHealth
+    verifySubscriptionLayout(claudeLayout, count: 16)
+    let scrollCheck = NSScrollView(frame: NSRect(x: 0, y: 0, width: 880, height: 400))
+    scrollCheck.documentView = claudeLayout
+    scrollCheck.contentView.scroll(to: NSPoint(x: 0, y: claudeLayout.bounds.height - 400))
+    precondition(scrollCheck.contentView.bounds.maxY >= claudeLayout.subviews.compactMap { $0 as? AccountSubscriptionButton }.last!.frame.maxY)
+    print("SUBSCRIPTION-LAYOUT: Claude16/Codex32 bounds, widths, recovery overlap, accessibility and scroll end passed")
     let transitions = [0, 1, 4, 5, 4, 8, 0]
     let initial = pool(transitions[0])
     let dashboard = StatusMenuDashboardView(frame: NSRect(
