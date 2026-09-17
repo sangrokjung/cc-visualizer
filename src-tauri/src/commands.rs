@@ -1009,6 +1009,153 @@ pub async fn fetch_usd_krw_rate() -> serde_json::Value {
     }
 }
 
+/// 힉스필드 CLI(`@higgsfield/cli`) 실행 파일 후보.
+/// Tauri .app은 GUI라 fnm/nvm shell PATH를 상속하지 않는다 — run_ccusage와 같은 절대 경로 폴백을 쓴다.
+fn higgsfield_bin_candidates() -> Vec<String> {
+    let home = home_dir();
+    vec![
+        home.join(".local/share/fnm/aliases/default/bin/higgsfield")
+            .to_string_lossy()
+            .to_string(),
+        "/opt/homebrew/bin/higgsfield".to_string(),
+        "/usr/local/bin/higgsfield".to_string(),
+        "higgsfield".to_string(), // 마지막 시도 — PATH 의존
+    ]
+}
+
+/// 힉스필드 CLI를 호출하고 stdout JSON을 파싱한다.
+/// 바이너리가 *실행된* 뒤의 실패(미로그인·토큰 만료)는 다음 후보를 시도해도 같은 결과이므로 즉시 반환한다.
+/// spawn 자체가 실패한 경우(ENOENT)만 다음 후보로 넘어간다.
+fn run_higgsfield(args: &[&str]) -> Result<serde_json::Value, String> {
+    let mut last_err = String::from("higgsfield CLI를 찾지 못했습니다");
+
+    for bin in higgsfield_bin_candidates() {
+        match Command::new(&bin)
+            .args(args)
+            .env("PATH", "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin")
+            .output()
+        {
+            Ok(output) if output.status.success() => {
+                let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                return serde_json::from_str(&stdout)
+                    .map_err(|e| format!("higgsfield {} JSON 파싱 실패: {}", args.join(" "), e));
+            }
+            Ok(output) => {
+                // CLI는 실행됐다. 사유(미로그인 등)를 그대로 올려 화면이 복구 방법을 말하게 한다.
+                let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                return Err(if stderr.is_empty() {
+                    format!("higgsfield {} 실행 실패 (종료 코드 ≠ 0)", args.join(" "))
+                } else {
+                    stderr
+                });
+            }
+            Err(e) => {
+                last_err = format!("{} 실행 실패: {}", bin, e);
+            }
+        }
+    }
+
+    Err(last_err)
+}
+
+/// 힉스필드 계정 잔액·플랜 조회 (`account status --json`).
+/// 응답: `{ credits, email, subscription_plan_type }`
+#[tauri::command]
+pub async fn fetch_higgsfield_account() -> serde_json::Value {
+    let checked_at = chrono::Utc::now().to_rfc3339();
+    match run_higgsfield(&["account", "status", "--json"]) {
+        Ok(account) => serde_json::json!({
+            "ok": true,
+            "checkedAt": checked_at,
+            "account": account,
+        }),
+        Err(error) => serde_json::json!({
+            "ok": false,
+            "checkedAt": checked_at,
+            "error": error,
+        }),
+    }
+}
+
+/// 힉스필드 크레딧 거래내역 조회. `--size` 상한이 100이라 `--cursor`로 이어 받는다.
+/// 구독 갱신(`grant` + "Subscription Credits") 간격을 재려면 최소 2주기가 필요해 기본 3페이지를 받는다.
+#[tauri::command]
+pub async fn fetch_higgsfield_transactions(pages: Option<u32>) -> serde_json::Value {
+    const PAGE_SIZE: usize = 100;
+    let max_pages = pages.unwrap_or(3).clamp(1, 10);
+    let checked_at = chrono::Utc::now().to_rfc3339();
+
+    let mut items: Vec<serde_json::Value> = Vec::new();
+    let mut cursor: Option<String> = None;
+    let mut partial_error: Option<String> = None;
+
+    for _ in 0..max_pages {
+        let mut args: Vec<String> = vec![
+            "account".into(),
+            "transactions".into(),
+            "--size".into(),
+            PAGE_SIZE.to_string(),
+            "--json".into(),
+        ];
+        if let Some(c) = &cursor {
+            args.push("--cursor".into());
+            args.push(c.clone());
+        }
+        let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
+
+        match run_higgsfield(&arg_refs) {
+            Ok(page) => {
+                let page_items = page
+                    .get("items")
+                    .and_then(|v| v.as_array())
+                    .cloned()
+                    .unwrap_or_default();
+                let count = page_items.len();
+                items.extend(page_items);
+
+                // 페이지가 가득 차지 않았으면 마지막 페이지다.
+                if count < PAGE_SIZE {
+                    break;
+                }
+
+                // cursor는 문자열("100")로 오지만 숫자로 올 가능성도 막아 둔다.
+                let next = match page.get("cursor") {
+                    Some(serde_json::Value::String(s)) if !s.is_empty() => Some(s.clone()),
+                    Some(serde_json::Value::Number(n)) => Some(n.to_string()),
+                    _ => None,
+                };
+                match next {
+                    Some(c) => cursor = Some(c),
+                    None => break,
+                }
+            }
+            Err(error) => {
+                // 일부라도 받았으면 그것으로 그린다. 첫 페이지부터 실패하면 사유를 올린다.
+                partial_error = Some(error);
+                break;
+            }
+        }
+    }
+
+    if items.is_empty() {
+        if let Some(error) = partial_error {
+            return serde_json::json!({
+                "ok": false,
+                "checkedAt": checked_at,
+                "error": error,
+                "items": [],
+            });
+        }
+    }
+
+    serde_json::json!({
+        "ok": true,
+        "checkedAt": checked_at,
+        "items": items,
+        "partialError": partial_error,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
