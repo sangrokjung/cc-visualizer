@@ -82,6 +82,9 @@ export function subscriptionResets(items: HiggsfieldTransaction[]): CreditEvent[
 /// 임계는 관측된 최대 간격과 기본 주기 중 짧은 쪽의 절반이다. 장기 공백(결제 실패 등)이
 /// 임계를 부풀려 정규 지급까지 걸러내는 것을 기본 주기가 막아 준다.
 /// 간격이 임계보다 짧은 쌍에서는 금액이 큰 쪽(보정은 대개 소액)을 남기고, 동액이면 최신을 남긴다.
+///
+/// 알려진 한계: 보정 지급이 정규보다 **크면** 그것이 주기 시작이 된다("대개 소액"이라는 가정 때문).
+/// 지금까지 관측된 보정은 모두 소액이라 그대로 두지만, 큰 보너스 지급이 생기면 이 규칙을 다시 본다.
 export function regularGrants(grants: CreditEvent[]): CreditEvent[] {
   if (grants.length <= 1) return grants
 
@@ -89,8 +92,13 @@ export function regularGrants(grants: CreditEvent[]): CreditEvent[] {
   for (let i = 0; i < grants.length - 1; i += 1) {
     gaps.push((grants[i].at - grants[i + 1].at) / DAY_MS)
   }
-  const widest = gaps.length > 0 ? Math.max(...gaps) : DEFAULT_CYCLE_DAYS
-  const thresholdDays = Math.min(widest, DEFAULT_CYCLE_DAYS) / 2
+
+  // 임계를 걸러낼 데이터에서만 뽑으면, 간격 표본이 1개(지급 2건)일 때 그 간격이 곧 최댓값이라
+  // 임계가 항상 간격보다 작아져 필터가 정의상 통과만 한다. 표본이 부족하면 기본 주기를 사전값으로 쓴다.
+  // 대가: 실제 주기가 짧은 계정이 지급 2건만 보이면 정상 지급 하나가 잘려 기본 주기 가정으로 떨어진다.
+  // 그 경우 화면이 "주기 미실측 · 기본 30일 가정"이라고 스스로 밝히므로, 확신 있는 오표시보다 낫다.
+  const thresholdDays =
+    (gaps.length >= 2 ? Math.min(Math.max(...gaps), DEFAULT_CYCLE_DAYS) : DEFAULT_CYCLE_DAYS) / 2
 
   // 최신순으로 훑으며, 직전에 남긴 지급과 너무 가까운 것은 보정으로 본다.
   const kept: CreditEvent[] = [grants[0]]

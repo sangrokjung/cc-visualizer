@@ -112,6 +112,35 @@ describe('정규 지급 판별', () => {
     expect(cycle.grantAmount).toBe(3000)
   })
 
+  it('지급이 2건뿐이어도 보정 지급을 걸러낸다', () => {
+    // 임계를 관측 간격에서만 뽑으면 표본이 1개일 때 필터가 정의상 통과한다.
+    // 그러면 "5일 주기 · 갱신 2건 실측"이라는 확신 있는 오표시가 난다.
+    const items: HiggsfieldTransaction[] = [
+      { action: 'grant', created_at: '2026-09-22T05:00:00Z', credits: 200, display_name: 'Subscription Credits' },
+      { action: 'grant', created_at: '2026-09-17T08:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
+    ]
+    const cycle = estimateCycle(items, new Date('2026-09-23T00:00:00Z').getTime())
+
+    expect(regularGrants(subscriptionGrants(items))).toHaveLength(1)
+    expect(dayKey(cycle.lastGrantAt!)).toBe('2026-09-17')
+    expect(cycle.grantAmount).toBe(3000)
+    // 간격 표본이 없으니 주기는 가정이고, 화면도 그렇게 밝혀야 한다.
+    expect(cycle.assumedCycle).toBe(true)
+    expect(cycle.cycleDays).toBe(DEFAULT_CYCLE_DAYS)
+  })
+
+  it('정상 지급 2건은 그대로 둔다', () => {
+    const items: HiggsfieldTransaction[] = [
+      { action: 'grant', created_at: '2026-09-17T08:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
+      { action: 'grant', created_at: '2026-08-18T08:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
+    ]
+    const cycle = estimateCycle(items, NOW)
+
+    expect(regularGrants(subscriptionGrants(items))).toHaveLength(2)
+    expect(cycle.cycleDays).toBe(30)
+    expect(cycle.assumedCycle).toBe(false)
+  })
+
   it('같은 날 두 번 지급돼도 주기가 반토막 나지 않는다', () => {
     // 12시간 간격이면 Math.round(0.5)=1이 되어 기존 `days >= 1` 가드를 통과했다.
     const items: HiggsfieldTransaction[] = [

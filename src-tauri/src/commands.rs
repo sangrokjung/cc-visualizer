@@ -1039,6 +1039,9 @@ fn higgsfield_path_env() -> String {
 /// CLI 한 번 호출에 허용하는 시간. 네트워크가 멈춰도 화면이 영원히 로딩에 갇히지 않게 한다.
 const HIGGSFIELD_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 
+/// 거래내역 수집 전체에 허용하는 시간. 호출당 30초 × 3페이지면 90초라 화면 정지가 너무 길어진다.
+const HIGGSFIELD_COLLECT_BUDGET: std::time::Duration = std::time::Duration::from_secs(45);
+
 /// CLI 실행이 실패한 방식. spawn 실패는 다음 후보를 시도할 이유가 되지만,
 /// 타임아웃은 CLI가 실행은 된 것이라 다른 후보로 바꿔도 같은 결과다.
 enum RunFailure {
@@ -1047,11 +1050,15 @@ enum RunFailure {
 }
 
 /// `Command::output()`에 시간 제한을 붙인 버전. 초과하면 자식을 죽이고 사유를 돌려준다.
-/// 응답이 수십 KB라 파이프 버퍼 안에 들어가므로 먼저 읽지 않아도 교착하지 않는다.
+///
+/// 파이프는 **반드시 리더 스레드로 비운다.** 폴링만 하면 출력이 파이프 버퍼(이 머신 실측 65,536바이트)를
+/// 넘는 순간 자식이 write에서 막혀 타임아웃으로 죽는다. `Command::output()`이 내부적으로 해 주던 일이라,
+/// 시간 제한을 붙이면서 그 성질을 잃지 않도록 여기서 되살린다.
 fn output_with_timeout(
     command: &mut Command,
     timeout: std::time::Duration,
 ) -> Result<std::process::Output, RunFailure> {
+    use std::io::Read;
     use std::process::Stdio;
 
     let mut child = command
@@ -1060,18 +1067,34 @@ fn output_with_timeout(
         .spawn()
         .map_err(|e| RunFailure::Spawn(e.to_string()))?;
 
+    let mut out_pipe = child.stdout.take();
+    let mut err_pipe = child.stderr.take();
+    let out_reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(pipe) = out_pipe.as_mut() {
+            let _ = pipe.read_to_end(&mut buf);
+        }
+        buf
+    });
+    let err_reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(pipe) = err_pipe.as_mut() {
+            let _ = pipe.read_to_end(&mut buf);
+        }
+        buf
+    });
+
     let start = std::time::Instant::now();
-    loop {
+    let status = loop {
         match child.try_wait() {
-            Ok(Some(_)) => {
-                return child
-                    .wait_with_output()
-                    .map_err(|e| RunFailure::Spawn(e.to_string()));
-            }
+            Ok(Some(status)) => break status,
             Ok(None) => {
                 if start.elapsed() >= timeout {
                     let _ = child.kill();
                     let _ = child.wait();
+                    // 자식이 죽으면 파이프가 닫혀 리더도 곧 끝난다.
+                    let _ = out_reader.join();
+                    let _ = err_reader.join();
                     return Err(RunFailure::TimedOut(format!(
                         "higgsfield CLI가 {}초 안에 응답하지 않아 중단했습니다",
                         timeout.as_secs()
@@ -1081,7 +1104,13 @@ fn output_with_timeout(
             }
             Err(e) => return Err(RunFailure::Spawn(e.to_string())),
         }
-    }
+    };
+
+    Ok(std::process::Output {
+        status,
+        stdout: out_reader.join().unwrap_or_default(),
+        stderr: err_reader.join().unwrap_or_default(),
+    })
 }
 
 /// 힉스필드 CLI를 호출하고 stdout JSON을 파싱한다.
@@ -1199,8 +1228,20 @@ fn collect_higgsfield_transactions(
 ) -> (Vec<serde_json::Value>, Option<String>) {
     let mut items: Vec<serde_json::Value> = Vec::new();
     let mut cursor: Option<String> = None;
+    let started = std::time::Instant::now();
 
     for _ in 0..max_pages {
+        // 페이지마다 타임아웃이 걸리면 합이 너무 커진다. 전체 예산을 넘기면 받은 만큼으로 끝낸다.
+        if started.elapsed() >= HIGGSFIELD_COLLECT_BUDGET {
+            return (
+                items,
+                Some(format!(
+                    "거래내역 조회가 {}초를 넘겨 받은 만큼만 표시합니다",
+                    HIGGSFIELD_COLLECT_BUDGET.as_secs()
+                )),
+            );
+        }
+
         let mut args: Vec<String> = vec![
             "account".into(),
             "transactions".into(),
