@@ -9,6 +9,7 @@ const AgentMapView = lazy(() => import('../features/agent-map/AgentMapView'))
 const ArchitectureView = lazy(() => import('../features/architecture/ArchitectureView'))
 const LiveMonitorView = lazy(() => import('../features/live-monitor/LiveMonitorView'))
 const RuntimeHealthView = lazy(() => import('../features/runtime-health/RuntimeHealthView'))
+const HiggsfieldView = lazy(() => import('../features/higgsfield/HiggsfieldView'))
 const CatalogView = lazy(() => import('../features/catalog/CatalogView'))
 const SystemsView = lazy(() => import('../features/systems/SystemsView'))
 const UsageView = lazy(() => import('../features/usage/UsageView'))
@@ -54,6 +55,11 @@ export default function Layout({ activeView }: Props) {
         {activeView === 'runtime-health' && (
           <ViewErrorBoundary viewName="AI 계정 진단">
             <RuntimeHealthView />
+          </ViewErrorBoundary>
+        )}
+        {activeView === 'higgsfield' && (
+          <ViewErrorBoundary viewName="힉스필드 크레딧">
+            <HiggsfieldView />
           </ViewErrorBoundary>
         )}
         {activeView === 'catalog' && (

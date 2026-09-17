@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -1009,10 +1009,421 @@ pub async fn fetch_usd_krw_rate() -> serde_json::Value {
     }
 }
 
+/// 힉스필드 CLI(`@higgsfield/cli`) 실행 파일 후보.
+/// Tauri .app은 GUI라 fnm/nvm shell PATH를 상속하지 않는다 — run_ccusage와 같은 절대 경로 폴백을 쓴다.
+fn higgsfield_bin_candidates() -> Vec<String> {
+    let home = home_dir();
+    vec![
+        home.join(".local/share/fnm/aliases/default/bin/higgsfield")
+            .to_string_lossy()
+            .to_string(),
+        "/opt/homebrew/bin/higgsfield".to_string(),
+        "/usr/local/bin/higgsfield".to_string(),
+        "higgsfield".to_string(), // 마지막 시도 — PATH 의존
+    ]
+}
+
+/// 힉스필드 CLI에 넘길 PATH.
+/// CLI는 `#!/usr/bin/env node` 스크립트라 **PATH에 node가 있어야 실행된다.**
+/// 표준 4개 경로만 주면 fnm으로 설치한 node를 찾지 못해 `env: node: No such file or directory`(exit 127)로 죽는다.
+/// `run_tsx_script`가 같은 이유로 fnm bin을 덧붙인다.
+fn higgsfield_path_env() -> String {
+    format!(
+        "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:{}",
+        home_dir()
+            .join(".local/share/fnm/aliases/default/bin")
+            .to_string_lossy()
+    )
+}
+
+/// CLI 한 번 호출에 허용하는 시간. 네트워크가 멈춰도 화면이 영원히 로딩에 갇히지 않게 한다.
+const HIGGSFIELD_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// 거래내역 수집 전체에 허용하는 시간. 호출당 30초 × 3페이지면 90초라 화면 정지가 너무 길어진다.
+const HIGGSFIELD_COLLECT_BUDGET: std::time::Duration = std::time::Duration::from_secs(45);
+
+/// CLI 실행이 실패한 방식. spawn 실패는 다음 후보를 시도할 이유가 되지만,
+/// 타임아웃은 CLI가 실행은 된 것이라 다른 후보로 바꿔도 같은 결과다.
+enum RunFailure {
+    Spawn(String),
+    TimedOut(String),
+}
+
+/// `Command::output()`에 시간 제한을 붙인 버전. 초과하면 자식을 죽이고 사유를 돌려준다.
+///
+/// 파이프는 **반드시 리더 스레드로 비운다.** 폴링만 하면 출력이 파이프 버퍼(이 머신 실측 65,536바이트)를
+/// 넘는 순간 자식이 write에서 막혀 타임아웃으로 죽는다. `Command::output()`이 내부적으로 해 주던 일이라,
+/// 시간 제한을 붙이면서 그 성질을 잃지 않도록 여기서 되살린다.
+fn output_with_timeout(
+    command: &mut Command,
+    timeout: std::time::Duration,
+) -> Result<std::process::Output, RunFailure> {
+    use std::io::Read;
+    use std::process::Stdio;
+
+    let mut child = command
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| RunFailure::Spawn(e.to_string()))?;
+
+    let mut out_pipe = child.stdout.take();
+    let mut err_pipe = child.stderr.take();
+    let out_reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(pipe) = out_pipe.as_mut() {
+            let _ = pipe.read_to_end(&mut buf);
+        }
+        buf
+    });
+    let err_reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(pipe) = err_pipe.as_mut() {
+            let _ = pipe.read_to_end(&mut buf);
+        }
+        buf
+    });
+
+    let start = std::time::Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) => {
+                if start.elapsed() >= timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    // 자식이 죽으면 파이프가 닫혀 리더도 곧 끝난다.
+                    let _ = out_reader.join();
+                    let _ = err_reader.join();
+                    return Err(RunFailure::TimedOut(format!(
+                        "higgsfield CLI가 {}초 안에 응답하지 않아 중단했습니다",
+                        timeout.as_secs()
+                    )));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(e) => return Err(RunFailure::Spawn(e.to_string())),
+        }
+    };
+
+    Ok(std::process::Output {
+        status,
+        stdout: out_reader.join().unwrap_or_default(),
+        stderr: err_reader.join().unwrap_or_default(),
+    })
+}
+
+/// 힉스필드 CLI를 호출하고 stdout JSON을 파싱한다.
+/// 종료 코드가 0이 아니어도 남은 후보를 계속 시도한다. 실패 원인이 그 후보의 실행 환경일 수 있기 때문이다
+/// (exit 127처럼). 화면에는 "실행은 됐는데 실패한" 첫 사유를 올려 복구 안내가 엉뚱해지지 않게 한다.
+fn run_higgsfield(args: &[&str]) -> Result<serde_json::Value, String> {
+    let path_env = higgsfield_path_env();
+    let mut spawn_err = String::from("higgsfield CLI를 찾지 못했습니다");
+    let mut exec_err: Option<String> = None;
+    // PATH에 fnm bin이 들어가면서 절대경로 후보와 bare 후보가 같은 파일이 된다. 같은 CLI를 두 번 돌리지 않는다.
+    let mut seen: HashSet<String> = HashSet::new();
+
+    for bin in higgsfield_bin_candidates() {
+        let key = fs::canonicalize(&bin)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| bin.clone());
+        if !seen.insert(key) {
+            continue;
+        }
+
+        let mut command = Command::new(&bin);
+        command
+            .args(args)
+            .env("PATH", &path_env)
+            .env("HOME", home_dir().to_string_lossy().as_ref());
+
+        match output_with_timeout(&mut command, HIGGSFIELD_TIMEOUT) {
+            Ok(output) if output.status.success() => {
+                let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                return serde_json::from_str(&stdout)
+                    .map_err(|e| format!("higgsfield {} JSON 파싱 실패: {}", args.join(" "), e));
+            }
+            Ok(output) => {
+                if exec_err.is_none() {
+                    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                    exec_err = Some(if stderr.is_empty() {
+                        format!("higgsfield {} 실행 실패 (종료 코드 ≠ 0)", args.join(" "))
+                    } else {
+                        stderr
+                    });
+                }
+            }
+            // 타임아웃은 CLI가 실행은 된 것이다. 다른 후보로 바꿔도 같으니 거기서 끝낸다.
+            Err(RunFailure::TimedOut(message)) => return Err(message),
+            Err(RunFailure::Spawn(message)) => {
+                spawn_err = format!("{} 실행 실패: {}", bin, message);
+            }
+        }
+    }
+
+    Err(exec_err.unwrap_or(spawn_err))
+}
+
+/// 힉스필드 계정 잔액·플랜 조회 (`account status --json`).
+/// 응답: `{ credits, email, subscription_plan_type }`
+#[tauri::command]
+pub async fn fetch_higgsfield_account() -> serde_json::Value {
+    let checked_at = chrono::Utc::now().to_rfc3339();
+
+    // CLI spawn은 블로킹이다. async 런타임 워커를 잡아두지 않도록 blocking 풀에서 돌린다.
+    let result =
+        tauri::async_runtime::spawn_blocking(|| run_higgsfield(&["account", "status", "--json"]))
+            .await;
+
+    match result {
+        Ok(Ok(account)) => serde_json::json!({
+            "ok": true,
+            "checkedAt": checked_at,
+            "account": account,
+        }),
+        Ok(Err(error)) => serde_json::json!({
+            "ok": false,
+            "checkedAt": checked_at,
+            "error": error,
+        }),
+        Err(join_error) => serde_json::json!({
+            "ok": false,
+            "checkedAt": checked_at,
+            "error": format!("힉스필드 조회 작업이 중단됐습니다: {}", join_error),
+        }),
+    }
+}
+
+const HIGGSFIELD_PAGE_SIZE: usize = 100;
+
+/// 거래내역 한 페이지에서 items와 다음 cursor를 뽑는다.
+/// 다음 cursor가 `None`이면 더 받을 페이지가 없다는 뜻이다.
+/// 가득 차지 않은 페이지는 마지막 페이지이므로 cursor 값과 무관하게 종료한다(무한 루프 방지).
+fn parse_transaction_page(
+    page: &serde_json::Value,
+    page_size: usize,
+) -> (Vec<serde_json::Value>, Option<String>) {
+    let items = page
+        .get("items")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+
+    if items.len() < page_size {
+        return (items, None);
+    }
+
+    // cursor는 문자열("100")로 오지만 숫자로 올 가능성도 막아 둔다.
+    let next = match page.get("cursor") {
+        Some(serde_json::Value::String(s)) if !s.is_empty() => Some(s.clone()),
+        Some(serde_json::Value::Number(n)) => Some(n.to_string()),
+        _ => None,
+    };
+    (items, next)
+}
+
+/// 거래내역을 `max_pages`까지 이어 받는다. 반환값의 두 번째는 부분 실패 사유.
+fn collect_higgsfield_transactions(
+    max_pages: u32,
+) -> (Vec<serde_json::Value>, Option<String>) {
+    let mut items: Vec<serde_json::Value> = Vec::new();
+    let mut cursor: Option<String> = None;
+    let started = std::time::Instant::now();
+
+    for _ in 0..max_pages {
+        // 페이지마다 타임아웃이 걸리면 합이 너무 커진다. 전체 예산을 넘기면 받은 만큼으로 끝낸다.
+        if started.elapsed() >= HIGGSFIELD_COLLECT_BUDGET {
+            return (
+                items,
+                Some(format!(
+                    "거래내역 조회가 {}초를 넘겨 받은 만큼만 표시합니다",
+                    HIGGSFIELD_COLLECT_BUDGET.as_secs()
+                )),
+            );
+        }
+
+        let mut args: Vec<String> = vec![
+            "account".into(),
+            "transactions".into(),
+            "--size".into(),
+            HIGGSFIELD_PAGE_SIZE.to_string(),
+            "--json".into(),
+        ];
+        if let Some(c) = &cursor {
+            args.push("--cursor".into());
+            args.push(c.clone());
+        }
+        let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
+
+        match run_higgsfield(&arg_refs) {
+            Ok(page) => {
+                let (page_items, next) = parse_transaction_page(&page, HIGGSFIELD_PAGE_SIZE);
+                items.extend(page_items);
+                match next {
+                    Some(c) => cursor = Some(c),
+                    None => return (items, None),
+                }
+            }
+            // 일부라도 받았으면 그것으로 그린다. 첫 페이지부터 실패하면 호출부가 사유를 올린다.
+            Err(error) => return (items, Some(error)),
+        }
+    }
+
+    (items, None)
+}
+
+/// 힉스필드 크레딧 거래내역 조회. `--size` 상한이 100이라 `--cursor`로 이어 받는다.
+/// 구독 갱신(`grant` + "Subscription Credits") 간격을 재려면 최소 2주기가 필요해 기본 3페이지를 받는다.
+#[tauri::command]
+pub async fn fetch_higgsfield_transactions(pages: Option<u32>) -> serde_json::Value {
+    let max_pages = pages.unwrap_or(3).clamp(1, 10);
+    let checked_at = chrono::Utc::now().to_rfc3339();
+
+    let collected =
+        tauri::async_runtime::spawn_blocking(move || collect_higgsfield_transactions(max_pages))
+            .await;
+
+    let (items, partial_error) = match collected {
+        Ok(v) => v,
+        Err(join_error) => (
+            Vec::new(),
+            Some(format!("힉스필드 조회 작업이 중단됐습니다: {}", join_error)),
+        ),
+    };
+
+    if items.is_empty() {
+        if let Some(error) = partial_error {
+            return serde_json::json!({
+                "ok": false,
+                "checkedAt": checked_at,
+                "error": error,
+                "items": [],
+            });
+        }
+    }
+
+    serde_json::json!({
+        "ok": true,
+        "checkedAt": checked_at,
+        "items": items,
+        "partialError": partial_error,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    /// CLI는 `#!/usr/bin/env node` 스크립트다. PATH에 node가 없으면 exit 127로 죽는다.
+    /// 표준 4경로만 주던 버전이 실제로 그렇게 실패했다(2026-09-18).
+    #[test]
+    fn higgsfield_path_includes_fnm_bin_for_env_node() {
+        let path = higgsfield_path_env();
+        assert!(
+            path.contains(".local/share/fnm/aliases/default/bin"),
+            "fnm bin이 PATH에 없으면 env node가 해결되지 않는다: {}",
+            path
+        );
+        assert!(path.starts_with("/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"));
+    }
+
+    /// 실제 CLI를 통과하는 유일한 검증. 프론트 mock으로는 spawn 경로가 검증되지 않는다
+    /// (PATH에 node가 빠져 exit 127로 죽던 버그를 mock QA가 놓쳤다).
+    /// 로그인된 머신에서만 의미가 있어 기본 실행에서는 제외한다: `cargo test -- --ignored`
+    #[test]
+    #[ignore = "실제 higgsfield CLI와 로그인이 필요하다"]
+    fn higgsfield_cli_roundtrip_with_real_binary() {
+        let account = run_higgsfield(&["account", "status", "--json"])
+            .expect("CLI 호출이 성공해야 한다 (PATH에 node가 있는지 확인)");
+        assert!(
+            account.get("credits").and_then(|v| v.as_f64()).is_some(),
+            "credits 필드가 있어야 한다: {}",
+            account
+        );
+
+        let (items, partial) = collect_higgsfield_transactions(1);
+        assert!(partial.is_none(), "첫 페이지는 성공해야 한다: {:?}", partial);
+        assert!(!items.is_empty(), "거래내역이 비어 있으면 안 된다");
+        assert!(items[0].get("action").is_some());
+    }
+
+    /// GUI `.app`은 셸 PATH를 물려받지 않는다. `cargo test`는 셸에서 돌아 부모 PATH에 이미 fnm이
+    /// 들어 있으므로, 위 테스트만으로는 "부모 환경에 기대고 있었는지"를 가릴 수 없다.
+    /// 부모 PATH를 최소한으로 비운 상태에서 같은 경로가 도는지 확인한다.
+    #[test]
+    #[ignore = "실제 higgsfield CLI와 로그인이 필요하다"]
+    fn higgsfield_cli_runs_without_inheriting_shell_path() {
+        let path_env = higgsfield_path_env();
+        let bin = higgsfield_bin_candidates()
+            .into_iter()
+            .find(|b| std::path::Path::new(b).exists())
+            .expect("설치된 CLI 경로를 찾지 못했다");
+
+        let mut command = Command::new(&bin);
+        command
+            .env_clear()
+            .args(["account", "status", "--json"])
+            .env("PATH", &path_env)
+            .env("HOME", home_dir().to_string_lossy().as_ref());
+
+        let output = output_with_timeout(&mut command, HIGGSFIELD_TIMEOUT)
+            .map_err(|e| match e {
+                RunFailure::Spawn(m) | RunFailure::TimedOut(m) => m,
+            })
+            .expect("부모 PATH 없이도 spawn이 성공해야 한다");
+
+        assert!(
+            output.status.success(),
+            "GUI 환경(부모 PATH 없음)에서 실패: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
+    fn transaction_page_stops_when_page_is_not_full() {
+        // 가득 차지 않은 페이지는 마지막이다. cursor가 실려 와도 더 받지 않는다.
+        let page = json!({ "cursor": "100", "items": [ {"action": "spend"} ] });
+        let (items, next) = parse_transaction_page(&page, 100);
+        assert_eq!(items.len(), 1);
+        assert_eq!(next, None);
+    }
+
+    #[test]
+    fn transaction_page_continues_with_cursor_when_full() {
+        let items: Vec<serde_json::Value> = (0..3).map(|i| json!({ "n": i })).collect();
+        let page = json!({ "cursor": "3", "items": items });
+        let (parsed, next) = parse_transaction_page(&page, 3);
+        assert_eq!(parsed.len(), 3);
+        assert_eq!(next.as_deref(), Some("3"));
+    }
+
+    #[test]
+    fn transaction_page_accepts_numeric_cursor() {
+        let items: Vec<serde_json::Value> = (0..2).map(|i| json!({ "n": i })).collect();
+        let page = json!({ "cursor": 2, "items": items });
+        let (_, next) = parse_transaction_page(&page, 2);
+        assert_eq!(next.as_deref(), Some("2"));
+    }
+
+    #[test]
+    fn transaction_page_stops_when_cursor_missing_or_empty() {
+        let items: Vec<serde_json::Value> = (0..2).map(|i| json!({ "n": i })).collect();
+
+        let no_cursor = json!({ "items": items.clone() });
+        assert_eq!(parse_transaction_page(&no_cursor, 2).1, None);
+
+        let empty_cursor = json!({ "cursor": "", "items": items });
+        assert_eq!(parse_transaction_page(&empty_cursor, 2).1, None);
+    }
+
+    #[test]
+    fn transaction_page_tolerates_missing_items() {
+        let page = json!({ "cursor": "100" });
+        let (items, next) = parse_transaction_page(&page, 100);
+        assert!(items.is_empty());
+        assert_eq!(next, None);
+    }
 
     #[test]
     fn teamclaude_health_redacts_account_names_and_secrets() {
