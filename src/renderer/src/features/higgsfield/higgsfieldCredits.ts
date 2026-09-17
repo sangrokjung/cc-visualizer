@@ -71,25 +71,43 @@ export function subscriptionResets(items: HiggsfieldTransaction[]): CreditEvent[
     .sort((a, b) => b.at - a.at)
 }
 
-/// 정규 지급만 남긴다. 주기 중간에 들어오는 보정성 지급(금액이 다른 grant)을 주기 시작으로
-/// 오인하면 D-day와 사용량 창이 통째로 밀린다. 최빈 금액을 정규 지급액으로 보고, 동률이면 큰 쪽을 택한다.
+/// 정규 지급만 남긴다. 주기 중간에 들어오는 보정성 지급을 주기 시작으로 오인하면
+/// D-day와 사용량 창이 통째로 밀린다.
+///
+/// 판정 기준은 **금액이 아니라 간격**이다. 금액(최빈값)으로 거르면 요금제를 바꿨을 때
+/// 새 금액이 소수파가 되어 최신 갱신이 통째로 탈락한다(1500→3000 업그레이드 시 두 달 전 지급을
+/// 현재 주기로 잡고 D-day 부호까지 뒤집혔다). 보정 지급은 금액이 아니라 "너무 이르게 들어왔다"는
+/// 점에서 구별된다.
+///
+/// 임계는 관측된 최대 간격과 기본 주기 중 짧은 쪽의 절반이다. 장기 공백(결제 실패 등)이
+/// 임계를 부풀려 정규 지급까지 걸러내는 것을 기본 주기가 막아 준다.
+/// 간격이 임계보다 짧은 쌍에서는 금액이 큰 쪽(보정은 대개 소액)을 남기고, 동액이면 최신을 남긴다.
 export function regularGrants(grants: CreditEvent[]): CreditEvent[] {
   if (grants.length <= 1) return grants
 
-  const counts = new Map<number, number>()
-  for (const g of grants) counts.set(g.credits, (counts.get(g.credits) ?? 0) + 1)
+  const gaps: number[] = []
+  for (let i = 0; i < grants.length - 1; i += 1) {
+    gaps.push((grants[i].at - grants[i + 1].at) / DAY_MS)
+  }
+  const widest = gaps.length > 0 ? Math.max(...gaps) : DEFAULT_CYCLE_DAYS
+  const thresholdDays = Math.min(widest, DEFAULT_CYCLE_DAYS) / 2
 
-  let bestCredits = grants[0].credits
-  let bestCount = 0
-  for (const [credits, count] of counts) {
-    if (count > bestCount || (count === bestCount && credits > bestCredits)) {
-      bestCredits = credits
-      bestCount = count
+  // 최신순으로 훑으며, 직전에 남긴 지급과 너무 가까운 것은 보정으로 본다.
+  const kept: CreditEvent[] = [grants[0]]
+  for (let i = 1; i < grants.length; i += 1) {
+    const candidate = grants[i]
+    const last = kept[kept.length - 1]
+    const gapDays = (last.at - candidate.at) / DAY_MS
+
+    if (gapDays >= thresholdDays) {
+      kept.push(candidate)
+      continue
     }
+    // 둘 중 하나는 보정이다. 금액이 큰 쪽을 정규로 남긴다(동액이면 이미 남긴 최신을 유지).
+    if (candidate.credits > last.credits) kept[kept.length - 1] = candidate
   }
 
-  const regular = grants.filter((g) => g.credits === bestCredits)
-  return regular.length > 0 ? regular : grants
+  return kept
 }
 
 export interface CycleEstimate {
@@ -135,9 +153,10 @@ export function estimateCycle(items: HiggsfieldTransaction[], now: number): Cycl
 
   const intervals: number[] = []
   for (let i = 0; i < grants.length - 1; i += 1) {
-    const days = Math.round((grants[i].at - grants[i + 1].at) / DAY_MS)
-    // 같은 날 두 번 지급된 보정성 grant는 주기가 아니다.
-    if (days >= 1) intervals.push(days)
+    const rawDays = (grants[i].at - grants[i + 1].at) / DAY_MS
+    // 하루도 안 되는 간격은 주기가 아니다. 반올림 전 원시 값으로 판정한다
+    // (Math.round(0.5)가 1이 되어 12시간 간격이 가드를 통과하던 구멍).
+    if (rawDays >= 1) intervals.push(Math.round(rawDays))
   }
 
   const assumedCycle = intervals.length === 0
@@ -323,10 +342,12 @@ export function projectExpiry(args: {
   if (elapsed < MIN_PROJECTION_DAYS && spent <= 0) return NO_PROJECTION('too-early')
 
   // 경과 0.2일에 45를 썼다고 하루 225로 보면 곧 전액 소진처럼 보인다. 분모 하한을 하루로 둔다.
-  const perDay = spent / Math.max(elapsed, MIN_PROJECTION_DAYS)
+  // 환불이 사용을 넘겨 spent가 음수여도 "앞으로 크레딧이 늘어난다"고 보지 않는다(0으로 바닥).
+  const perDay = Math.max(spent / Math.max(elapsed, MIN_PROJECTION_DAYS), 0)
   const remainingDays = Math.max(cycleDays - elapsed, 0)
   const projectedSpend = perDay * remainingDays
-  const projectedExpiry = Math.max(balance - projectedSpend, 0)
+  // 소멸 예상은 잔액을 넘을 수 없다.
+  const projectedExpiry = Math.min(Math.max(balance - projectedSpend, 0), Math.max(balance, 0))
   const ratio = grantAmount && grantAmount > 0 ? clamp01(projectedExpiry / grantAmount) : null
 
   return {

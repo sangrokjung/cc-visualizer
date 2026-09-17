@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -1036,6 +1036,54 @@ fn higgsfield_path_env() -> String {
     )
 }
 
+/// CLI 한 번 호출에 허용하는 시간. 네트워크가 멈춰도 화면이 영원히 로딩에 갇히지 않게 한다.
+const HIGGSFIELD_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// CLI 실행이 실패한 방식. spawn 실패는 다음 후보를 시도할 이유가 되지만,
+/// 타임아웃은 CLI가 실행은 된 것이라 다른 후보로 바꿔도 같은 결과다.
+enum RunFailure {
+    Spawn(String),
+    TimedOut(String),
+}
+
+/// `Command::output()`에 시간 제한을 붙인 버전. 초과하면 자식을 죽이고 사유를 돌려준다.
+/// 응답이 수십 KB라 파이프 버퍼 안에 들어가므로 먼저 읽지 않아도 교착하지 않는다.
+fn output_with_timeout(
+    command: &mut Command,
+    timeout: std::time::Duration,
+) -> Result<std::process::Output, RunFailure> {
+    use std::process::Stdio;
+
+    let mut child = command
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| RunFailure::Spawn(e.to_string()))?;
+
+    let start = std::time::Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => {
+                return child
+                    .wait_with_output()
+                    .map_err(|e| RunFailure::Spawn(e.to_string()));
+            }
+            Ok(None) => {
+                if start.elapsed() >= timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(RunFailure::TimedOut(format!(
+                        "higgsfield CLI가 {}초 안에 응답하지 않아 중단했습니다",
+                        timeout.as_secs()
+                    )));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(e) => return Err(RunFailure::Spawn(e.to_string())),
+        }
+    }
+}
+
 /// 힉스필드 CLI를 호출하고 stdout JSON을 파싱한다.
 /// 종료 코드가 0이 아니어도 남은 후보를 계속 시도한다. 실패 원인이 그 후보의 실행 환경일 수 있기 때문이다
 /// (exit 127처럼). 화면에는 "실행은 됐는데 실패한" 첫 사유를 올려 복구 안내가 엉뚱해지지 않게 한다.
@@ -1043,14 +1091,24 @@ fn run_higgsfield(args: &[&str]) -> Result<serde_json::Value, String> {
     let path_env = higgsfield_path_env();
     let mut spawn_err = String::from("higgsfield CLI를 찾지 못했습니다");
     let mut exec_err: Option<String> = None;
+    // PATH에 fnm bin이 들어가면서 절대경로 후보와 bare 후보가 같은 파일이 된다. 같은 CLI를 두 번 돌리지 않는다.
+    let mut seen: HashSet<String> = HashSet::new();
 
     for bin in higgsfield_bin_candidates() {
-        match Command::new(&bin)
+        let key = fs::canonicalize(&bin)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| bin.clone());
+        if !seen.insert(key) {
+            continue;
+        }
+
+        let mut command = Command::new(&bin);
+        command
             .args(args)
             .env("PATH", &path_env)
-            .env("HOME", home_dir().to_string_lossy().as_ref())
-            .output()
-        {
+            .env("HOME", home_dir().to_string_lossy().as_ref());
+
+        match output_with_timeout(&mut command, HIGGSFIELD_TIMEOUT) {
             Ok(output) if output.status.success() => {
                 let stdout = String::from_utf8_lossy(&output.stdout).to_string();
                 return serde_json::from_str(&stdout)
@@ -1066,8 +1124,10 @@ fn run_higgsfield(args: &[&str]) -> Result<serde_json::Value, String> {
                     });
                 }
             }
-            Err(e) => {
-                spawn_err = format!("{} 실행 실패: {}", bin, e);
+            // 타임아웃은 CLI가 실행은 된 것이다. 다른 후보로 바꿔도 같으니 거기서 끝낸다.
+            Err(RunFailure::TimedOut(message)) => return Err(message),
+            Err(RunFailure::Spawn(message)) => {
+                spawn_err = format!("{} 실행 실패: {}", bin, message);
             }
         }
     }
@@ -1245,6 +1305,38 @@ mod tests {
         assert!(partial.is_none(), "첫 페이지는 성공해야 한다: {:?}", partial);
         assert!(!items.is_empty(), "거래내역이 비어 있으면 안 된다");
         assert!(items[0].get("action").is_some());
+    }
+
+    /// GUI `.app`은 셸 PATH를 물려받지 않는다. `cargo test`는 셸에서 돌아 부모 PATH에 이미 fnm이
+    /// 들어 있으므로, 위 테스트만으로는 "부모 환경에 기대고 있었는지"를 가릴 수 없다.
+    /// 부모 PATH를 최소한으로 비운 상태에서 같은 경로가 도는지 확인한다.
+    #[test]
+    #[ignore = "실제 higgsfield CLI와 로그인이 필요하다"]
+    fn higgsfield_cli_runs_without_inheriting_shell_path() {
+        let path_env = higgsfield_path_env();
+        let bin = higgsfield_bin_candidates()
+            .into_iter()
+            .find(|b| std::path::Path::new(b).exists())
+            .expect("설치된 CLI 경로를 찾지 못했다");
+
+        let mut command = Command::new(&bin);
+        command
+            .env_clear()
+            .args(["account", "status", "--json"])
+            .env("PATH", &path_env)
+            .env("HOME", home_dir().to_string_lossy().as_ref());
+
+        let output = output_with_timeout(&mut command, HIGGSFIELD_TIMEOUT)
+            .map_err(|e| match e {
+                RunFailure::Spawn(m) | RunFailure::TimedOut(m) => m,
+            })
+            .expect("부모 PATH 없이도 spawn이 성공해야 한다");
+
+        assert!(
+            output.status.success(),
+            "GUI 환경(부모 PATH 없음)에서 실패: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
 
     #[test]

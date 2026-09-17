@@ -79,6 +79,53 @@ describe('정규 지급 판별', () => {
     ])
     expect(regularGrants(one)).toHaveLength(1)
   })
+
+  it('요금제를 바꿔도 최신 갱신을 버리지 않는다', () => {
+    // 1500 → 3000 업그레이드. 금액 최빈값으로 거르면 새 금액이 소수파가 되어
+    // 두 달 전 지급이 현재 주기로 잡히고 D-day 부호까지 뒤집힌다.
+    const items: HiggsfieldTransaction[] = [
+      { action: 'grant', created_at: '2026-09-17T08:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
+      { action: 'grant', created_at: '2026-08-18T08:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
+      { action: 'grant', created_at: '2026-07-19T08:00:00Z', credits: 1500, display_name: 'Subscription Credits' },
+      { action: 'grant', created_at: '2026-06-19T08:00:00Z', credits: 1500, display_name: 'Subscription Credits' },
+      { action: 'grant', created_at: '2026-05-20T08:00:00Z', credits: 1500, display_name: 'Subscription Credits' },
+    ]
+
+    expect(regularGrants(subscriptionGrants(items))).toHaveLength(5)
+
+    const cycle = estimateCycle(items, new Date('2026-09-18T00:00:00Z').getTime())
+    expect(dayKey(cycle.lastGrantAt!)).toBe('2026-09-17')
+    expect(cycle.grantAmount).toBe(3000)
+    expect(cycle.cycleDays).toBe(30)
+    // 어제 갱신됐는데 연체로 표시되면 안 된다.
+    expect(cycle.daysRemaining).toBeGreaterThan(0)
+  })
+
+  it('업그레이드 직후(새 금액 1건)에도 최신 지급이 주기 시작이다', () => {
+    const items: HiggsfieldTransaction[] = [
+      { action: 'grant', created_at: '2026-09-17T08:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
+      { action: 'grant', created_at: '2026-08-18T08:00:00Z', credits: 1500, display_name: 'Subscription Credits' },
+      { action: 'grant', created_at: '2026-07-19T08:00:00Z', credits: 1500, display_name: 'Subscription Credits' },
+    ]
+    const cycle = estimateCycle(items, new Date('2026-09-18T00:00:00Z').getTime())
+    expect(dayKey(cycle.lastGrantAt!)).toBe('2026-09-17')
+    expect(cycle.grantAmount).toBe(3000)
+  })
+
+  it('같은 날 두 번 지급돼도 주기가 반토막 나지 않는다', () => {
+    // 12시간 간격이면 Math.round(0.5)=1이 되어 기존 `days >= 1` 가드를 통과했다.
+    const items: HiggsfieldTransaction[] = [
+      { action: 'grant', created_at: '2026-09-17T20:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
+      { action: 'grant', created_at: '2026-09-17T08:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
+      { action: 'grant', created_at: '2026-08-18T08:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
+    ]
+    const cycle = estimateCycle(items, new Date('2026-09-18T00:00:00Z').getTime())
+
+    expect(regularGrants(subscriptionGrants(items))).toHaveLength(2)
+    // 16일(중앙값 오염)로 반토막 나던 자리.
+    expect(cycle.cycleDays).toBeGreaterThanOrEqual(30)
+    expect(cycle.cycleDays).toBeLessThanOrEqual(31)
+  })
 })
 
 describe('주기·재구독일 추정', () => {
@@ -319,6 +366,23 @@ describe('소멸 예측', () => {
     expect(projection.unavailableReason).toBe('too-early')
     expect(projection.projectedExpiry).toBeNull()
     expect(projection.perDay).toBeNull()
+  })
+
+  it('환불이 사용을 넘겨도 소멸 예상이 잔액을 넘지 않는다', () => {
+    // 갱신 직전 생성분이 갱신 직후 환불되면 주기 사용량이 음수가 될 수 있다.
+    // 그대로 두면 "잔여 3,000 / 소멸 예상 3,250"이라는 모순이 화면에 뜬다.
+    const projection = projectExpiry({
+      balance: 3000,
+      spent: -50,
+      elapsedDays: 5,
+      cycleDays: 30,
+      grantAmount: 3000,
+    })
+
+    expect(projection.perDay).toBe(0)
+    expect(projection.projectedSpend).toBe(0)
+    expect(projection.projectedExpiry).toBe(3000)
+    expect(projection.projectedExpiry).toBeLessThanOrEqual(3000)
   })
 
   it('갱신 기록이 없으면 잔액 전액을 소멸로 단정하지 않는다', () => {

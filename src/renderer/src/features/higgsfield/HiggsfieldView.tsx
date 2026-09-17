@@ -395,7 +395,10 @@ export default function HiggsfieldView() {
                 <div className="flex justify-between mt-1 text-[11px]" style={{ color: C.textDim }}>
                   <span>시작 {formatKstDate(cycle.lastGrantAt)}</span>
                   <span>
-                    {cycle.elapsedDays != null ? `${Math.floor(cycle.elapsedDays)}일 경과` : ''} / {cycle.cycleDays}일
+                    {/* 지급 시각이 미래면 "-8일 경과" 같은 말이 안 되는 숫자가 나온다. */}
+                    {cycle.elapsedDays != null && cycle.elapsedDays < 0
+                      ? '지급 시각이 미래입니다 · 시계 확인 필요'
+                      : `${cycle.elapsedDays != null ? Math.floor(cycle.elapsedDays) : 0}일 경과 / ${cycle.cycleDays}일`}
                   </span>
                 </div>
               </div>
