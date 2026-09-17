@@ -28,11 +28,12 @@ cc-visualizer 앱에 힉스필드(Higgsfield AI) 크레딧 사용량 뷰를 추�
 | 명령 | 응답 |
 |---|---|
 | `higgsfield account status --json` | `{credits, email, subscription_plan_type}` |
-| `higgsfield account transactions --size <=100 [--after <cursor>] --json` | `{cursor, items:[{action, created_at, credits, display_name}]}` |
+| `higgsfield account transactions --size <=100 [--cursor <cursor>] --json` | `{cursor, items:[{action, created_at, credits, display_name}]}` |
 
-- `action`: `spend` · `grant` · `deduct`
+- `action` (실측): `spend`(음수) · `grant`(양수, 구독 지급) · `deduct`(음수, 갱신 시 회수) · `refund`(양수, 생성 실패 환불)
 - **재구독일 필드는 API에 없다.** 갱신 시각은 `grant` + `display_name="Subscription Credits"` 이벤트로만 알 수 있다.
-- `--size` 상한 100 (초과 시 `query.size: Input should be less than or equal to 100`). 주기 2개를 덮으려면 `--after`로 2페이지 필요.
+- `--size` 상한 100 (초과 시 `query.size: Input should be less than or equal to 100`). 주기 2개를 덮으려면 `--cursor`로 2페이지 필요(플래그는 `--after`가 아니다).
+- **CLI는 `#!/usr/bin/env node` 스크립트다.** spawn할 때 PATH에 node가 없으면 `env: node: No such file or directory`(exit 127)로 죽는다. Tauri .app은 shell PATH를 상속하지 않으므로 fnm bin 디렉토리를 PATH에 덧붙인다(`run_tsx_script` 선례).
 
 ## 재구독일 산출 (추정임을 화면에 명시)
 

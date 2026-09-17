@@ -122,6 +122,39 @@ describe('HiggsfieldView', () => {
     ).toBeTruthy()
   })
 
+  it('지급 이력이 없으면 "소멸 예상"에 잔액을 적지 않는다', async () => {
+    mockFetchTransactions.mockResolvedValue({
+      ok: true,
+      checkedAt: '2026-09-17T13:00:00.000Z',
+      items: [
+        { action: 'spend', created_at: '2026-09-17T11:45:38.031744Z', credits: -45, display_name: 'Seedance 2.0' },
+      ],
+    } satisfies HiggsfieldTransactions)
+
+    render(<HiggsfieldView />)
+
+    expect(await screen.findByText('소멸 예상')).toBeTruthy()
+    // 2,955는 "잔여 크레딧" 칸에만 있어야 한다.
+    // 근거가 없는데 소멸 예상까지 잔액을 적으면 "전액이 사라진다"고 단정하는 셈이다.
+    expect(screen.getAllByText('2,955')).toHaveLength(1)
+    expect(screen.getAllByText(/갱신 이력이 없어 예측할 수 없습니다/).length).toBeGreaterThan(0)
+  })
+
+  it('처음 보는 거래 유형이 있으면 정확도가 떨어진다고 알린다', async () => {
+    mockFetchTransactions.mockResolvedValue({
+      ok: true,
+      checkedAt: '2026-09-17T13:00:00.000Z',
+      items: [
+        { action: 'grant', created_at: '2026-09-17T08:00:24.719803Z', credits: 3000, display_name: 'Subscription Credits' },
+        { action: 'expire', created_at: '2026-09-17T10:00:00Z', credits: -500, display_name: 'Promo Credits' },
+      ],
+    } satisfies HiggsfieldTransactions)
+
+    render(<HiggsfieldView />)
+
+    expect(await screen.findByText(/처음 보는 거래 유형이 있습니다\(expire\)/)).toBeTruthy()
+  })
+
   it('갱신 이력이 1건뿐이면 주기를 가정했다고 밝힌다', async () => {
     mockFetchTransactions.mockResolvedValue({
       ok: true,

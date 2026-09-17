@@ -91,7 +91,8 @@ agents(207), skills(191), hooks(100), rules(74), pipelines(18), mcpServers(46)
 - **API는 재구독일을 주지 않는다.** 갱신 시각은 `grant` + `display_name="Subscription Credits"` 이벤트뿐이고, 주기는 인접 grant 간격의 중앙값으로 역산한다(실측 30일 고정, 캘린더 월 아님). 화면은 이 값이 추정이라고 명시한다. 근거 문구를 지우지 말 것.
 - 갱신 직전 `deduct` + `"Subscription Credits Reset"`으로 **미사용분이 소멸**한다(이월 없음). 잔액만 그리는 화면은 이 손실을 놓친다.
 - 계산은 전부 `higgsfieldCredits.ts`(순수 함수, 시간 주입)에 있고 뷰는 그리기만 한다. 로직 변경은 `__tests__/higgsfield/`부터.
-- Tauri .app은 shell PATH를 상속하지 않는다. 바이너리는 fnm default symlink → homebrew → PATH 순으로 찾는다(`run_ccusage`와 같은 이유).
+- **CLI는 `#!/usr/bin/env node` 스크립트다 — 바이너리 경로만 찾아선 안 되고 PATH에 node가 있어야 한다.** Tauri .app은 shell PATH를 상속하지 않으므로 `higgsfield_path_env()`가 fnm bin 디렉토리를 PATH에 덧붙인다(`run_tsx_script:111` 선례). 표준 4경로만 주면 `env: node: No such file or directory`(exit 127)로 죽는다(2026-09-18 적대 리뷰에서 실증).
+- **프론트 mock QA는 이 spawn 경로를 검증하지 않는다.** 실제 CLI를 통과하는 회귀 테스트는 `cargo test -- --ignored`의 `higgsfield_cli_roundtrip_with_real_binary` 하나뿐이니, CLI 호출부를 건드리면 그걸 돌린다.
 
 ## Git 워크플로우
 

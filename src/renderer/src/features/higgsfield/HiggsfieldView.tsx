@@ -1,7 +1,8 @@
 // 힉스필드(Higgsfield AI) 크레딧 뷰.
-// 잔액만 보여주면 정작 중요한 사실을 놓친다 — 갱신 때 미사용분은 이월되지 않고 사라진다.
+// 잔액만 보여주면 정작 중요한 사실을 놓친다. 갱신 때 미사용분은 이월되지 않고 사라진다.
 // 그래서 이 화면의 중심은 "언제 리셋되고(D-day), 그때 얼마가 사라질 것인가"다.
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+// 근거가 부족하면 숫자를 지어내지 않고 그 사실을 쓴다.
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   Bar,
   BarChart,
@@ -21,14 +22,15 @@ import {
   type HiggsfieldTransactions,
 } from '../../lib/types'
 import {
+  DISPLAY_TIME_ZONE,
   estimateCycle,
   formatCredits,
   formatDday,
-  projectExpiry,
   netUsageSince,
-  subscriptionGrants,
+  projectExpiry,
   subscriptionResets,
   totalSpend,
+  unknownUsageActions,
   usageByDay,
   usageByModel,
 } from './higgsfieldCredits'
@@ -46,7 +48,6 @@ const C = {
   warning: '#D1980B',
   error: '#D33D17',
   blue: '#2D72D2',
-  violet: '#7961DB',
   teal: '#00A396',
 }
 
@@ -55,9 +56,18 @@ const MODEL_PALETTE = ['#2D72D2', '#7961DB', '#00A396', '#29A634', '#D1980B', '#
 /// 자동 새로고침 5분. 크레딧은 생성할 때만 움직여서 더 촘촘히 볼 이유가 없다.
 const AUTO_REFRESH_MS = 5 * 60 * 1000
 
+/// 거래 표에 그릴 최대 행 수.
+const TX_ROWS = 40
+
+/// 인증이 필요한 실패인지. 아무 실패에나 "로그인하세요"를 붙이면 오진단이 된다.
+function looksLikeAuthFailure(message: string): boolean {
+  return /unauthor|not logged in|login|auth|token|credential|401|403/i.test(message)
+}
+
 function formatKstDateTime(ms: number | null): string {
   if (ms == null || Number.isNaN(ms)) return '-'
   return new Date(ms).toLocaleString('ko-KR', {
+    timeZone: DISPLAY_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -70,6 +80,7 @@ function formatKstDateTime(ms: number | null): string {
 function formatKstDate(ms: number | null): string {
   if (ms == null || Number.isNaN(ms)) return '-'
   return new Date(ms).toLocaleDateString('ko-KR', {
+    timeZone: DISPLAY_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -131,12 +142,14 @@ function ProgressBar({ ratio, color }: { ratio: number; color: string }) {
   )
 }
 
-function actionStyle(action: string): { label: string; color: string } {
+function actionStyle(action: string, credits: number): { label: string; color: string } {
   if (action === 'grant') return { label: '지급', color: C.ok }
   if (action === 'deduct') return { label: '소멸', color: C.error }
   // 생성이 실패하면 크레딧이 되돌아온다. 사용과 같은 칸에 두면 읽는 사람이 오해한다.
   if (action === 'refund') return { label: '환불', color: C.teal }
-  return { label: '사용', color: C.textSub }
+  if (action === 'spend') return { label: '사용', color: C.textSub }
+  // 모르는 액션은 이름을 지어내지 않고 부호로만 말한다.
+  return { label: credits >= 0 ? `${action} (적립)` : `${action} (차감)`, color: C.warning }
 }
 
 export default function HiggsfieldView() {
@@ -146,14 +159,19 @@ export default function HiggsfieldView() {
   const [loading, setLoading] = useState(true)
   // 남은 일수를 시계와 함께 움직이게 한다(자정을 넘기면 D-day가 바뀐다).
   const [now, setNow] = useState(() => Date.now())
+  // 자동 갱신과 수동 새로고침이 겹칠 때 늦게 끝난 옛 응답이 최신 상태를 덮어쓰지 않게 한다.
+  const requestSeq = useRef(0)
 
   const load = useCallback(async () => {
+    const seq = requestSeq.current + 1
+    requestSeq.current = seq
     setLoading(true)
-    setSchemaError(null)
+
     const [accRaw, txRaw] = await Promise.all([
       api.fetchHiggsfieldAccount(),
       api.fetchHiggsfieldTransactions(3),
     ])
+    if (requestSeq.current !== seq) return // 더 새로운 요청이 진행 중이다.
 
     // CLI 응답은 외부 입력이다. 형식이 바뀌면 화면을 반쯤 그리는 대신 그 사실을 말한다.
     const acc = HiggsfieldAccountSchema.safeParse(accRaw)
@@ -161,6 +179,7 @@ export default function HiggsfieldView() {
     if (acc.success && tx.success) {
       setAccount(acc.data)
       setTransactions(tx.data)
+      setSchemaError(null)
     } else {
       setAccount(null)
       setTransactions(null)
@@ -188,18 +207,18 @@ export default function HiggsfieldView() {
   const items: HiggsfieldTransaction[] = useMemo(() => transactions?.items ?? [], [transactions])
 
   const cycle = useMemo(() => estimateCycle(items, now), [items, now])
-  const grants = useMemo(() => subscriptionGrants(items), [items])
   const resets = useMemo(() => subscriptionResets(items), [items])
-  const cycleSpend = useMemo(() => netUsageSince(items, cycle.lastGrantAt), [items, cycle.lastGrantAt])
-  const spentThisCycle = useMemo(() => totalSpend(cycleSpend), [cycleSpend])
-  const byModel = useMemo(() => usageByModel(cycleSpend), [cycleSpend])
+  const cycleUsage = useMemo(() => netUsageSince(items, cycle.lastGrantAt), [items, cycle.lastGrantAt])
+  const spentThisCycle = useMemo(() => totalSpend(cycleUsage), [cycleUsage])
+  const unknownActions = useMemo(() => unknownUsageActions(cycleUsage), [cycleUsage])
+  const byModel = useMemo(() => usageByModel(cycleUsage), [cycleUsage])
   const byDay = useMemo(
-    () => usageByDay(cycleSpend, cycle.lastGrantAt, now),
-    [cycleSpend, cycle.lastGrantAt, now]
+    () => usageByDay(cycleUsage, cycle.lastGrantAt, now),
+    [cycleUsage, cycle.lastGrantAt, now]
   )
 
   const balance = account?.account?.credits ?? 0
-  const grantAmount = grants[0]?.credits ?? null
+  const grantAmount = cycle.grantAmount
 
   const projection = useMemo(
     () =>
@@ -213,10 +232,17 @@ export default function HiggsfieldView() {
     [balance, spentThisCycle, cycle.elapsedDays, cycle.cycleDays, grantAmount]
   )
 
+  const projectionNote =
+    projection.unavailableReason === 'no-grant-history'
+      ? '갱신 이력이 없어 예측할 수 없습니다'
+      : projection.unavailableReason === 'too-early'
+        ? '주기가 시작된 지 얼마 안 돼 측정 중입니다'
+        : null
+
   const lastReset = resets[0] ?? null
   const accountError = account && !account.ok ? account.error : null
   const txError = transactions && !transactions.ok ? transactions.error : null
-  const failure = schemaError ?? accountError ?? txError
+  const failure = schemaError ?? accountError ?? txError ?? null
 
   const ddayColor =
     cycle.daysRemaining == null
@@ -269,8 +295,16 @@ export default function HiggsfieldView() {
             {failure}
           </p>
           <p className="text-xs mt-2" style={{ color: C.textDim }}>
-            터미널에서 <code style={{ color: C.text }}>higgsfield auth login</code> 으로 로그인한 뒤 새로고침하세요.
-            CLI가 없으면 <code style={{ color: C.text }}>npm i -g @higgsfield/cli</code> 로 설치합니다.
+            {looksLikeAuthFailure(failure) ? (
+              <>
+                터미널에서 <code style={{ color: C.text }}>higgsfield auth login</code> 으로 로그인한 뒤 새로고침하세요.
+              </>
+            ) : (
+              <>
+                CLI가 설치돼 있는지 확인하세요. 설치는 <code style={{ color: C.text }}>npm i -g @higgsfield/cli</code>,
+                로그인 상태는 <code style={{ color: C.text }}>higgsfield account status</code> 로 확인합니다.
+              </>
+            )}
           </p>
         </div>
       ) : null}
@@ -281,7 +315,13 @@ export default function HiggsfieldView() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-4 gap-3">
+      {unknownActions.length > 0 ? (
+        <div className="rounded-lg px-3 py-2 text-[11px]" style={{ backgroundColor: C.card, border: `1px solid ${C.warning}`, color: C.textSub }}>
+          처음 보는 거래 유형이 있습니다({unknownActions.join(', ')}). 부호대로 집계했지만 사용량과 소멸 예측의 정확도가 떨어질 수 있습니다.
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
         <StatCard
           label="잔여 크레딧"
           value={formatCredits(balance)}
@@ -291,34 +331,43 @@ export default function HiggsfieldView() {
         <StatCard
           label="다음 리셋까지"
           value={formatDday(cycle.daysRemaining)}
-          sub={formatKstDate(cycle.nextRenewalAt)}
+          sub={cycle.nextRenewalAt ? formatKstDate(cycle.nextRenewalAt) : '갱신 이력 없음'}
           color={ddayColor}
         />
         <StatCard
           label="이번 주기 사용"
           value={formatCredits(spentThisCycle)}
-          sub={`하루 평균 ${formatCredits(projection.perDay)}`}
+          sub={projection.perDay != null ? `하루 평균 ${formatCredits(projection.perDay)}` : '하루 평균 측정 중'}
           color={C.teal}
         />
         <StatCard
           label="소멸 예상"
           value={formatCredits(projection.projectedExpiry)}
           sub={
-            projection.projectedExpiryRatio != null
+            projectionNote ??
+            (projection.projectedExpiryRatio != null
               ? `지급분의 ${Math.round(projection.projectedExpiryRatio * 100)}%`
-              : '현재 페이스 기준'
+              : '현재 페이스 기준')
           }
-          color={projection.projectedExpiry > 0 ? C.warning : C.ok}
+          color={
+            projection.projectedExpiry == null
+              ? C.textWeak
+              : projection.projectedExpiry > 0
+                ? C.warning
+                : C.ok
+          }
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Section
           title="재구독 (구독 갱신)"
           note={
-            cycle.assumedCycle
-              ? `주기 미실측 · 기본 ${cycle.cycleDays}일 가정`
-              : `${cycle.cycleDays}일 주기 · 갱신 ${grants.length}건 실측`
+            cycle.lastGrantAt == null
+              ? '갱신 이력 없음'
+              : cycle.assumedCycle
+                ? `주기 미실측 · 기본 ${cycle.cycleDays}일 가정`
+                : `${cycle.cycleDays}일 주기 · 갱신 ${cycle.grantCount}건 실측`
           }
         >
           {cycle.lastGrantAt == null ? (
@@ -353,8 +402,8 @@ export default function HiggsfieldView() {
 
               <p className="text-[11px] leading-relaxed" style={{ color: C.textDim }}>
                 힉스필드는 갱신일을 API로 주지 않습니다. 위 날짜는 구독 지급(grant) 이력의 간격으로 계산한 추정입니다.
-                {grants.length >= 2
-                  ? ` 최근 지급 ${formatKstDate(grants[0].at)}, 그 전 ${formatKstDate(grants[1].at)}.`
+                {cycle.intervalSamples > 0
+                  ? ` 지급 ${cycle.grantCount}건에서 잰 간격 ${cycle.intervalSamples}개의 중앙값을 주기로 썼습니다.`
                   : ' 지급 기록이 1건뿐이라 기본 주기를 가정했습니다.'}
               </p>
             </div>
@@ -368,9 +417,24 @@ export default function HiggsfieldView() {
                 <p className="text-[11px]" style={{ color: C.textWeak }}>
                   이 페이스면 리셋 때 사라질 양
                 </p>
-                <p className="text-xl font-bold mt-0.5" style={{ color: projection.projectedExpiry > 0 ? C.warning : C.ok }}>
+                <p
+                  className="text-xl font-bold mt-0.5"
+                  style={{
+                    color:
+                      projection.projectedExpiry == null
+                        ? C.textWeak
+                        : projection.projectedExpiry > 0
+                          ? C.warning
+                          : C.ok,
+                  }}
+                >
                   {formatCredits(projection.projectedExpiry)}
                 </p>
+                {projectionNote ? (
+                  <p className="text-[11px] mt-1" style={{ color: C.textDim }}>
+                    {projectionNote}
+                  </p>
+                ) : null}
               </div>
               <div className="text-right">
                 <p className="text-[11px]" style={{ color: C.textWeak }}>
@@ -382,19 +446,16 @@ export default function HiggsfieldView() {
               </div>
             </div>
 
-            {grantAmount ? (
+            {projection.projectedExpiryRatio != null ? (
               <ProgressBar
-                ratio={projection.projectedExpiryRatio ?? 0}
-                color={projection.projectedExpiry > 0 ? C.warning : C.ok}
+                ratio={projection.projectedExpiryRatio}
+                color={projection.projectedExpiry && projection.projectedExpiry > 0 ? C.warning : C.ok}
               />
             ) : null}
 
             {lastReset ? (
               <p className="text-[11px] leading-relaxed" style={{ color: C.textDim }}>
                 직전 갱신({formatKstDate(lastReset.at)})에는 {formatCredits(Math.abs(lastReset.credits))} 크레딧이 실제로 소멸했습니다.
-                {grants.length >= 2 && grants[1].credits > 0
-                  ? ` 그 주기 지급분 ${formatCredits(grants[1].credits)} 중 ${Math.round((Math.abs(lastReset.credits) / grants[1].credits) * 100)}%입니다.`
-                  : ''}
               </p>
             ) : (
               <p className="text-[11px]" style={{ color: C.textDim }}>
@@ -424,7 +485,7 @@ export default function HiggsfieldView() {
                 />
                 <Bar dataKey="credits" radius={[3, 3, 0, 0]}>
                   {byDay.map((row) => (
-                    <Cell key={row.date} fill={row.credits > 0 ? C.blue : C.cardSub} />
+                    <Cell key={row.key} fill={row.credits > 0 ? C.blue : C.cardSub} />
                   ))}
                 </Bar>
               </BarChart>
@@ -433,7 +494,7 @@ export default function HiggsfieldView() {
         )}
       </Section>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Section title="모델별 사용" note="현재 주기">
           {byModel.length === 0 ? (
             <p className="text-xs" style={{ color: C.textWeak }}>
@@ -460,7 +521,10 @@ export default function HiggsfieldView() {
           )}
         </Section>
 
-        <Section title="최근 거래" note={`${items.length}건 조회`}>
+        <Section
+          title="최근 거래"
+          note={items.length > TX_ROWS ? `${items.length}건 중 ${TX_ROWS}건 표시` : `${items.length}건`}
+        >
           {items.length === 0 ? (
             <p className="text-xs" style={{ color: C.textWeak }}>
               거래내역이 없습니다.
@@ -469,8 +533,8 @@ export default function HiggsfieldView() {
             <div className="overflow-y-auto" style={{ maxHeight: 260 }}>
               <table className="w-full text-xs">
                 <tbody>
-                  {items.slice(0, 40).map((item, index) => {
-                    const style = actionStyle(item.action)
+                  {items.slice(0, TX_ROWS).map((item, index) => {
+                    const style = actionStyle(item.action, item.credits)
                     return (
                       <tr key={`${item.created_at}-${index}`} style={{ borderBottom: `1px solid ${C.cardSub}` }}>
                         <td className="py-1.5 pr-2 whitespace-nowrap" style={{ color: C.textDim }}>

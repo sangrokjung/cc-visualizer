@@ -2,14 +2,18 @@ import { describe, it, expect } from 'vitest'
 import type { HiggsfieldTransaction } from '../../src/renderer/src/lib/types'
 import {
   DEFAULT_CYCLE_DAYS,
+  calendarDayDiff,
+  dayKey,
   estimateCycle,
   formatCredits,
   formatDday,
-  projectExpiry,
   netUsageSince,
+  projectExpiry,
+  regularGrants,
   subscriptionGrants,
   subscriptionResets,
   totalSpend,
+  unknownUsageActions,
   usageByDay,
   usageByModel,
 } from '../../src/renderer/src/features/higgsfield/higgsfieldCredits'
@@ -37,10 +41,43 @@ describe('구독 이벤트 추출', () => {
     expect(grants[0].at).toBeGreaterThan(grants[1].at)
   })
 
-  it('소멸(deduct) 이벤트를 따로 고른다', () => {
+  it('소멸(deduct)은 "Subscription Credits Reset" 정확히 일치할 때만 센다', () => {
     const resets = subscriptionResets(REAL_ITEMS)
     expect(resets).toHaveLength(2)
     expect(resets[0].credits).toBe(-2395.1)
+
+    // 라벨이 다른 deduct는 구독 소멸이 아니다.
+    const other: HiggsfieldTransaction[] = [
+      { action: 'deduct', created_at: '2026-09-17T08:00:00Z', credits: -10, display_name: 'Subscription Credits Correction' },
+    ]
+    expect(subscriptionResets(other)).toHaveLength(0)
+  })
+})
+
+describe('정규 지급 판별', () => {
+  it('주기 중간의 보정성 지급을 주기 시작으로 삼지 않는다', () => {
+    const items: HiggsfieldTransaction[] = [
+      // 9/22에 들어온 200크레딧 보정 지급
+      { action: 'grant', created_at: '2026-09-22T05:00:00Z', credits: 200, display_name: 'Subscription Credits' },
+      { action: 'grant', created_at: '2026-09-17T08:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
+      { action: 'grant', created_at: '2026-08-18T08:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
+    ]
+    const regular = regularGrants(subscriptionGrants(items))
+    expect(regular).toHaveLength(2)
+    expect(regular.every((g) => g.credits === 3000)).toBe(true)
+
+    // 보정 지급이 있어도 주기 시작은 9/17이어야 한다.
+    const cycle = estimateCycle(items, new Date('2026-09-23T00:00:00Z').getTime())
+    expect(cycle.grantAmount).toBe(3000)
+    expect(dayKey(cycle.lastGrantAt!)).toBe('2026-09-17')
+    expect(cycle.cycleDays).toBe(30)
+  })
+
+  it('지급이 1건뿐이면 그대로 쓴다', () => {
+    const one = subscriptionGrants([
+      { action: 'grant', created_at: '2026-09-17T08:00:00Z', credits: 500, display_name: 'Subscription Credits' },
+    ])
+    expect(regularGrants(one)).toHaveLength(1)
   })
 })
 
@@ -51,6 +88,8 @@ describe('주기·재구독일 추정', () => {
     expect(cycle.cycleDays).toBe(30)
     expect(cycle.assumedCycle).toBe(false)
     expect(cycle.intervalSamples).toBe(1)
+    expect(cycle.grantCount).toBe(2)
+    expect(cycle.grantAmount).toBe(3000)
     // 2026-09-17T08:00Z + 30일
     expect(new Date(cycle.nextRenewalAt!).toISOString()).toBe('2026-10-17T08:00:24.719Z')
     expect(cycle.daysRemaining).toBe(30)
@@ -74,6 +113,7 @@ describe('주기·재구독일 추정', () => {
     )
 
     expect(cycle.lastGrantAt).toBeNull()
+    expect(cycle.grantAmount).toBeNull()
     expect(cycle.nextRenewalAt).toBeNull()
     expect(cycle.daysRemaining).toBeNull()
     expect(formatDday(cycle.daysRemaining)).toBe('-')
@@ -109,8 +149,23 @@ describe('주기·재구독일 추정', () => {
   })
 })
 
+describe('날짜 기준 (KST 고정)', () => {
+  it('머신 시간대와 무관하게 한국 날짜로 판정한다', () => {
+    // 2026-09-17T16:00Z = KST 9/18 01:00 (UTC로는 아직 9/17)
+    expect(dayKey(new Date('2026-09-17T16:00:00Z').getTime())).toBe('2026-09-18')
+    expect(dayKey(new Date('2026-09-17T14:00:00Z').getTime())).toBe('2026-09-17')
+  })
+
+  it('달력 날짜 차이를 센다', () => {
+    const a = new Date('2026-09-17T13:00:00Z').getTime()
+    const b = new Date('2026-10-17T08:00:00Z').getTime()
+    expect(calendarDayDiff(a, b)).toBe(30)
+    expect(calendarDayDiff(b, a)).toBe(-30)
+  })
+})
+
 describe('현재 주기 사용량', () => {
-  it('마지막 갱신 이후의 spend만 센다 (지급·소멸은 사용이 아니다)', () => {
+  it('마지막 갱신 이후의 사용만 센다 (지급·소멸은 사용이 아니다)', () => {
     const cycle = estimateCycle(REAL_ITEMS, NOW)
     const events = netUsageSince(REAL_ITEMS, cycle.lastGrantAt)
 
@@ -135,23 +190,30 @@ describe('현재 주기 사용량', () => {
     const from = new Date('2026-09-06T00:00:00.000Z').getTime()
     const rows = usageByDay(netUsageSince(REAL_ITEMS, from), from, NOW)
 
-    // 시작일부터 오늘까지 하루도 빠지지 않는다.
     expect(rows.length).toBeGreaterThan(3)
     expect(rows.some((r) => r.credits === 0)).toBe(true)
     expect(rows[rows.length - 1].credits).toBe(45)
     expect(rows.reduce((sum, r) => sum + r.credits, 0)).toBeCloseTo(135.2, 5)
   })
 
-  it('사용 기록이 3일 연속이면 빈 날 없이 그대로 3일이다', () => {
-    const from = new Date('2026-09-15T00:00:00.000Z').getTime()
-    const rows = usageByDay(netUsageSince(REAL_ITEMS, from), from, NOW)
+  it('일별 키는 연도를 포함해 해를 넘겨도 합쳐지지 않는다', () => {
+    const items: HiggsfieldTransaction[] = [
+      { action: 'spend', created_at: '2026-09-17T02:00:00Z', credits: -10, display_name: 'A' },
+      { action: 'spend', created_at: '2025-09-17T02:00:00Z', credits: -20, display_name: 'A' },
+    ]
+    const rows = usageByDay(netUsageSince(items, null), null, NOW)
+    const sameDayKeys = rows.filter((r) => r.date === '09/17')
 
-    expect(rows).toHaveLength(3)
-    expect(rows.every((r) => r.credits > 0)).toBe(true)
+    // 2025-09-17은 구간 상한(120일) 밖이라 잘리고, 2026-09-17 하나만 남는다.
+    expect(sameDayKeys).toHaveLength(1)
+    expect(sameDayKeys[0].key).toBe('2026-09-17')
+    expect(sameDayKeys[0].credits).toBe(10)
+    // 창 길이가 폭주하지 않는다.
+    expect(rows.length).toBeLessThanOrEqual(121)
   })
 })
 
-describe('환불(refund) 반영', () => {
+describe('환불·미지 액션 반영', () => {
   // 실측: 생성 실패 시 `refund` 액션으로 크레딧이 양수로 되돌아온다(Nano Banana Pro +2).
   const WITH_REFUND: HiggsfieldTransaction[] = [
     { action: 'grant', created_at: '2026-09-17T08:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
@@ -168,6 +230,26 @@ describe('환불(refund) 반영', () => {
   it('환불 건은 사용 횟수로 세지 않는다', () => {
     const rows = usageByModel(netUsageSince(WITH_REFUND, since))
     expect(rows[0]).toEqual({ name: 'Nano Banana Pro', credits: 2, count: 2 })
+  })
+
+  it('모르는 액션도 부호대로 집계한다 (조용히 버리면 소멸 예측이 과대해진다)', () => {
+    const items: HiggsfieldTransaction[] = [
+      { action: 'grant', created_at: '2026-09-17T08:00:00Z', credits: 3000, display_name: 'Subscription Credits' },
+      { action: 'spend', created_at: '2026-09-17T09:00:00Z', credits: -45, display_name: 'Seedance 2.0' },
+      { action: 'expire', created_at: '2026-09-17T10:00:00Z', credits: -500, display_name: 'Promo Credits' },
+      { action: 'adjust', created_at: '2026-09-17T11:00:00Z', credits: -100, display_name: 'Manual Adjustment' },
+    ]
+    const events = netUsageSince(items, since)
+    expect(totalSpend(events)).toBe(645)
+  })
+
+  it('모르는 액션이 섞이면 그 사실을 알려준다', () => {
+    const items: HiggsfieldTransaction[] = [
+      { action: 'spend', created_at: '2026-09-17T09:00:00Z', credits: -45, display_name: 'Seedance 2.0' },
+      { action: 'expire', created_at: '2026-09-17T10:00:00Z', credits: -500, display_name: 'Promo Credits' },
+    ]
+    expect(unknownUsageActions(netUsageSince(items, null))).toEqual(['expire'])
+    expect(unknownUsageActions(netUsageSince(WITH_REFUND, since))).toEqual([])
   })
 
   it('지급·소멸은 여전히 사용량에 섞이지 않는다', () => {
@@ -193,6 +275,7 @@ describe('소멸 예측', () => {
     expect(projection.projectedSpend).toBe(225) // 9 × 25일
     expect(projection.projectedExpiry).toBe(2730)
     expect(projection.projectedExpiryRatio).toBeCloseTo(0.91, 5)
+    expect(projection.unavailableReason).toBeNull()
   })
 
   it('페이스가 빠르면 소멸 0으로 바닥을 친다 (음수 잔여를 만들지 않는다)', () => {
@@ -208,7 +291,7 @@ describe('소멸 예측', () => {
     expect(projection.projectedExpiryRatio).toBe(0)
   })
 
-  it('주기 시작 직후에도 하루치로 나눠 과대 추정하지 않는다', () => {
+  it('주기 시작 직후라도 쓴 기록이 있으면 하루치로 나눠 보여준다', () => {
     const projection = projectExpiry({
       balance: 2955,
       spent: 45,
@@ -217,12 +300,28 @@ describe('소멸 예측', () => {
       grantAmount: 3000,
     })
 
-    // 0.2일로 나누면 하루 225가 되어 전액 소진으로 보인다. 분모 하한 1일.
+    // 0.2일로 나누면 하루 225가 되어 곧 전액 소진처럼 보인다. 분모 하한은 하루.
     expect(projection.perDay).toBe(45)
+    expect(projection.unavailableReason).toBeNull()
     expect(projection.projectedExpiry).toBeGreaterThan(1500)
   })
 
-  it('갱신 기록이 없으면(경과 미상) 예측을 만들어내지 않는다', () => {
+  it('주기가 막 시작됐고 쓴 것도 없으면 "전액 소멸" 경보 대신 측정 중으로 둔다', () => {
+    const projection = projectExpiry({
+      balance: 3000,
+      spent: 0,
+      elapsedDays: 0.01,
+      cycleDays: 30,
+      grantAmount: 3000,
+    })
+
+    // 여기서 예측하면 매 주기 첫날 "3,000 전액 소멸 · 100%"가 뜬다.
+    expect(projection.unavailableReason).toBe('too-early')
+    expect(projection.projectedExpiry).toBeNull()
+    expect(projection.perDay).toBeNull()
+  })
+
+  it('갱신 기록이 없으면 잔액 전액을 소멸로 단정하지 않는다', () => {
     const projection = projectExpiry({
       balance: 2955,
       spent: 0,
@@ -231,9 +330,12 @@ describe('소멸 예측', () => {
       grantAmount: null,
     })
 
-    expect(projection.perDay).toBe(0)
-    expect(projection.projectedSpend).toBe(0)
+    // 여기서 2955를 내놓으면 "근거 없음"과 "전액 소멸"을 한 화면에서 동시에 말하게 된다.
+    expect(projection.projectedExpiry).toBeNull()
+    expect(projection.projectedSpend).toBeNull()
+    expect(projection.perDay).toBeNull()
     expect(projection.projectedExpiryRatio).toBeNull()
+    expect(projection.unavailableReason).toBe('no-grant-history')
   })
 })
 
@@ -242,5 +344,9 @@ describe('표시 형식', () => {
     expect(formatCredits(45)).toBe('45')
     expect(formatCredits(2395.1)).toBe('2,395.1')
     expect(formatCredits(0)).toBe('0')
+  })
+
+  it('값이 없으면 숫자를 지어내지 않는다', () => {
+    expect(formatCredits(null)).toBe('-')
   })
 })

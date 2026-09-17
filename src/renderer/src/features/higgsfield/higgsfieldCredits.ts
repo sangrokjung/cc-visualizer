@@ -13,13 +13,31 @@ export const DAY_MS = 24 * 60 * 60 * 1000
 /// 실측(2026-08-18 → 2026-09-17)은 캘린더 월이 아니라 30일 고정이었다.
 export const DEFAULT_CYCLE_DAYS = 30
 
+/// 화면의 모든 날짜·D-day 판정 기준 시간대. 머신 로컬 설정에 따라 D-day가 흔들리지 않게 고정한다.
+export const DISPLAY_TIME_ZONE = 'Asia/Seoul'
+
+/// 경과가 이보다 짧으면 하루 평균이 의미를 갖지 못한다(45를 0.2일로 나누면 하루 225).
+/// 이 구간에서는 예측을 내지 않고 "측정 중"으로 둔다.
+export const MIN_PROJECTION_DAYS = 1
+
+/// 일별 추이를 그릴 최대 구간. 갱신 이력이 없어 시작점을 못 잡을 때의 폭주를 막는다.
+export const MAX_DAILY_SPAN_DAYS = 120
+
 const SUBSCRIPTION_LABEL = 'Subscription Credits'
+const SUBSCRIPTION_RESET_LABEL = 'Subscription Credits Reset'
+
+/// 크레딧 지급·회수라서 "사용"이 아닌 액션.
+/// 이 둘을 뺀 나머지는 모르는 액션이라도 사용 집계에 넣는다(조용히 누락되면 소멸 예측이 과대해진다).
+const NON_USAGE_ACTIONS = new Set(['grant', 'deduct'])
+
+/// 우리가 의미를 아는 사용 액션. 이 밖의 것이 오면 화면이 그 사실을 알린다.
+const KNOWN_USAGE_ACTIONS = new Set(['spend', 'refund'])
 
 export interface CreditEvent {
   at: number
   credits: number
   label: string
-  /// 원본 액션(spend · refund · grant · deduct). 환불을 사용 횟수로 세지 않으려고 보존한다.
+  /// 원본 액션(spend · refund · grant · deduct …). 환불을 사용 횟수로 세지 않으려고 보존한다.
   action: string
 }
 
@@ -47,22 +65,47 @@ export function subscriptionGrants(items: HiggsfieldTransaction[]): CreditEvent[
 /// 갱신 때 회수된 미사용분(소멸). 최신순.
 export function subscriptionResets(items: HiggsfieldTransaction[]): CreditEvent[] {
   return items
-    .filter((i) => i.action === 'deduct' && (i.display_name ?? '').includes(SUBSCRIPTION_LABEL))
+    .filter((i) => i.action === 'deduct' && (i.display_name ?? '') === SUBSCRIPTION_RESET_LABEL)
     .map(toEvent)
     .filter((e): e is CreditEvent => e !== null)
     .sort((a, b) => b.at - a.at)
 }
 
+/// 정규 지급만 남긴다. 주기 중간에 들어오는 보정성 지급(금액이 다른 grant)을 주기 시작으로
+/// 오인하면 D-day와 사용량 창이 통째로 밀린다. 최빈 금액을 정규 지급액으로 보고, 동률이면 큰 쪽을 택한다.
+export function regularGrants(grants: CreditEvent[]): CreditEvent[] {
+  if (grants.length <= 1) return grants
+
+  const counts = new Map<number, number>()
+  for (const g of grants) counts.set(g.credits, (counts.get(g.credits) ?? 0) + 1)
+
+  let bestCredits = grants[0].credits
+  let bestCount = 0
+  for (const [credits, count] of counts) {
+    if (count > bestCount || (count === bestCount && credits > bestCredits)) {
+      bestCredits = credits
+      bestCount = count
+    }
+  }
+
+  const regular = grants.filter((g) => g.credits === bestCredits)
+  return regular.length > 0 ? regular : grants
+}
+
 export interface CycleEstimate {
-  /// 현재 주기가 시작된 시각(마지막 grant). 근거가 없으면 null.
+  /// 현재 주기가 시작된 시각(마지막 정규 지급). 근거가 없으면 null.
   lastGrantAt: number | null
+  /// 그 주기에 지급된 크레딧. 소멸 비율의 분모다.
+  grantAmount: number | null
   cycleDays: number
   /// true면 주기를 실측하지 못하고 DEFAULT_CYCLE_DAYS를 가정했다는 뜻.
   assumedCycle: boolean
-  /// 주기 산출에 쓴 간격 표본 수(grant 건수 - 1).
+  /// 주기 산출에 쓴 간격 표본 수(정규 지급 건수 - 1).
   intervalSamples: number
+  /// 주기 판정에 쓴 정규 지급 건수.
+  grantCount: number
   nextRenewalAt: number | null
-  /// 남은 일수(올림). 이미 지났으면 0 이하.
+  /// 남은 일수(달력 기준). 이미 지났으면 음수.
   daysRemaining: number | null
   /// 주기 경과 비율 0~1.
   elapsedRatio: number | null
@@ -70,17 +113,19 @@ export interface CycleEstimate {
   elapsedDays: number | null
 }
 
-/// 인접 grant 간격(일)의 중앙값을 주기로 본다.
+/// 인접 지급 간격(일)의 중앙값을 주기로 본다.
 /// 평균이 아니라 중앙값을 쓰는 이유: 결제 실패로 한 주기가 길어져도 값이 끌려가지 않게 하려고.
 export function estimateCycle(items: HiggsfieldTransaction[], now: number): CycleEstimate {
-  const grants = subscriptionGrants(items)
+  const grants = regularGrants(subscriptionGrants(items))
 
   if (grants.length === 0) {
     return {
       lastGrantAt: null,
+      grantAmount: null,
       cycleDays: DEFAULT_CYCLE_DAYS,
       assumedCycle: true,
       intervalSamples: 0,
+      grantCount: 0,
       nextRenewalAt: null,
       daysRemaining: null,
       elapsedRatio: null,
@@ -104,9 +149,11 @@ export function estimateCycle(items: HiggsfieldTransaction[], now: number): Cycl
 
   return {
     lastGrantAt,
+    grantAmount: grants[0].credits,
     cycleDays,
     assumedCycle,
     intervalSamples: intervals.length,
+    grantCount: grants.length,
     nextRenewalAt,
     // D-day는 시각 차이가 아니라 달력 날짜 차이다.
     // 시간으로 올림하면 "이틀 전에 지났다"가 D+1로, "오늘 저녁 갱신"이 D-1로 나온다.
@@ -116,9 +163,26 @@ export function estimateCycle(items: HiggsfieldTransaction[], now: number): Cycl
   }
 }
 
-/// 두 시각 사이의 달력 날짜 차이(로컬 기준). 서머타임이 있는 지역에서도 어긋나지 않게 반올림한다.
-function calendarDayDiff(fromMs: number, toMs: number): number {
-  return Math.round((startOfLocalDay(toMs) - startOfLocalDay(fromMs)) / DAY_MS)
+const DAY_KEY_FORMAT = new Intl.DateTimeFormat('en-CA', {
+  timeZone: DISPLAY_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+/// 표시 시간대 기준 'YYYY-MM-DD'. 머신 로컬 시간대와 무관하게 같은 날짜를 가리킨다.
+export function dayKey(ms: number): string {
+  return DAY_KEY_FORMAT.format(new Date(ms))
+}
+
+function dayKeyToUtcMs(key: string): number {
+  const [y, m, d] = key.split('-').map(Number)
+  return Date.UTC(y, m - 1, d)
+}
+
+/// 두 시각 사이의 달력 날짜 차이(표시 시간대 기준).
+export function calendarDayDiff(fromMs: number, toMs: number): number {
+  return Math.round((dayKeyToUtcMs(dayKey(toMs)) - dayKeyToUtcMs(dayKey(fromMs))) / DAY_MS)
 }
 
 function median(values: number[]): number {
@@ -133,19 +197,25 @@ function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value))
 }
 
-/// 사용으로 집계할 액션. `refund`는 생성 실패 시 크레딧이 되돌아온 것이라(실측 +2)
-/// 빼주지 않으면 사용량이 부풀고, 덩달아 소멸 예측이 실제보다 작게 나온다.
-const USAGE_ACTIONS = new Set(['spend', 'refund'])
-
 /// 순사용량 이벤트. 부호를 뒤집어 "쓴 양"으로 통일한다(spend -45 → +45, refund +2 → -2).
-/// 구독 지급(grant)과 갱신 회수(deduct)는 사용이 아니라 제외한다.
+/// 구독 지급(grant)·갱신 회수(deduct)만 제외하고, 모르는 액션도 부호 그대로 집계에 넣는다.
+/// 모르는 액션을 버리면 사용량이 과소 계산되고 그만큼 "소멸 예상"이 과대해진다.
 export function netUsageSince(items: HiggsfieldTransaction[], since: number | null): CreditEvent[] {
   return items
-    .filter((i) => USAGE_ACTIONS.has(i.action))
+    .filter((i) => !NON_USAGE_ACTIONS.has(i.action))
     .map(toEvent)
     .filter((e): e is CreditEvent => e !== null)
     .filter((e) => (since == null ? true : e.at >= since))
     .map((e) => ({ ...e, credits: -e.credits }))
+}
+
+/// 집계에 섞인 미지의 액션 종류. 비어 있지 않으면 화면이 신뢰도 하락을 고지한다.
+export function unknownUsageActions(events: CreditEvent[]): string[] {
+  const found = new Set<string>()
+  for (const e of events) {
+    if (!KNOWN_USAGE_ACTIONS.has(e.action)) found.add(e.action)
+  }
+  return [...found].sort()
 }
 
 export function totalSpend(events: CreditEvent[]): number {
@@ -173,58 +243,69 @@ export function usageByModel(events: CreditEvent[]): ModelUsageRow[] {
 }
 
 export interface DailyUsageRow {
-  /// 로컬 기준 'MM/DD'
+  /// 정렬·중복 방지용 'YYYY-MM-DD'
+  key: string
+  /// 표시용 'MM/DD'
   date: string
   credits: number
 }
 
 /// 주기 시작일부터 오늘까지 일별 사용량. 안 쓴 날도 0으로 채워 추이가 끊기지 않게 한다.
+/// 시작점이 없으면(갱신 이력 부재) 가장 오래된 사용부터 보되 MAX_DAILY_SPAN_DAYS로 자른다.
 export function usageByDay(events: CreditEvent[], from: number | null, now: number): DailyUsageRow[] {
   if (events.length === 0 && from == null) return []
 
-  const start = startOfLocalDay(from ?? Math.min(...events.map((e) => e.at)))
-  const end = startOfLocalDay(now)
-  // 방어: 시작이 미래면(시계 어긋남) 빈 배열.
-  if (start > end) return []
+  const earliest = events.length > 0 ? events.reduce((min, e) => Math.min(min, e.at), events[0].at) : now
+  const rawStart = from ?? earliest
+  // 너무 먼 과거에서 시작하면 버킷이 폭주한다. 최근 구간만 그린다.
+  const floorStart = now - MAX_DAILY_SPAN_DAYS * DAY_MS
+  const startMs = Math.max(rawStart, floorStart)
+
+  const span = calendarDayDiff(startMs, now)
+  if (span < 0) return []
 
   const buckets = new Map<string, number>()
-  for (let day = start; day <= end; day += DAY_MS) {
-    buckets.set(localDayKey(day), 0)
+  const startKeyUtc = dayKeyToUtcMs(dayKey(startMs))
+  for (let i = 0; i <= span; i += 1) {
+    buckets.set(dayKey(startKeyUtc + i * DAY_MS), 0)
   }
+
   for (const e of events) {
-    const key = localDayKey(e.at)
+    const key = dayKey(e.at)
     if (!buckets.has(key)) continue
     buckets.set(key, (buckets.get(key) ?? 0) + e.credits)
   }
-  return [...buckets.entries()].map(([date, credits]) => ({ date, credits }))
-}
 
-function startOfLocalDay(ms: number): number {
-  const d = new Date(ms)
-  d.setHours(0, 0, 0, 0)
-  return d.getTime()
-}
-
-function localDayKey(ms: number): string {
-  const d = new Date(ms)
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${month}/${day}`
+  return [...buckets.entries()].map(([key, credits]) => ({
+    key,
+    date: key.slice(5).replace('-', '/'),
+    credits,
+  }))
 }
 
 export interface ExpiryProjection {
-  /// 현재 주기의 하루 평균 사용량.
-  perDay: number
-  /// 남은 기간에 이 페이스로 더 쓸 양.
-  projectedSpend: number
-  /// 갱신 시점에 남아서 소멸할 것으로 보이는 양.
-  projectedExpiry: number
+  /// 현재 주기의 하루 평균 사용량. 근거가 부족하면 null.
+  perDay: number | null
+  /// 남은 기간에 이 페이스로 더 쓸 양. 근거가 부족하면 null.
+  projectedSpend: number | null
+  /// 갱신 시점에 남아서 소멸할 것으로 보이는 양. **근거가 없으면 null이며, 잔액 전액으로 단정하지 않는다.**
+  projectedExpiry: number | null
   /// 지급분 대비 소멸 비율(0~1). 지급량을 모르면 null.
   projectedExpiryRatio: number | null
+  /// 예측을 내지 못한 이유. null이면 정상 예측.
+  unavailableReason: 'no-grant-history' | 'too-early' | null
 }
 
+const NO_PROJECTION = (reason: ExpiryProjection['unavailableReason']): ExpiryProjection => ({
+  perDay: null,
+  projectedSpend: null,
+  projectedExpiry: null,
+  projectedExpiryRatio: null,
+  unavailableReason: reason,
+})
+
 /// 현 페이스가 유지된다고 볼 때 갱신 시점에 얼마가 남아 사라지는지.
-/// perDay는 경과 1일 미만 구간에서 과대 추정되기 쉬워 분모 하한을 1일로 둔다(보수적).
+/// 갱신 이력이 없으면(경과 미상) 아무 값도 만들지 않는다. 근거 없이 "전액 소멸"이라고 말하는 쪽이 더 나쁘다.
 export function projectExpiry(args: {
   balance: number
   spent: number
@@ -233,9 +314,17 @@ export function projectExpiry(args: {
   grantAmount?: number | null
 }): ExpiryProjection {
   const { balance, spent, elapsedDays, cycleDays, grantAmount } = args
-  const elapsed = elapsedDays == null ? null : Math.max(elapsedDays, 0)
-  const perDay = elapsed == null ? 0 : spent / Math.max(elapsed, 1)
-  const remainingDays = elapsed == null ? 0 : Math.max(cycleDays - elapsed, 0)
+
+  if (elapsedDays == null) return NO_PROJECTION('no-grant-history')
+
+  const elapsed = Math.max(elapsedDays, 0)
+  // 주기가 막 시작됐고 아직 쓴 것도 없으면 "전액이 소멸한다"는 최대 경보만 남는다.
+  // 그 구간에서만 예측을 보류한다. 쓴 기록이 있으면 아래 분모 하한으로 과대 추정을 막고 보여준다.
+  if (elapsed < MIN_PROJECTION_DAYS && spent <= 0) return NO_PROJECTION('too-early')
+
+  // 경과 0.2일에 45를 썼다고 하루 225로 보면 곧 전액 소진처럼 보인다. 분모 하한을 하루로 둔다.
+  const perDay = spent / Math.max(elapsed, MIN_PROJECTION_DAYS)
+  const remainingDays = Math.max(cycleDays - elapsed, 0)
   const projectedSpend = perDay * remainingDays
   const projectedExpiry = Math.max(balance - projectedSpend, 0)
   const ratio = grantAmount && grantAmount > 0 ? clamp01(projectedExpiry / grantAmount) : null
@@ -245,11 +334,13 @@ export function projectExpiry(args: {
     projectedSpend,
     projectedExpiry,
     projectedExpiryRatio: ratio,
+    unavailableReason: null,
   }
 }
 
 /// 크레딧을 화면에 쓸 문자열로. 소수점은 실제로 소수인 값에만 붙인다(45 vs 2,395.1).
-export function formatCredits(value: number): string {
+export function formatCredits(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return '-'
   const rounded = Math.round(value * 10) / 10
   return rounded.toLocaleString('ko-KR', {
     minimumFractionDigits: Number.isInteger(rounded) ? 0 : 1,
