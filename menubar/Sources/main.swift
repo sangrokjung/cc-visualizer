@@ -2346,6 +2346,7 @@ final class StatusMenuDashboardView: NSView {
         onReauthenticateTeamClaude: ((String, String?) -> Void)? = nil,
         onRecoverTeamCodex: ((String, String?, TeamCodexAccountRecoveryKind) -> Void)? = nil
     ) {
+        let previousTeamScrollOrigin = teamClaudeView?.enclosingScrollView?.contentView.bounds.origin
         let accountCount = teamClaude?.accounts.count ?? 0
         let usageHeight = UsageDashboardView.preferredHeight(for: usage)
         let structureChanged = accountCount != renderedAccountCount
@@ -2369,6 +2370,13 @@ final class StatusMenuDashboardView: NSView {
                 onReauthenticateTeamClaude: onReauthenticateTeamClaude,
                 onRecoverTeamCodex: onRecoverTeamCodex
             )
+            if let previousTeamScrollOrigin,
+               let teamView = teamClaudeView,
+               let teamScrollView = teamView.enclosingScrollView {
+                let maximumY = max(0, teamView.bounds.height - teamScrollView.contentView.bounds.height)
+                let restoredY = min(max(previousTeamScrollOrigin.y, 0), maximumY)
+                teamScrollView.contentView.scroll(to: NSPoint(x: previousTeamScrollOrigin.x, y: restoredY))
+            }
             return
         }
 
@@ -3956,6 +3964,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
               let dashboardItem = cachedDashboardItem else {
             return
         }
+        let previousScrollOrigin = (dashboardItem.view as? NSScrollView)?.contentView.bounds.origin
 
         dashboard.updateContent(
             teamClaude: currentTeamClaude,
@@ -4007,7 +4016,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             scrollView.drawsBackground = false
             scrollView.borderType = .noBorder
             scrollView.verticalScrollElasticity = .none
-            scrollView.contentView.scroll(to: .zero)
+            if let previousScrollOrigin {
+                let maximumY = max(0, contentHeight - scrollView.contentView.bounds.height)
+                let restoredY = min(max(previousScrollOrigin.y, 0), maximumY)
+                scrollView.contentView.scroll(to: NSPoint(x: previousScrollOrigin.x, y: restoredY))
+            }
             dashboardItem.view = scrollView
         } else {
             if let scrollView = dashboardItem.view as? NSScrollView {
