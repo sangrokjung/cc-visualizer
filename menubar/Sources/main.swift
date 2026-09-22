@@ -1675,6 +1675,11 @@ enum TeamClaudePalette {
     static let smallFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
     static let statValueFont = NSFont.monospacedSystemFont(ofSize: 18, weight: .bold)
     static let statValueProminentFont = NSFont.monospacedSystemFont(ofSize: 24, weight: .bold)
+
+    /// 정적 멤버 전부를 한 번 건드려 첫 draw 안이 아니라 기동 시점에 팔레트를 만든다.
+    static func prewarm() {
+        _ = (bg, panel, panel2, line, text, muted, green, yellow, red, blue, titleFont, subFont, headFont, rowFont, smallFont, statValueFont, statValueProminentFont)
+    }
 }
 
 final class TeamClaudeTableView: NSView {
@@ -5367,6 +5372,50 @@ if let recoveryLayoutIndex = CommandLine.arguments.firstIndex(of: "--teamcodex-r
     exit(0)
 }
 
+if let snapshotIndex = CommandLine.arguments.firstIndex(of: "--teamclaude-table-snapshot") {
+    guard CommandLine.arguments.indices.contains(snapshotIndex + 1) else {
+        fputs("TEAMCLAUDE-TABLE-SNAPSHOT: usage --teamclaude-table-snapshot <status.json> [out.png]\n", stderr)
+        exit(2)
+    }
+    let fixturePath = CommandLine.arguments[snapshotIndex + 1]
+    let outputPath = CommandLine.arguments.indices.contains(snapshotIndex + 2)
+        ? CommandLine.arguments[snapshotIndex + 2]
+        : "/tmp/cc-menubar-teamclaude-table.png"
+    guard let fixtureData = FileManager.default.contents(atPath: fixturePath),
+          let status = (try? JSONSerialization.jsonObject(with: fixtureData)) as? [String: Any] else {
+        fputs("TEAMCLAUDE-TABLE-SNAPSHOT: fixture 읽기 실패 \(fixturePath)\n", stderr)
+        exit(1)
+    }
+    installCrashRecorder()
+    _ = NSApplication.shared
+    let health = parseTeamClaudeHealth(config: nil, server: nil, status: status, port: 3456)
+    let rowCount = max(1, health.accounts.count)
+    let view = TeamClaudeTableView(frame: NSRect(
+        x: 0, y: 0,
+        width: StatusMenuDashboardView.preferredWidth,
+        height: CGFloat(420 + rowCount * 34)
+    ))
+    view.health = health
+    view.layoutSubtreeIfNeeded()
+    guard let representation = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
+        fputs("TEAMCLAUDE-TABLE-SNAPSHOT: bitmap 생성 실패\n", stderr)
+        exit(1)
+    }
+    view.cacheDisplay(in: view.bounds, to: representation)
+    guard let png = representation.representation(using: .png, properties: [:]) else {
+        fputs("TEAMCLAUDE-TABLE-SNAPSHOT: PNG 변환 실패\n", stderr)
+        exit(1)
+    }
+    do {
+        try png.write(to: URL(fileURLWithPath: outputPath), options: .atomic)
+        print("TEAMCLAUDE-TABLE-SNAPSHOT: \(outputPath) accounts=\(health.accountTotal) usable=\(health.accountUsable)")
+        exit(0)
+    } catch {
+        fputs("TEAMCLAUDE-TABLE-SNAPSHOT: \(error)\n", stderr)
+        exit(1)
+    }
+}
+
 if let snapshotIndex = CommandLine.arguments.firstIndex(of: "--teamcodex-snapshot") {
     let outputPath = CommandLine.arguments.indices.contains(snapshotIndex + 1)
         ? CommandLine.arguments[snapshotIndex + 1]
@@ -5445,5 +5494,6 @@ if CommandLine.arguments.contains("--selftest") {
 let delegate = AppDelegate()
 let app = NSApplication.shared
 app.delegate = delegate
+TeamClaudePalette.prewarm()
 installCrashRecorder()
 app.run()

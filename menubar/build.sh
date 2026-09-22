@@ -41,6 +41,9 @@ chmod +x "$CANDIDATE"
 mv -f "$CANDIDATE" "$BINARY"
 
 echo ""
+if [ "${CC_MENUBAR_SKIP_SNAPSHOT:-0}" != "1" ]; then
+    python3 "$SCRIPT_DIR/Tests/snapshot_test_teamclaude_table.py"
+fi
 echo "✅ 빌드 완료"
 echo "  바이너리: $BINARY"
 echo "  크기: $(du -sh "$BINARY" | cut -f1)"

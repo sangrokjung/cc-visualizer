@@ -44,6 +44,7 @@ class CrashRecorderWiringTests(unittest.TestCase):
         self.assertNotIn("let titleFont = NSFont.systemFont", body)
         self.assertNotIn("let bg = NSColor(calibratedRed", body)
         self.assertIn("TeamClaudePalette.titleFont", body)
+        self.assertIn("TeamClaudePalette.prewarm()", self.source)
 
 
 if __name__ == "__main__":
