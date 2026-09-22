@@ -117,6 +117,7 @@ struct TeamClaudeHealth {
     let hints: [String]
     let host: TeamClaudeHostMetrics?
     var runtimeSummary: String? = nil
+    var runtimeSummaryShort: String? = nil
 
     // 호스트 CPU/RAM 한 줄 요약 (표시할 값이 없으면 nil → 라인 생략)
     var hostSummaryText: String? {
@@ -742,6 +743,7 @@ func parseTeamClaudeHealth(config: [String: Any]?, server: [String: Any]?,
         host: hostMetrics
     )
     health.runtimeSummary = teamRuntimeSummary(status?["runtime"])
+    health.runtimeSummaryShort = teamRuntimeSummary(status?["runtime"], short: true)
     return health
 }
 
@@ -847,6 +849,7 @@ func teamClaudeRetainingQuota(
         host: candidate.host
     )
     merged.runtimeSummary = candidate.runtimeSummary
+    merged.runtimeSummaryShort = candidate.runtimeSummaryShort
     return merged
 }
 
@@ -1026,6 +1029,7 @@ func teamClaudeHealthMergingQuota(
         host: candidate.host
     )
     merged.runtimeSummary = candidate.runtimeSummary
+    merged.runtimeSummaryShort = candidate.runtimeSummaryShort
     return merged
 }
 
@@ -1949,13 +1953,21 @@ final class TeamClaudeTableView: NSView {
 
         let innerX = card.minX + 16
         let topY = card.minY + 14
+        let actionRect = NSRect(x: card.maxX - 330, y: topY - 4, width: 314, height: 48)
         markDraw("TeamClaudeTableView.header")
         drawText("TeamClaude", innerX, topY, titleFont, text)
         pill(health.serverReachable ? "실행중" : "오프라인", x: innerX + 122, y: topY - 2, color: health.serverReachable ? green : red)
         let integrationLabel = health.accountConfigDrift == 0 ? "연동 정상" : "연동 불일치 \(health.accountConfigDrift)"
-        var serverLine = "port \(health.serverPort ?? 0)  ·  pid \(health.serverPid.map(String.init) ?? "-")  ·  \(integrationLabel)"
-        if let runtime = health.runtimeSummary { serverLine += "  ·  \(runtime)" }
-        drawText(serverLine, innerX, topY + 29, subFont, health.accountConfigDrift == 0 ? muted : yellow)
+        let serverBase = "port \(health.serverPort ?? 0)  ·  pid \(health.serverPid.map(String.init) ?? "-")  ·  \(integrationLabel)"
+        let serverColor = health.accountConfigDrift == 0 ? muted : yellow
+        let serverLine = teamServerLine(
+            base: serverBase,
+            full: health.runtimeSummary,
+            short: health.runtimeSummaryShort,
+            maxWidth: actionRect.minX - 8 - innerX,
+            measure: { $0.size(withAttributes: attrs(subFont, serverColor)).width }
+        )
+        drawText(serverLine, innerX, topY + 29, subFont, serverColor)
         let hostLineShown = health.hostSummaryText != nil
         if let hostText = health.hostSummaryText {
             drawText(hostText, innerX, topY + 48, subFont, health.hostIsWarning ? red : muted)
@@ -1968,7 +1980,6 @@ final class TeamClaudeTableView: NSView {
         let excluded = availability.filter { $0.state == .excluded }.count
         let unconfirmed = availability.filter { $0.state == .unconfirmed }.count
         let pendingCount = health.measurementPendingCount
-        let actionRect = NSRect(x: card.maxX - 330, y: topY - 4, width: 314, height: 48)
         let actionColor: NSColor
         let actionTitle: String
         let actionDetail: String

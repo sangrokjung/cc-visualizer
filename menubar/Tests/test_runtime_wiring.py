@@ -13,6 +13,11 @@ class RuntimeWiringTests(unittest.TestCase):
         self.assertIn("health.runtimeSummary", main)
         # 쿼터 유지·병합 경로가 새 TeamClaudeHealth를 만들 때 runtime 줄을 잃지 않아야 한다.
         self.assertGreaterEqual(main.count("merged.runtimeSummary = candidate.runtimeSummary"), 2)
+        # 축약본도 같은 세 경로를 따라야 하고, 헤더는 폭 계산 헬퍼로 그려야 한다(액션 박스 겹침 방지).
+        self.assertIn("var runtimeSummaryShort: String? = nil", main)
+        self.assertIn('teamRuntimeSummary(status?["runtime"], short: true)', main)
+        self.assertGreaterEqual(main.count("merged.runtimeSummaryShort = candidate.runtimeSummaryShort"), 2)
+        self.assertIn("teamServerLine(", main)
 
     def test_codex_card_decodes_and_draws_runtime(self):
         pool = (SOURCES / "TeamCodexPoolStatus.swift").read_text()

@@ -73,8 +73,19 @@ func teamRuntimeSummary(_ raw: Any?, short: Bool = false, timeZone: TimeZone = .
     return parts.joined(separator: " · ")
 }
 
+/// port/pid 줄에 runtime 문구를 붙일 때 폭 초과를 막는다. 전문 → 축약 → 생략 순.
+/// `measure`는 렌더 폰트 기준 폭(pt)을 돌려준다. 테스트는 가짜 measurer를 넣는다.
+func teamServerLine(base: String, full: String?, short: String?, maxWidth: CGFloat, measure: (String) -> CGFloat) -> String {
+    for suffix in [full, short].compactMap({ $0 }) {
+        let candidate = "\(base)  ·  \(suffix)"
+        if measure(candidate) <= maxWidth { return candidate }
+    }
+    return base
+}
+
 func teamRuntimeUptimeText(_ milliseconds: Double) -> String {
-    let minutes = max(0, Int(milliseconds / 60_000))
+    guard milliseconds.isFinite else { return "0분" }
+    let minutes = max(0, Int(min(milliseconds, 1e15) / 60_000))
     let days = minutes / 1440
     let hours = (minutes % 1440) / 60
     let remainder = minutes % 60
