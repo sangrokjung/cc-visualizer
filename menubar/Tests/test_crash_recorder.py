@@ -33,6 +33,18 @@ class CrashRecorderWiringTests(unittest.TestCase):
         crumbs = re.findall(r'markDraw\("TeamClaudeTableView\.[a-z]+"\)', match.group("body"))
         self.assertGreaterEqual(len(crumbs), 4, crumbs)
 
+    def test_team_claude_table_uses_a_static_palette(self):
+        self.assertIn("enum TeamClaudePalette", self.source)
+        match = re.search(
+            r"final class TeamClaudeTableView: NSView \{(?P<body>.*?)\nfinal class ServiceAvailabilitySummaryView",
+            self.source,
+            re.DOTALL,
+        )
+        body = match.group("body")
+        self.assertNotIn("let titleFont = NSFont.systemFont", body)
+        self.assertNotIn("let bg = NSColor(calibratedRed", body)
+        self.assertIn("TeamClaudePalette.titleFont", body)
+
 
 if __name__ == "__main__":
     unittest.main()

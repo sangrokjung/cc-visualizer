@@ -1656,6 +1656,27 @@ func dateFromYMD(_ ymd: String) -> Date? {
     _ymdFormatter.date(from: ymd)
 }
 
+/// TeamClaude 표가 쓰는 색·폰트. draw마다 새로 만들지 않고 프로세스 수명 동안 1회 생성한다.
+enum TeamClaudePalette {
+    static let bg = NSColor(calibratedRed: 0.06, green: 0.075, blue: 0.10, alpha: 0.97)
+    static let panel = NSColor(calibratedRed: 0.095, green: 0.115, blue: 0.15, alpha: 1.0)
+    static let panel2 = NSColor(calibratedRed: 0.12, green: 0.14, blue: 0.18, alpha: 1.0)
+    static let line = NSColor(calibratedRed: 0.23, green: 0.27, blue: 0.34, alpha: 1.0)
+    static let text = NSColor(calibratedRed: 0.92, green: 0.95, blue: 0.98, alpha: 1.0)
+    static let muted = NSColor(calibratedRed: 0.55, green: 0.61, blue: 0.70, alpha: 1.0)
+    static let green = NSColor(calibratedRed: 0.18, green: 0.82, blue: 0.48, alpha: 1.0)
+    static let yellow = NSColor(calibratedRed: 0.93, green: 0.76, blue: 0.22, alpha: 1.0)
+    static let red = NSColor(calibratedRed: 0.96, green: 0.26, blue: 0.32, alpha: 1.0)
+    static let blue = NSColor(calibratedRed: 0.28, green: 0.55, blue: 0.90, alpha: 1.0)
+    static let titleFont = NSFont.systemFont(ofSize: 18, weight: .bold)
+    static let subFont = NSFont.systemFont(ofSize: 13, weight: .medium)
+    static let headFont = NSFont.systemFont(ofSize: 12, weight: .semibold)
+    static let rowFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .medium)
+    static let smallFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+    static let statValueFont = NSFont.monospacedSystemFont(ofSize: 18, weight: .bold)
+    static let statValueProminentFont = NSFont.monospacedSystemFont(ofSize: 24, weight: .bold)
+}
+
 final class TeamClaudeTableView: NSView {
     var health: TeamClaudeHealth? {
         didSet {
@@ -1843,21 +1864,13 @@ final class TeamClaudeTableView: NSView {
         measureRowRects.removeAll(keepingCapacity: true)
 
         let card = bounds.insetBy(dx: 8, dy: 4)
-        let bg = NSColor(calibratedRed: 0.06, green: 0.075, blue: 0.10, alpha: 0.97)
-        let panel = NSColor(calibratedRed: 0.095, green: 0.115, blue: 0.15, alpha: 1.0)
-        let panel2 = NSColor(calibratedRed: 0.12, green: 0.14, blue: 0.18, alpha: 1.0)
-        let line = NSColor(calibratedRed: 0.23, green: 0.27, blue: 0.34, alpha: 1.0)
-        let text = NSColor(calibratedRed: 0.92, green: 0.95, blue: 0.98, alpha: 1.0)
-        let muted = NSColor(calibratedRed: 0.55, green: 0.61, blue: 0.70, alpha: 1.0)
-        let green = NSColor(calibratedRed: 0.18, green: 0.82, blue: 0.48, alpha: 1.0)
-        let yellow = NSColor(calibratedRed: 0.93, green: 0.76, blue: 0.22, alpha: 1.0)
-        let red = NSColor(calibratedRed: 0.96, green: 0.26, blue: 0.32, alpha: 1.0)
-        let blue = NSColor(calibratedRed: 0.28, green: 0.55, blue: 0.90, alpha: 1.0)
-        let titleFont = NSFont.systemFont(ofSize: 18, weight: .bold)
-        let subFont = NSFont.systemFont(ofSize: 13, weight: .medium)
-        let headFont = NSFont.systemFont(ofSize: 12, weight: .semibold)
-        let rowFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .medium)
-        let smallFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+        let bg = TeamClaudePalette.bg, panel = TeamClaudePalette.panel, panel2 = TeamClaudePalette.panel2
+        let line = TeamClaudePalette.line, text = TeamClaudePalette.text, muted = TeamClaudePalette.muted
+        let green = TeamClaudePalette.green, yellow = TeamClaudePalette.yellow
+        let red = TeamClaudePalette.red, blue = TeamClaudePalette.blue
+        let titleFont = TeamClaudePalette.titleFont, subFont = TeamClaudePalette.subFont
+        let headFont = TeamClaudePalette.headFont, rowFont = TeamClaudePalette.rowFont
+        let smallFont = TeamClaudePalette.smallFont
 
         func attrs(_ font: NSFont, _ color: NSColor) -> [NSAttributedString.Key: Any] {
             [.font: font, .foregroundColor: color]
@@ -1909,7 +1922,7 @@ final class TeamClaudeTableView: NSView {
             fillRound(rect, prominent ? color.withAlphaComponent(0.10) : panel, 9)
             strokeRound(rect, prominent ? color.withAlphaComponent(0.45) : line.withAlphaComponent(0.8), 9)
             drawText(title, x + 10, y + 7, headFont, prominent ? text : muted)
-            drawText(value, x + 10, y + 23, NSFont.monospacedSystemFont(ofSize: prominent ? 24 : 18, weight: .bold), color)
+            drawText(value, x + 10, y + 23, prominent ? TeamClaudePalette.statValueProminentFont : TeamClaudePalette.statValueFont, color)
             drawText(detail, x + width - detail.size(withAttributes: attrs(smallFont, muted)).width - 10, y + 31, smallFont, muted)
         }
         func bar(_ percent: Double?, x: CGFloat, y: CGFloat, width: CGFloat, color: NSColor) {
