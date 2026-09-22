@@ -45,6 +45,8 @@ class CrashRecorderWiringTests(unittest.TestCase):
         self.assertNotIn("let bg = NSColor(calibratedRed", body)
         self.assertIn("TeamClaudePalette.titleFont", body)
         self.assertIn("TeamClaudePalette.prewarm()", self.source)
+        self.assertLess(self.source.rfind("installCrashRecorder()"), self.source.rfind("TeamClaudePalette.prewarm()"),
+                        "the recorder must be installed before the palette is pre-warmed")
 
 
 if __name__ == "__main__":

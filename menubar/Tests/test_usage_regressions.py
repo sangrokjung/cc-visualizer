@@ -115,10 +115,13 @@ class BuildGateTests(unittest.TestCase):
         return root
 
     # run-tests.sh exports CC_MENUBAR_SKIP_TESTS=1 for the Python tests it runs (its recursion guard);
-    # drop it so the nested build.sh really consults the stub runner.
+    # drop it so the nested build.sh really consults the stub runner. CC_MENUBAR_SKIP_SNAPSHOT=1 keeps the
+    # offscreen snapshot smoke out of this gate test: it checks only "runner rc => binary replaced / kept".
     @staticmethod
     def gate_env():
-        return {key: value for key, value in os.environ.items() if key != "CC_MENUBAR_SKIP_TESTS"}
+        env = {key: value for key, value in os.environ.items() if key != "CC_MENUBAR_SKIP_TESTS"}
+        env["CC_MENUBAR_SKIP_SNAPSHOT"] = "1"
+        return env
 
 
 if __name__ == "__main__":

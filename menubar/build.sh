@@ -38,12 +38,13 @@ swiftc \
     -o "$CANDIDATE"
 
 chmod +x "$CANDIDATE"
+if [ "${CC_MENUBAR_SKIP_SNAPSHOT:-0}" != "1" ]; then
+    # mv 전에 후보 바이너리로 스모크. 실패하면 set -e가 멈추고 trap이 후보를 지워 기존 바이너리가 남는다.
+    CC_MENUBAR_BINARY="$CANDIDATE" python3 "$SCRIPT_DIR/Tests/snapshot_test_teamclaude_table.py"
+fi
 mv -f "$CANDIDATE" "$BINARY"
 
 echo ""
-if [ "${CC_MENUBAR_SKIP_SNAPSHOT:-0}" != "1" ]; then
-    python3 "$SCRIPT_DIR/Tests/snapshot_test_teamclaude_table.py"
-fi
 echo "✅ 빌드 완료"
 echo "  바이너리: $BINARY"
 echo "  크기: $(du -sh "$BINARY" | cut -f1)"

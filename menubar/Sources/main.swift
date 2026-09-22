@@ -5494,6 +5494,6 @@ if CommandLine.arguments.contains("--selftest") {
 let delegate = AppDelegate()
 let app = NSApplication.shared
 app.delegate = delegate
-TeamClaudePalette.prewarm()
 installCrashRecorder()
+TeamClaudePalette.prewarm()
 app.run()
