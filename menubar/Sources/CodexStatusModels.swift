@@ -73,10 +73,6 @@ struct CodexHealth {
     let errorEvents: Int
     let lastCallAt: Date?
     let planType: String?
-    let primaryUsedPercent: Double?
-    let secondaryUsedPercent: Double?
-    let primaryResetAt: Date?
-    let secondaryResetAt: Date?
     let scannedLogFiles: Int
     let scannedLogBytes: Int64
     let profiles: [CodexProfileHealth]
@@ -88,17 +84,9 @@ struct CodexHealth {
     var titleSlot: String {
         if isError { return "Codex 재인증" }
         if !authPresent || (!hasApiKey && !hasTokens) { return "Codex 로그인" }
-        if quotaEvents > 0 { return "Codex 쿼터 \(quotaEvents)" }
         if errorEvents > 0 { return "Codex 주의 \(errorEvents)" }
-        if let limits = formatCodexLimitPair(primaryUsedPercent, secondaryUsedPercent) {
-            if max(primaryUsedPercent ?? 0, secondaryUsedPercent ?? 0) >= 90 {
-                return "Codex 경고 \(limits)"
-            }
-            return "Codex \(limits)"
-        }
-        if todayTokens > 0 { return "Codex \(formatCodexTokens(todayTokens))/d" }
-        if isWarning { return "Codex 주의" }
-        return "Codex 정상 \(todayCalls)/d"
+        if isWarning && todayTokens == 0 { return "Codex 주의" }
+        return "Codex \(formatCodexTokens(todayTokens))/d"
     }
 
     var statusLabel: String {

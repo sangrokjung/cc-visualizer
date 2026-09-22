@@ -202,14 +202,31 @@ export const TeamCodexPoolSchema = z.object({
   serverReachable: z.boolean(),
   serverPort: z.number().nullable(),
   currentAccount: z.string().nullable(),
+  // 아래 필드는 구 백엔드 응답에는 없다. optional로 두어 오래된 스냅샷도 그대로 렌더한다.
+  currentAccountUuid: z.string().nullable().optional(),
   switchThresholdPercent: z.number(),
   accounts: z.array(z.object({
     name: z.string(),
+    // CLI reauth가 대조하는 유일한 식별자. 없으면 재인증 버튼을 붙이지 않는다.
+    accountUuid: z.string().nullable().optional(),
     isCurrent: z.boolean(),
     enabled: z.boolean(),
     status: z.string(),
+    // 오류 사유(subscription-disabled | subscription-ended | auth-revoked | auth-rejected | refresh-failed | send-failed)
+    errorReason: z.string().nullable().optional(),
+    // 프록시가 직접 내린 "지금 쓸 수 있다" 판정. null이면 화면이 자체 판정으로 내려간다.
+    usable: z.boolean().nullable().optional(),
+    accountType: z.string().nullable().optional(),
+    provider: z.string().nullable().optional(),
+    planType: z.string().nullable().optional(),
+    subscription: z.object({
+      state: z.string().nullable(),
+      endsAt: z.string().nullable(),
+    }).nullable().optional(),
     sessionPercent: z.number().nullable(),
+    sessionResetAt: z.string().nullable().optional(),
     weeklyPercent: z.number().nullable(),
+    weeklyResetAt: z.string().nullable().optional(),
     inflight: z.number(),
     maxConcurrent: z.number(),
     totalRequests: z.number(),

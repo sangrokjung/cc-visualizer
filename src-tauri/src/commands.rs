@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::io::Write;
 use tauri::Manager;
 
 fn home_dir() -> PathBuf {
@@ -496,6 +497,17 @@ fn ms_to_iso(ms: i64) -> String {
         .unwrap_or_else(|| "invalid".to_string())
 }
 
+/// 프록시는 초기화·구독 종료 시각을 epoch(초 또는 밀리초) 숫자나 ISO8601 문자열로 준다.
+/// 화면은 ISO8601 하나만 다루므로 여기서 단위를 통일한다.
+fn timestamp_to_iso(value: Option<&serde_json::Value>) -> Option<String> {
+    let raw = parse_time_ms(value)?;
+    if raw <= 0 {
+        return None;
+    }
+    let ms = if raw < 10_000_000_000 { raw * 1000 } else { raw };
+    chrono::DateTime::<chrono::Utc>::from_timestamp_millis(ms).map(|dt| dt.to_rfc3339())
+}
+
 fn round1(n: f64) -> f64 {
     (n * 10.0).round() / 10.0
 }
@@ -824,6 +836,10 @@ fn summarize_teamcodex_pool(
     let current_account = status
         .and_then(|v| v.get("currentAccount"))
         .and_then(|v| v.as_str());
+    let current_account_uuid = status
+        .and_then(|v| v.get("currentAccountUuid"))
+        .and_then(|v| v.as_str())
+        .filter(|v| !v.is_empty());
     let switch_threshold = json_f64(status.and_then(|v| v.get("switchThreshold")))
         .or_else(|| json_f64(config.and_then(|v| v.get("switchThreshold"))))
         .unwrap_or(0.98);
@@ -846,18 +862,42 @@ fn summarize_teamcodex_pool(
                     }
                     let quota = account.get("quota");
                     let usage = account.get("usage");
+                    let subscription = account.get("subscription");
                     let input_tokens = json_u64(usage.and_then(|v| v.get("totalInputTokens")))
                         .unwrap_or(0);
                     let output_tokens = json_u64(usage.and_then(|v| v.get("totalOutputTokens")))
                         .unwrap_or(0);
+                    // CLI reauth는 accountUuid만 대조한다. accountId로 대신 채우면 거부당한다.
+                    let account_uuid = account
+                        .get("accountUuid")
+                        .and_then(|v| v.as_str())
+                        .map(str::trim)
+                        .filter(|v| !v.is_empty());
+                    let is_current = match (current_account_uuid, account_uuid) {
+                        (Some(current), Some(uuid)) => current == uuid,
+                        _ => current_account == Some(name),
+                    };
 
                     Some(serde_json::json!({
                         "name": name,
-                        "isCurrent": current_account == Some(name),
+                        "accountUuid": account_uuid,
+                        "isCurrent": is_current,
                         "enabled": account.get("enabled").and_then(|v| v.as_bool()).unwrap_or(true),
                         "status": account.get("status").and_then(|v| v.as_str()).unwrap_or("configured"),
+                        "errorReason": account.get("errorReason").and_then(|v| v.as_str()),
+                        // 프록시가 직접 내린 판정. 없으면 null로 두고 화면이 자체 판정으로 내려간다.
+                        "usable": account.get("usable").and_then(|v| v.as_bool()),
+                        "accountType": account.get("type").and_then(|v| v.as_str()),
+                        "provider": account.get("provider").and_then(|v| v.as_str()),
+                        "planType": account.get("planType").and_then(|v| v.as_str()),
+                        "subscription": {
+                            "state": subscription.and_then(|v| v.get("state")).and_then(|v| v.as_str()),
+                            "endsAt": timestamp_to_iso(subscription.and_then(|v| v.get("endsAt")))
+                        },
                         "sessionPercent": json_f64(quota.and_then(|v| v.get("unified5h"))).map(|v| round1(v * 100.0)),
+                        "sessionResetAt": timestamp_to_iso(quota.and_then(|v| v.get("unified5hReset"))),
                         "weeklyPercent": json_f64(quota.and_then(|v| v.get("unified7d"))).map(|v| round1(v * 100.0)),
+                        "weeklyResetAt": timestamp_to_iso(quota.and_then(|v| v.get("unified7dReset"))),
                         "inflight": json_u64(account.get("inflight")).unwrap_or(0),
                         "maxConcurrent": json_u64(account.get("maxConcurrent")).unwrap_or(0),
                         "totalRequests": json_u64(usage.and_then(|v| v.get("totalRequests"))).unwrap_or(0),
@@ -873,6 +913,7 @@ fn summarize_teamcodex_pool(
         "serverReachable": status_reachable,
         "serverPort": port,
         "currentAccount": current_account,
+        "currentAccountUuid": current_account_uuid,
         "switchThresholdPercent": round1(switch_threshold * 100.0),
         "accounts": accounts
     })
@@ -891,12 +932,36 @@ fn fetch_live_teamcodex_status(
             )
         })
         .ok_or_else(|| "missing port".to_string())?;
+    let api_key = config
+        .and_then(|v| v.get("proxy"))
+        .and_then(|p| p.get("apiKey"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     let url = format!("http://127.0.0.1:{}/teamclaude/status", port);
-    let output = Command::new("curl")
-        .args(["-sS", "--max-time", "3", &url])
+    let mut command = Command::new("curl");
+    command.args(["-q", "--noproxy", "*", "-sS", "--max-time", "3"]);
+    if !api_key.is_empty() {
+        // 계정 이름·accountUuid는 identity 헤더가 있을 때만 내려온다.
+        // 헤더 없이 받은 응답에는 name이 없어 화면이 계정을 한 줄도 그리지 못한다.
+        if api_key.chars().any(|c| c.is_control()) {
+            return Err("invalid status credential".to_string());
+        }
+        command.args(["--header", "@-"]);
+        command.arg("-H").arg("x-teamcodex-status-identity: 1");
+    }
+    let mut child = command
+        .arg(url)
         .env("PATH", "/usr/bin:/bin:/opt/homebrew/bin:/usr/local/bin")
-        .output()
-        .map_err(|_| "curl unavailable".to_string())?;
+        .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null())
+        .spawn().map_err(|_| "curl unavailable".to_string())?;
+    if let Some(mut stdin) = child.stdin.take() {
+        if !api_key.is_empty() && writeln!(stdin, "x-api-key: {}", api_key).is_err() {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err("status credential unavailable".to_string());
+        }
+    }
+    let output = child.wait_with_output().map_err(|_| "status request failed".to_string())?;
 
     if !output.status.success() {
         return Err("status endpoint unreachable".to_string());
@@ -954,6 +1019,275 @@ pub async fn fetch_teamcodex_pool() -> serde_json::Value {
         server.as_ref(),
         live_status.is_ok(),
     )
+}
+
+// -- Codex 계정 되돌리기(다시 켜기 / 재인증) --------------------------------
+// 렌더러에서 임의 명령 문자열을 받지 않는다. 받는 값은 동작 이름·계정 이름·accountUuid 셋뿐이고
+// argv는 전부 여기서 조립한다. 실행 전에 그 계정이 설정 파일이나 라이브 status에 실재하는지 확인한다.
+
+#[derive(Debug, PartialEq)]
+struct TeamcodexAccountCommand {
+    args: Vec<String>,
+    /// 실행 중 서버에 즉시 반영되지 않는 동작. 화면이 재시작 안내를 함께 띄운다.
+    needs_restart: bool,
+}
+
+/// 셸·AppleScript 경로를 지나도 새 명령이 되지 않을 이름만 통과시킨다.
+/// 인용은 아래 `shell_quote`가 따로 하고, 이 검사는 그 앞단의 두 번째 자물쇠다.
+fn is_safe_teamcodex_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 200
+        && !name.chars().any(|c| {
+            c.is_control() || matches!(c, '\'' | '"' | '`' | '\\' | '$' | ';' | '&' | '|')
+        })
+}
+
+fn is_uuid_like(value: &str) -> bool {
+    value.len() == 36
+        && value.chars().enumerate().all(|(index, c)| match index {
+            8 | 13 | 18 | 23 => c == '-',
+            _ => c.is_ascii_hexdigit(),
+        })
+}
+
+fn resolve_teamcodex_account_command(
+    config: Option<&serde_json::Value>,
+    status: Option<&serde_json::Value>,
+    action: &str,
+    name: &str,
+    account_uuid: Option<&str>,
+) -> Result<TeamcodexAccountCommand, String> {
+    let name = name.trim();
+    if !is_safe_teamcodex_name(name) {
+        return Err("계정 이름이 올바르지 않습니다.".to_string());
+    }
+    let account_uuid = account_uuid.map(str::trim).filter(|v| !v.is_empty());
+    if let Some(uuid) = account_uuid {
+        if !is_uuid_like(uuid) {
+            return Err("계정 식별자 형식이 올바르지 않습니다.".to_string());
+        }
+    }
+
+    // CLI는 disk config를 수정한다. status에만 남은 계정이나 중복 이름은 실행하지 않는다.
+    let configured = config
+        .and_then(|v| v.get("accounts"))
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| "계정 설정을 읽지 못했습니다.".to_string())?;
+    let matches: Vec<_> = configured.iter()
+        .filter(|row| row.get("name").and_then(|v| v.as_str()) == Some(name))
+        .collect();
+    if matches.len() != 1 {
+        return Err("계정 이름이 없거나 중복됩니다. 설정을 확인하세요.".to_string());
+    }
+    let config_row = matches[0];
+    let known_uuid = config_row.get("accountUuid").and_then(|v| v.as_str());
+    if let Some(requested) = account_uuid {
+        if known_uuid != Some(requested) {
+            return Err("계정 식별자가 설정과 일치하지 않습니다.".to_string());
+        }
+    }
+    let status_row = status
+        .and_then(|v| v.get("accounts"))
+        .and_then(|v| v.as_array())
+        .and_then(|rows| rows.iter().find(|row| {
+            match known_uuid {
+                Some(uuid) => row.get("accountUuid").and_then(|v| v.as_str()) == Some(uuid),
+                None => row.get("name").and_then(|v| v.as_str()) == Some(name),
+            }
+        }));
+    let rows: Vec<_> = std::iter::once(config_row).chain(status_row).collect();
+    if config_row.get("type").and_then(|v| v.as_str()) != Some("oauth") {
+        return Err("OAuth 계정만 복구할 수 있습니다.".to_string());
+    }
+    let provider = config.and_then(|v| v.get("provider")).and_then(|v| v.as_str())
+        .or_else(|| config_row.get("provider").and_then(|v| v.as_str()));
+    if provider != Some("codex")
+        || config_row.get("provider").and_then(|v| v.as_str()).is_some_and(|v| v != "codex")
+    {
+        return Err("Codex 풀 계정만 복구할 수 있습니다.".to_string());
+    }
+    if rows.iter().any(|row| {
+        row.get("errorReason").and_then(|v| v.as_str()) == Some("subscription-ended")
+            || row.pointer("/subscription/state").and_then(|v| v.as_str()) == Some("ended")
+    }) {
+        return Err("구독이 종료된 계정입니다.".to_string());
+    }
+
+    match action {
+        "enable" => Ok(TeamcodexAccountCommand {
+            // CLI enable은 이름으로만 계정을 찾는다(--account-uuid 플래그가 없다).
+            args: vec!["codex".to_string(), "enable".to_string(), name.to_string()],
+            needs_restart: true,
+        }),
+        "reauth" => {
+            // CLI reauth는 꺼 둔 계정을 거부한다. 실패할 명령을 터미널에 띄우지 않는다.
+            if rows
+                .iter()
+                .any(|row| row.get("enabled").and_then(|v| v.as_bool()) == Some(false))
+            {
+                return Err("꺼 둔 계정입니다. 먼저 다시 켜야 합니다.".to_string());
+            }
+            if rows.iter().any(|row| {
+                row.get("subscriptionDisabled").and_then(|v| v.as_bool()) == Some(true)
+                    || matches!(row.get("errorReason").and_then(|v| v.as_str()),
+                        Some("subscription-disabled" | "send-failed"))
+            }) {
+                return Err("재인증으로 복구할 수 없는 상태입니다.".to_string());
+            }
+            let uuid = account_uuid
+                .filter(|uuid| Some(*uuid) == known_uuid && is_uuid_like(uuid))
+                .ok_or_else(|| "설정과 일치하는 계정 식별자가 필요합니다.".to_string())?;
+            if configured.iter().filter(|row| {
+                row.get("accountUuid").and_then(|v| v.as_str()) == Some(uuid)
+            }).count() != 1 {
+                return Err("계정 식별자가 중복됩니다.".to_string());
+            }
+            Ok(TeamcodexAccountCommand {
+                args: vec![
+                    "codex".to_string(),
+                    "reauth".to_string(),
+                    name.to_string(),
+                    "--account-uuid".to_string(),
+                    uuid.to_string(),
+                ],
+                needs_restart: false,
+            })
+        }
+        _ => Err("지원하지 않는 동작입니다.".to_string()),
+    }
+}
+
+fn is_executable_file(path: &PathBuf) -> bool {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::metadata(path)
+            .map(|meta| meta.is_file() && meta.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false)
+    }
+    #[cfg(not(unix))]
+    {
+        fs::metadata(path).map(|meta| meta.is_file()).unwrap_or(false)
+    }
+}
+
+/// codex 하위 명령은 teamcodex 진입점으로만 간다(menubar와 같은 후보 순서).
+fn resolve_teamcodex_bin() -> String {
+    let home = home_dir();
+    let mut candidates = vec![
+        home.join(".local/bin/teamcodex"),
+        home.join(".local/share/fnm/aliases/default/bin/teamcodex"),
+        PathBuf::from("/opt/homebrew/bin/teamcodex"),
+        PathBuf::from("/usr/local/bin/teamcodex"),
+    ];
+    if let Ok(entries) = fs::read_dir(home.join(".local/share/fnm/node-versions")) {
+        let mut installed: Vec<(PathBuf, std::time::SystemTime)> = entries
+            .filter_map(|entry| {
+                let path = entry.ok()?.path().join("installation/bin/teamcodex");
+                if !is_executable_file(&path) {
+                    return None;
+                }
+                let modified = fs::metadata(&path).ok()?.modified().ok()?;
+                Some((path, modified))
+            })
+            .collect();
+        installed.sort_by(|a, b| b.1.cmp(&a.1));
+        candidates.extend(installed.into_iter().map(|(path, _)| path));
+    }
+    for candidate in &candidates {
+        if is_executable_file(candidate) {
+            return candidate.to_string_lossy().to_string();
+        }
+    }
+    "teamcodex".to_string()
+}
+
+fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+fn applescript_escape(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+/// 터미널에 띄울 한 줄. 앱은 프록시를 대신 재시작하지 않는다.
+/// `codex enable`은 실행 중 서버에 라이브 반영되지 않아 CLI가 직접 재시작을 안내한다.
+fn teamcodex_terminal_script(executable: &str, config_path: &str, title: &str, args: &[String]) -> String {
+    let quoted_args: Vec<String> = args.iter().map(|arg| shell_quote(arg)).collect();
+    let restart_command = format!("/usr/bin/env {} {} codex restart",
+        shell_quote(&format!("TEAMCLAUDE_CONFIG={}", config_path)), shell_quote(executable));
+    let commands = vec![
+        "clear".to_string(),
+        format!("echo {}", shell_quote(&format!("TeamCodex: {}", title))),
+        format!("/usr/bin/env {} {} {}",
+            shell_quote(&format!("TEAMCLAUDE_CONFIG={}", config_path)),
+            shell_quote(executable), quoted_args.join(" ")),
+        "echo".to_string(),
+        format!(
+            "echo {}",
+            shell_quote(&format!("완료 후 위 실행 결과를 확인하세요. 반영되지 않으면 다음 명령으로 재시작하세요:\n{}", restart_command))
+        ),
+        format!(
+            "read -n 1 -s -r -p {}",
+            shell_quote("닫으려면 아무 키나 누르세요")
+        ),
+    ];
+    format!("/bin/bash -c {}", shell_quote(&commands.join("; ")))
+}
+
+#[tauri::command]
+pub async fn run_teamcodex_account_action(
+    action: String,
+    name: String,
+    account_uuid: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let home = home_dir();
+    let config_path = home.join(".config/teamcodex.json");
+    let config = read_json_if_exists(&config_path);
+    let server = read_json_if_exists(&home.join(".config/teamcodex.server.json"));
+    let live_status = fetch_live_teamcodex_status(config.as_ref(), server.as_ref()).ok();
+
+    let resolved = resolve_teamcodex_account_command(
+        config.as_ref(),
+        live_status.as_ref(),
+        action.as_str(),
+        name.as_str(),
+        account_uuid.as_deref(),
+    )?;
+
+    let title = if resolved.needs_restart {
+        "다시 켜기"
+    } else {
+        "재인증"
+    };
+    let script = teamcodex_terminal_script(
+        &resolve_teamcodex_bin(), &config_path.to_string_lossy(), title, &resolved.args,
+    );
+    let status = Command::new("/usr/bin/osascript")
+        .arg("-e")
+        .arg("tell application \"Terminal\" to activate")
+        .arg("-e")
+        .arg(format!(
+            "tell application \"Terminal\" to do script \"{}\"",
+            applescript_escape(&script)
+        ))
+        .status()
+        .map_err(|_| "터미널을 열지 못했습니다.".to_string())?;
+    if !status.success() {
+        return Err("터미널을 열지 못했습니다.".to_string());
+    }
+
+    let message = if resolved.needs_restart {
+        "터미널에서 다시 켜기 명령을 실행합니다. 반영되지 않으면 teamcodex codex restart가 필요합니다."
+    } else {
+        "터미널에서 재인증을 진행하세요. 로그인 창이 열립니다."
+    };
+    Ok(serde_json::json!({
+        "ok": true,
+        "action": action,
+        "needsRestart": resolved.needs_restart,
+        "message": message
+    }))
 }
 
 /// USD→KRW 환율 조회. open.er-api.com 무료 API(키 불필요)를 curl로 호출.
@@ -1206,7 +1540,14 @@ mod tests {
     fn teamcodex_pool_keeps_configured_accounts_when_server_is_offline() {
         let config = json!({
             "accounts": [
-                { "name": "codex-main", "enabled": true },
+                {
+                    "name": "codex-main",
+                    "enabled": true,
+                    "accountUuid": "11111111-1111-4111-8111-111111111111",
+                    "type": "oauth",
+                    "provider": "codex",
+                    "planType": "pro"
+                },
                 { "name": "codex-backup", "enabled": false }
             ],
             "proxy": { "port": 3457 }
@@ -1218,5 +1559,266 @@ mod tests {
         assert_eq!(pool["accounts"].as_array().map(Vec::len), Some(2));
         assert_eq!(pool["accounts"][0]["status"], "configured");
         assert_eq!(pool["accounts"][1]["enabled"], false);
+        // 라이브가 없을 때도 되돌리기에 필요한 신원 필드를 그대로 채운다.
+        assert_eq!(
+            pool["accounts"][0]["accountUuid"],
+            "11111111-1111-4111-8111-111111111111"
+        );
+        assert_eq!(pool["accounts"][0]["accountType"], "oauth");
+        assert_eq!(pool["accounts"][0]["provider"], "codex");
+        assert_eq!(pool["accounts"][0]["planType"], "pro");
+        // 프록시 판정이 없는 행은 usable을 null로 둔다(설정에 있다는 사실만으로 세지 않는다).
+        assert_eq!(pool["accounts"][0]["usable"], serde_json::Value::Null);
+        assert_eq!(pool["accounts"][0]["subscription"]["state"], serde_json::Value::Null);
+    }
+
+    fn codex_status_fixture() -> serde_json::Value {
+        json!({
+            "currentAccount": "codex-main",
+            "currentAccountUuid": "11111111-1111-4111-8111-111111111111",
+            "switchThreshold": 0.98,
+            "accounts": [
+                {
+                    "name": "codex-main",
+                    "accountUuid": "11111111-1111-4111-8111-111111111111",
+                    "accountId": "should-not-be-used",
+                    "type": "oauth",
+                    "provider": "codex",
+                    "planType": "pro",
+                    "status": "active",
+                    "enabled": true,
+                    "usable": true,
+                    "errorReason": null,
+                    "subscription": { "state": "active", "endsAt": null },
+                    "quota": {
+                        "unified5h": 0.27,
+                        "unified5hReset": 1789193524000i64,
+                        "unified7d": 0.4,
+                        "unified7dReset": 1789293524i64
+                    },
+                    "usage": { "totalInputTokens": 3, "totalOutputTokens": 4, "totalRequests": 9 },
+                    "inflight": 1,
+                    "maxConcurrent": 3
+                },
+                {
+                    "name": "codex-ended",
+                    "accountUuid": "22222222-2222-4222-8222-222222222222",
+                    "type": "oauth",
+                    "provider": "codex",
+                    "status": "error",
+                    "enabled": false,
+                    "usable": false,
+                    "errorReason": "subscription-ended",
+                    "subscription": { "state": "ended", "endsAt": "2026-08-30T00:00:00.000Z" },
+                    "quota": {},
+                    "usage": {},
+                    "inflight": 0,
+                    "maxConcurrent": 3
+                }
+            ]
+        })
+    }
+
+    #[test]
+    fn teamcodex_pool_exposes_recovery_fields() {
+        let status = codex_status_fixture();
+        let pool = summarize_teamcodex_pool(Some(&status), None, None, true);
+        let first = &pool["accounts"][0];
+        let second = &pool["accounts"][1];
+
+        assert_eq!(first["accountUuid"], "11111111-1111-4111-8111-111111111111");
+        assert_eq!(first["isCurrent"], true);
+        assert_eq!(first["usable"], true);
+        assert_eq!(first["accountType"], "oauth");
+        assert_eq!(first["provider"], "codex");
+        assert_eq!(first["planType"], "pro");
+        assert_eq!(first["subscription"]["state"], "active");
+        assert_eq!(first["subscription"]["endsAt"], serde_json::Value::Null);
+        // 밀리초·초 epoch 모두 ISO8601로 통일된다.
+        assert_eq!(first["sessionResetAt"], "2026-09-12T06:12:04+00:00");
+        assert_eq!(first["weeklyResetAt"], "2026-09-13T09:58:44+00:00");
+        assert_eq!(second["errorReason"], "subscription-ended");
+        assert_eq!(second["subscription"]["state"], "ended");
+        assert_eq!(second["subscription"]["endsAt"], "2026-08-30T00:00:00+00:00");
+        assert_eq!(second["isCurrent"], false);
+        assert_eq!(pool["currentAccountUuid"], "11111111-1111-4111-8111-111111111111");
+    }
+
+    #[test]
+    fn teamcodex_pool_falls_back_to_null_uuid_instead_of_account_id() {
+        let status = json!({
+            "accounts": [{ "name": "codex-main", "accountId": "acct_legacy", "status": "active" }]
+        });
+        let pool = summarize_teamcodex_pool(Some(&status), None, None, true);
+        assert_eq!(pool["accounts"][0]["accountUuid"], serde_json::Value::Null);
+    }
+
+    #[test]
+    fn teamcodex_action_builds_enable_argv_by_name_only() {
+        let mut config = codex_status_fixture();
+        config["accounts"][1]["errorReason"] = serde_json::Value::Null;
+        config["accounts"][1]["subscription"]["state"] = json!("active");
+        let resolved = resolve_teamcodex_account_command(
+            Some(&config),
+            None,
+            "enable",
+            "codex-ended",
+            Some("22222222-2222-4222-8222-222222222222"),
+        )
+        .expect("enable resolves");
+        assert_eq!(resolved.args, vec!["codex", "enable", "codex-ended"]);
+        assert!(resolved.needs_restart);
+    }
+
+    #[test]
+    fn teamcodex_action_builds_reauth_argv_with_uuid() {
+        let config = codex_status_fixture();
+        let resolved = resolve_teamcodex_account_command(
+            Some(&config),
+            None,
+            "reauth",
+            "codex-main",
+            Some("11111111-1111-4111-8111-111111111111"),
+        )
+        .expect("reauth resolves");
+        assert_eq!(
+            resolved.args,
+            vec![
+                "codex",
+                "reauth",
+                "codex-main",
+                "--account-uuid",
+                "11111111-1111-4111-8111-111111111111"
+            ]
+        );
+        assert!(!resolved.needs_restart);
+    }
+
+    #[test]
+    fn teamcodex_action_rejects_unknown_and_unsafe_input() {
+        let config = codex_status_fixture();
+
+        assert!(resolve_teamcodex_account_command(
+            Some(&config),
+            None,
+            "enable",
+            "codex-unknown",
+            None
+        )
+        .is_err());
+        assert!(resolve_teamcodex_account_command(
+            Some(&config),
+            None,
+            "restart",
+            "codex-main",
+            None
+        )
+        .is_err());
+        assert!(resolve_teamcodex_account_command(
+            Some(&config),
+            None,
+            "enable",
+            "codex-main'; rm -rf ~",
+            None
+        )
+        .is_err());
+        // uuid가 설정과 다르면 자격증명을 덮어쓰는 명령을 만들지 않는다.
+        assert!(resolve_teamcodex_account_command(
+            Some(&config),
+            None,
+            "reauth",
+            "codex-main",
+            Some("33333333-3333-4333-8333-333333333333")
+        )
+        .is_err());
+        assert!(resolve_teamcodex_account_command(
+            Some(&config),
+            None,
+            "reauth",
+            "codex-main",
+            Some("not-a-uuid")
+        )
+        .is_err());
+        // 꺼 둔 계정 재인증은 CLI가 거부한다. 여기서 먼저 막는다.
+        assert!(resolve_teamcodex_account_command(
+            Some(&config),
+            None,
+            "reauth",
+            "codex-ended",
+            Some("22222222-2222-4222-8222-222222222222")
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn teamcodex_action_rejects_ambiguous_or_stale_identity() {
+        let original = codex_status_fixture();
+        let uuid = "11111111-1111-4111-8111-111111111111";
+        let resolve = |config: &serde_json::Value, action| {
+            resolve_teamcodex_account_command(Some(config), Some(&original), action,
+                "codex-main", Some(uuid))
+        };
+        let mut duplicate = original.clone();
+        let row = duplicate["accounts"][0].clone();
+        duplicate["accounts"].as_array_mut().unwrap().push(row);
+        assert!(resolve(&duplicate, "enable").is_err());
+        assert!(resolve(&duplicate, "reauth").is_err());
+        let mut legacy = original.clone();
+        legacy["accounts"][0].as_object_mut().unwrap().remove("accountUuid");
+        assert!(resolve(&legacy, "reauth").is_err());
+        assert!(resolve(&json!({"accounts": []}), "enable").is_err());
+        assert!(resolve_teamcodex_account_command(None, Some(&original), "enable",
+            "codex-main", Some(uuid)).is_err());
+        let mut wrong_provider = original.clone();
+        wrong_provider["provider"] = json!("anthropic");
+        assert!(resolve(&wrong_provider, "reauth").is_err());
+        let mut missing_type = original.clone();
+        missing_type["accounts"][0].as_object_mut().unwrap().remove("type");
+        assert!(resolve(&missing_type, "reauth").is_err());
+        for reason in ["subscription-disabled", "subscription-ended", "send-failed"] {
+            let mut blocked = original.clone();
+            blocked["accounts"][0]["errorReason"] = json!(reason);
+            assert!(resolve(&blocked, "reauth").is_err());
+        }
+    }
+
+    #[test]
+    fn teamcodex_terminal_script_runs_in_bash_from_zsh() {
+        let script = teamcodex_terminal_script("/usr/bin/printf", "/tmp/test-config.json", "재인증",
+            &["%s".to_string(), "argument with ' quote; $(false)".to_string()]);
+        let output = Command::new("/bin/zsh").args(["-c", &script])
+            .env("TERM", "dumb").stdin(Stdio::null()).output().unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stdout.contains("argument with ' quote; $(false)"));
+        assert!(!stderr.contains("bad option"));
+        assert!(!stderr.contains("no coprocess"));
+    }
+
+    #[test]
+    fn teamcodex_terminal_uses_the_validated_config_despite_shell_environment() {
+        let expected = "/tmp/config with ' quote.json";
+        let script = teamcodex_terminal_script("/usr/bin/printenv", expected, "검증",
+            &["TEAMCLAUDE_CONFIG".to_string()]);
+        let output = Command::new("/bin/zsh").args(["-c", &script])
+            .env("TERM", "dumb").env("TEAMCLAUDE_CONFIG", "/tmp/wrong-pool.json")
+            .env("XDG_CONFIG_HOME", "/tmp/wrong-home").stdin(Stdio::null()).output().unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains(expected));
+        assert!(!stdout.contains("wrong-pool"));
+    }
+
+    #[test]
+    fn teamcodex_terminal_script_quotes_every_argument() {
+        let script = teamcodex_terminal_script(
+            "/Users/x/.local/bin/teamcodex",
+            "/Users/x/.config/teamcodex.json",
+            "다시 켜기",
+            &["codex".to_string(), "enable".to_string(), "a b".to_string()],
+        );
+        assert!(script.starts_with("/bin/bash -c "));
+        assert!(script.contains("a b"));
+        assert!(script.contains("codex restart"));
+        assert!(!script.contains("launchctl"));
     }
 }

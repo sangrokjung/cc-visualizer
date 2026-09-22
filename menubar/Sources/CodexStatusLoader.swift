@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 func loadCodexConfigSummary(path: String) -> CodexConfigSummary {
     guard let text = try? String(contentsOfFile: path, encoding: .utf8) else {
@@ -63,6 +64,8 @@ private struct CodexSessionFileStats: Codable {
     var byProfile: [String: CodexMutableProfile] = [:]
     var currentModel = "Codex"
     var lastCumulativeTotal: Int?
+    var seenQuotaEventKeys: Set<String> = []
+    var seenLastUsageEventKeys: Set<String> = []
     var parsedBytes: Int64 = 0
 }
 
@@ -86,12 +89,12 @@ private struct CodexPersistentFileCache: Codable {
     let entries: [String: CodexPersistentFileCacheEntry]
 }
 
-private let codexPersistentFileCacheVersion = 1
+private let codexPersistentFileCacheVersion = 3
 
 private func codexPersistentFileCacheURL() -> URL {
     URL(fileURLWithPath: NSHomeDirectory())
         .appendingPathComponent(".codex/cache", isDirectory: true)
-        .appendingPathComponent("cc-menubar-session-stats-v1.json")
+        .appendingPathComponent("cc-menubar-session-stats-v3.json")
 }
 
 private func loadCodexPersistentFileCacheIfNeeded(dayKey: String) {
@@ -211,7 +214,7 @@ func loadCodexCallStats(path: String) -> CodexCallStats {
         totalCalls += 1
         if isToday { todayCalls += 1 }
         if isWeek { weekCalls += 1 }
-        if isWeek, isQuota { quotaEvents += 1 }
+        if isWeek, isQuota, codexString(obj["limit_id"]) == "codex" { quotaEvents += 1 }
         if isWeek, isError { errorEvents += 1 }
 
         var row = byProfile[profile] ?? CodexMutableProfile()
@@ -333,15 +336,18 @@ private func forEachCodexSessionInterestingLine(url: URL, startOffset: Int64, _ 
         return startOffset
     }
 
-    let newline = UInt8(10)
+    let newline = Data([0x0A])
     var buffer = Data()
     var consumedOffset = startOffset
     while true {
         let chunk = handle.readData(ofLength: 64 * 1024)
         if chunk.isEmpty { break }
+        let previousCount = buffer.count
         buffer.append(chunk)
+        var searchStart = buffer.startIndex + previousCount
 
-        while let newlineIndex = buffer.firstIndex(of: newline) {
+        while let newlineRange = buffer.range(of: newline, in: searchStart..<buffer.endIndex) {
+            let newlineIndex = newlineRange.lowerBound
             let lineRange = buffer.startIndex..<newlineIndex
             let hasTokenCount = buffer.range(of: codexTokenCountNeedle, options: [], in: lineRange) != nil
             let hasTurnContext = buffer.range(of: codexTurnContextNeedle, options: [], in: lineRange) != nil
@@ -355,6 +361,7 @@ private func forEachCodexSessionInterestingLine(url: URL, startOffset: Int64, _ 
             let consumed = buffer.distance(from: buffer.startIndex, to: newlineIndex) + 1
             buffer.removeFirst(consumed)
             consumedOffset += Int64(consumed)
+            searchStart = buffer.startIndex
         }
     }
     return consumedOffset
@@ -365,16 +372,9 @@ private func codexTokenTotal(_ usage: [String: Any]?) -> Int {
     if let total = codexInt(usage["total_tokens"]) {
         return total
     }
-    return [
-        "input_tokens",
-        "cached_input_tokens",
-        "cache_creation_input_tokens",
-        "cache_read_input_tokens",
-        "output_tokens",
-        "reasoning_output_tokens",
-    ].reduce(0) { partial, key in
-        partial + (codexInt(usage[key]) ?? 0)
-    }
+    let input = codexInt(usage["input_tokens"]) ?? codexInt(usage["cached_input_tokens"]) ?? 0
+    let output = codexInt(usage["output_tokens"]) ?? codexInt(usage["reasoning_output_tokens"]) ?? 0
+    return input + output
 }
 
 private func scanCodexSessionFile(
@@ -407,41 +407,72 @@ private func scanCodexSessionFile(
         let date = parseCodexDate(obj["timestamp"])
         let info = payload["info"] as? [String: Any]
         let totalUsage = info?["total_token_usage"] as? [String: Any]
-        if let cumulativeTotal = codexInt(totalUsage?["total_tokens"]) {
+        if let rate = payload["rate_limits"] as? [String: Any],
+           codexString(rate["limit_id"]) == "codex",
+           let date,
+           stats.latestRateAt == nil || date >= stats.latestRateAt! {
+            stats.latestRateAt = date
+            stats.planType = codexString(rate["plan_type"]) ?? stats.planType
+            let primary = rate["primary"] as? [String: Any]
+            let secondary = rate["secondary"] as? [String: Any]
+            stats.primaryUsedPercent = codexDouble(primary?["used_percent"])
+            stats.primaryResetAt = parseCodexDate(primary?["resets_at"])
+            stats.secondaryUsedPercent = codexDouble(secondary?["used_percent"])
+            stats.secondaryResetAt = parseCodexDate(secondary?["resets_at"])
+        }
+        let isToday = date.map { calendar.isDateInToday($0) } ?? false
+        let isWeek = date.map { $0 >= weekStart } ?? false
+        let rawModel = currentModel.isEmpty ? "Codex" : currentModel
+        let profile = safeCodexLabel(codexShortenModelName(rawModel))
+        var verdict = "ok"
+        if payload["rate_limits"] is [String: Any] {
+            stats.byProfile[profile] = stats.byProfile[profile] ?? CodexMutableProfile()
+        }
+        if let rate = payload["rate_limits"] as? [String: Any],
+           let reached = codexString(rate["rate_limit_reached_type"]), !reached.isEmpty {
+            verdict = "pass_quota"
+            let limit = codexString(rate["limit_id"]) ?? "unlabeled"
+            let eventKey = "\(limit)|\(codexString(obj["timestamp"]) ?? "undated")|\(rawModel)|\(reached)"
+            if stats.seenQuotaEventKeys.insert(eventKey).inserted {
+                if isWeek, let date {
+                    if limit == "codex" { stats.quotaEvents += 1 }
+                    var row = stats.byProfile[profile] ?? CodexMutableProfile()
+                    row.quotaEvents += 1
+                    if row.lastAt == nil || date >= row.lastAt! {
+                        row.lastAt = date
+                        row.lastVerdict = verdict
+                    }
+                    stats.byProfile[profile] = row
+                }
+            }
+        }
+        let usageKeys = ["total_tokens", "input_tokens", "output_tokens", "cached_input_tokens", "reasoning_output_tokens"]
+        let lastUsage = info?["last_token_usage"] as? [String: Any]
+        guard usageKeys.contains(where: { codexInt(totalUsage?[$0]) != nil || codexInt(lastUsage?[$0]) != nil }) else { return }
+        let previousCumulativeTotal = lastCumulativeTotal ?? 0
+        let hasCumulativeUsage = usageKeys.contains { codexInt(totalUsage?[$0]) != nil }
+        if !hasCumulativeUsage, date != nil,
+           let encoded = try? JSONSerialization.data(withJSONObject: ["model": currentModel, "event": obj], options: [.sortedKeys]) {
+            let eventKey = SHA256.hash(data: encoded).map { String(format: "%02x", $0) }.joined()
+            guard stats.seenLastUsageEventKeys.insert(eventKey).inserted else { return }
+        }
+        if let totalUsage, hasCumulativeUsage {
+            let cumulativeTotal = codexTokenTotal(totalUsage)
             if let last = lastCumulativeTotal, cumulativeTotal <= last {
                 return
             }
             lastCumulativeTotal = cumulativeTotal
         }
 
-        let lastUsage = (info?["last_token_usage"] as? [String: Any]) ?? totalUsage
-        let tokens = codexTokenTotal(lastUsage)
-        let isToday = date.map { calendar.isDateInToday($0) } ?? false
-        let isWeek = date.map { $0 >= weekStart } ?? false
-        let rawModel = currentModel.isEmpty ? "Codex" : currentModel
-        let profile = safeCodexLabel(codexShortenModelName(rawModel))
-        var verdict = "ok"
-
-        if let rate = payload["rate_limits"] as? [String: Any] {
-            if let reached = codexString(rate["rate_limit_reached_type"]), !reached.isEmpty {
-                verdict = "pass_quota"
-                if isWeek { stats.quotaEvents += 1 }
-            }
-            let rateDate = date ?? stats.latestRateAt ?? Date.distantPast
-            if stats.latestRateAt == nil || rateDate >= stats.latestRateAt! {
-                stats.latestRateAt = rateDate
-                stats.planType = codexString(rate["plan_type"]) ?? stats.planType
-                if let primary = rate["primary"] as? [String: Any] {
-                    stats.primaryUsedPercent = codexDouble(primary["used_percent"])
-                    stats.primaryResetAt = parseCodexDate(primary["resets_at"])
-                }
-                if let secondary = rate["secondary"] as? [String: Any] {
-                    stats.secondaryUsedPercent = codexDouble(secondary["used_percent"])
-                    stats.secondaryResetAt = parseCodexDate(secondary["resets_at"])
-                }
-            }
+        let tokens: Int
+        if let lastUsage, usageKeys.contains(where: { codexInt(lastUsage[$0]) != nil }) {
+            tokens = codexTokenTotal(lastUsage)
+        } else {
+            tokens = max(0, codexTokenTotal(totalUsage) - previousCumulativeTotal)
         }
-
+        if !hasCumulativeUsage {
+            lastCumulativeTotal = previousCumulativeTotal + tokens
+        }
         stats.totalCalls += 1
         stats.totalTokens += tokens
         if isToday {
@@ -463,7 +494,6 @@ private func scanCodexSessionFile(
         if isWeek {
             row.weekCalls += 1
             row.weekTokens += tokens
-            if verdict == "pass_quota" { row.quotaEvents += 1 }
         }
         if let date = date, stats.lastCallAt == nil || date > stats.lastCallAt! {
             stats.lastCallAt = date
@@ -673,7 +703,7 @@ func loadCodexHealth() -> CodexHealth {
     let lastRefresh = parseCodexDate(auth?["last_refresh"])
     let config = loadCodexConfigSummary(path: configPath)
     let sessionStats = loadCodexSessionStats(root: codexSessionsPath())
-    let stats = (sessionStats.totalCalls > 0 || sessionStats.primaryUsedPercent != nil || sessionStats.secondaryUsedPercent != nil)
+    let stats = (!sessionStats.profiles.isEmpty || sessionStats.primaryUsedPercent != nil || sessionStats.secondaryUsedPercent != nil)
         ? sessionStats
         : loadCodexCallStats(path: codexCallLogPath())
 
@@ -704,20 +734,15 @@ func loadCodexHealth() -> CodexHealth {
     if stats.scannedLogFiles == 0 {
         hints.append("Codex 세션 로그 없음")
     }
-    if stats.quotaEvents > 0 {
-        hints.append("최근 7일 쿼터 이벤트 \(stats.quotaEvents)회")
-    }
     if stats.errorEvents > 0 {
         hints.append("최근 7일 오류 이벤트 \(stats.errorEvents)회")
     }
-    if max(stats.primaryUsedPercent ?? 0, stats.secondaryUsedPercent ?? 0) >= 90 {
-        hints.append("Codex 제한 높음 \(formatCodexLimitPair(stats.primaryUsedPercent, stats.secondaryUsedPercent) ?? "-")")
-    }
+
 
     let status: String
     if authMalformed {
         status = "error"
-    } else if !authFileExists || (!hasApiKey && !hasTokens) || staleRefresh || stats.quotaEvents > 0 || stats.errorEvents > 0 || max(stats.primaryUsedPercent ?? 0, stats.secondaryUsedPercent ?? 0) >= 90 {
+    } else if !authFileExists || (!hasApiKey && !hasTokens) || staleRefresh || stats.errorEvents > 0 {
         status = "warning"
     } else {
         status = "ok"
@@ -747,10 +772,6 @@ func loadCodexHealth() -> CodexHealth {
         errorEvents: stats.errorEvents,
         lastCallAt: stats.lastCallAt,
         planType: stats.planType,
-        primaryUsedPercent: stats.primaryUsedPercent,
-        secondaryUsedPercent: stats.secondaryUsedPercent,
-        primaryResetAt: stats.primaryResetAt,
-        secondaryResetAt: stats.secondaryResetAt,
         scannedLogFiles: stats.scannedLogFiles,
         scannedLogBytes: stats.scannedLogBytes,
         profiles: stats.profiles,

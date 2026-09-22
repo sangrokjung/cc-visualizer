@@ -50,6 +50,10 @@ struct TeamCodexDashboardSourceTests {
             "Both TeamClaude renderers must share the canonical error-reason label"
         )
         precondition(
+            source.contains("사용 가능 계정:") && codexStatusView.contains("사용 가능 계정:"),
+            "Both account pools must show the names of currently usable accounts"
+        )
+        precondition(
             source.contains("teamClaudeCanReauthenticate(")
                 && source.contains("button.title = \"재인증 필요\"")
                 && source.contains("onReauthenticateTeamClaude"),

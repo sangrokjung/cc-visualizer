@@ -2073,7 +2073,7 @@ final class TeamClaudeTableView: NSView {
 }
 
 final class ServiceAvailabilitySummaryView: NSView {
-    static let preferredHeight: CGFloat = 240
+    static let preferredHeight: CGFloat = 396
 
     var teamClaude: TeamClaudeHealth? { didSet { refreshSummary() } }
     var teamCodex: TeamCodexPoolHealth? { didSet { refreshSummary() } }
@@ -2108,9 +2108,10 @@ final class ServiceAvailabilitySummaryView: NSView {
                 return account.isUsable(switchThresholdPercent: pool.switchThresholdPercent, now: evaluatedAt)
             }
             .map(\.name) ?? []
+        let opusNames = teamClaude?.opusAvailability(now: evaluatedAt) ?? []
         let claudeLabel = claudeNames.isEmpty ? "사용 가능 계정 없음" : claudeNames.joined(separator: " · ")
         let codexLabel = codexNames.isEmpty ? "사용 가능 계정 없음" : codexNames.joined(separator: " · ")
-        setAccessibilityLabel("사용 가능 현황, TeamClaude \(claudeNames.count)개 \(claudeLabel), TeamCodex \(codexNames.count)개 \(codexLabel)")
+        setAccessibilityLabel("사용 가능 현황, TeamClaude Fable \(claudeNames.count)개 \(claudeLabel), Opus \(opusNames.count)개 \(opusNames.joined(separator: " · ")), TeamCodex \(codexNames.count)개 \(codexLabel)")
         needsDisplay = true
     }
 
@@ -2176,19 +2177,24 @@ final class ServiceAvailabilitySummaryView: NSView {
         let columnWidth = (card.width - 32 - columnGap) / 2
         let namesClaude = namesForClaude()
         let namesCodex = namesForCodex()
+        let namesOpus = teamClaude?.opusAvailability(now: evaluatedAt) ?? []
         let claudeColor = statusColor(namesClaude.count, hasService: teamClaude != nil,
                                       reachable: teamClaude?.serverReachable ?? false)
         let codexColor = statusColor(namesCodex.count, hasService: teamCodex != nil,
                                      reachable: teamCodex?.serverReachable ?? false)
 
         let columns: [(String, [String], NSColor, String)] = [
-            ("TeamClaude", namesClaude, claudeColor,
+            ("TeamClaude · Fable", namesClaude, claudeColor,
              teamClaude == nil ? "연동되지 않음" : (teamClaude?.serverReachable == true ? "Fable 기준" : "서버 오프라인")),
+            ("TeamClaude · Opus", namesOpus, statusColor(namesOpus.count, hasService: teamClaude != nil, reachable: teamClaude?.serverReachable ?? false),
+             "일반 모델 · 세션 + 전체 주간 기준"),
             ("TeamCodex", namesCodex, codexColor,
              teamCodex == nil ? "연동되지 않음" : (teamCodex?.serverReachable == true ? "Codex 풀 기준" : "서버 오프라인"))
         ]
         for (index, column) in columns.enumerated() {
-            let x = card.minX + 16 + CGFloat(index) * (columnWidth + columnGap)
+            if columnWidth <= 0 { continue }
+            let x = card.minX + 16 + CGFloat(index % 2) * (columnWidth + columnGap)
+            let columnY = columnY + CGFloat(index / 2) * 156
             let rect = NSRect(x: x, y: columnY, width: columnWidth, height: 148)
             fillRound(rect, panel, 8)
             strokeRound(rect, column.2.withAlphaComponent(0.42), 8)
@@ -2196,14 +2202,10 @@ final class ServiceAvailabilitySummaryView: NSView {
             drawText(column.0, x + 32, columnY + 10, bodyFont, text)
             let countText = column.1.isEmpty ? "0개 사용 가능" : "\(column.1.count)개 사용 가능"
             drawText(countText, x + 14, columnY + 40, monoFont, column.2)
-            let paragraph = NSMutableParagraphStyle()
-            paragraph.lineBreakMode = .byTruncatingTail
             let names = column.1.isEmpty ? [column.3] : Array(column.1.prefix(2))
+            let nameColor = column.1.isEmpty ? muted : text
             for (row, name) in names.enumerated() {
-                name.draw(in: NSRect(x: x + 14, y: columnY + 84 + CGFloat(row) * 24,
-                                     width: columnWidth - 28, height: 24),
-                          withAttributes: [.font: smallFont, .foregroundColor: column.1.isEmpty ? muted : text,
-                                           .paragraphStyle: paragraph])
+                drawText(name, x + 14, columnY + 84 + CGFloat(row) * 24, smallFont, nameColor)
             }
             if column.1.count > 2 {
                 drawText("추가 계정은 아래 목록에서 확인", x + 14, columnY + 128,
@@ -2222,7 +2224,11 @@ final class StatusMenuDashboardView: NSView {
     private var summaryView: ServiceAvailabilitySummaryView?
     private var teamClaudeView: TeamClaudeTableView?
     private var codexView: CodexStatusView?
+    private var higgsfieldView: HiggsfieldCreditsView?
+    private var grokView: GrokQuotaCardView?
+    private var agyView: AgyQuotaCardView?
     private var usageView: UsageDashboardView?
+    private var renderedHiggsfieldHeight: CGFloat = 0
     private var renderedAccountCount = -1
     private var renderedTeamClaudePresent = false
     private var renderedCodexPresent = false
@@ -2246,12 +2252,17 @@ final class StatusMenuDashboardView: NSView {
         health == nil && teamCodex == nil ? 0 : CodexStatusView.preferredHeight(for: teamCodex)
     }
 
-    static func preferredHeight(teamClaude: TeamClaudeHealth?, codex: CodexHealth?, teamCodex: TeamCodexPoolHealth?, usage: UsageData?) -> CGFloat {
+    static func preferredHeight(teamClaude: TeamClaudeHealth?, codex: CodexHealth?, teamCodex: TeamCodexPoolHealth?, usage: UsageData?, higgsfield: HiggsfieldCreditsData? = nil) -> CGFloat {
         let team = teamHeight(teamClaude)
         let codex = codexHeight(codex, teamCodex: teamCodex)
         let usage = UsageDashboardView.preferredHeight(for: usage)
+        let higgs = HiggsfieldCreditsView.preferredHeight(for: higgsfield)
         let summary = ServiceAvailabilitySummaryView.preferredHeight
-        return 8 + summary + 4 + team + (team > 0 ? 4 : 0) + codex + (codex > 0 ? 4 : 0) + usage + 8
+        return 8 + summary + 4 + team + (team > 0 ? 4 : 0) + codex + (codex > 0 ? 4 : 0)
+            + higgs + (higgs > 0 ? 4 : 0)
+            + GrokQuotaCardView.fixedHeight + 4
+            + AgyQuotaCardView.fixedHeight + 4
+            + usage + 8
     }
 
     func configure(
@@ -2259,6 +2270,9 @@ final class StatusMenuDashboardView: NSView {
         codex: CodexHealth?,
         teamCodex: TeamCodexPoolHealth?,
         usage: UsageData?,
+        higgsfield: HiggsfieldCreditsData? = nil,
+        grok: GrokCardModel = GrokCardModel(headline: "Grok 확인 중", detail: nil),
+        agy: AgyCardModel = AgyCardModel(message: "agy 확인 중", groups: []),
         parallelCount: Int,
         active: Bool,
         isMeasuringTeamClaude: Bool,
@@ -2274,6 +2288,7 @@ final class StatusMenuDashboardView: NSView {
         renderedTeamCodexAccountCount = teamCodex?.accounts.count ?? 0
         renderedTeamCodexPresent = teamCodex != nil
         renderedUsageHeight = UsageDashboardView.preferredHeight(for: usage)
+        renderedHiggsfieldHeight = HiggsfieldCreditsView.preferredHeight(for: higgsfield)
         var y: CGFloat = 4
 
         let summary = ServiceAvailabilitySummaryView(frame: NSRect(x: 0, y: y, width: bounds.width, height: ServiceAvailabilitySummaryView.preferredHeight))
@@ -2324,6 +2339,29 @@ final class StatusMenuDashboardView: NSView {
             y += codexHeight + 4
         }
 
+        let higgsHeight = HiggsfieldCreditsView.preferredHeight(for: higgsfield)
+        if higgsHeight > 0 {
+            let higgsView = HiggsfieldCreditsView(frame: NSRect(x: 0, y: y, width: bounds.width, height: higgsHeight))
+            higgsView.data = higgsfield
+            addSubview(higgsView)
+            higgsfieldView = higgsView
+            y += higgsHeight + 4
+        } else {
+            higgsfieldView = nil
+        }
+
+        let grokCard = GrokQuotaCardView(frame: NSRect(x: 0, y: y, width: bounds.width, height: GrokQuotaCardView.fixedHeight))
+        grokCard.model = grok
+        addSubview(grokCard)
+        grokView = grokCard
+        y += GrokQuotaCardView.fixedHeight + 4
+
+        let agyCard = AgyQuotaCardView(frame: NSRect(x: 0, y: y, width: bounds.width, height: AgyQuotaCardView.fixedHeight))
+        agyCard.model = agy
+        addSubview(agyCard)
+        agyView = agyCard
+        y += AgyQuotaCardView.fixedHeight + 4
+
         let usageHeight = UsageDashboardView.preferredHeight(for: usage)
         let view = UsageDashboardView(frame: NSRect(x: 0, y: y, width: bounds.width, height: usageHeight))
         view.usage = usage
@@ -2338,6 +2376,9 @@ final class StatusMenuDashboardView: NSView {
         codex: CodexHealth?,
         teamCodex: TeamCodexPoolHealth?,
         usage: UsageData?,
+        higgsfield: HiggsfieldCreditsData? = nil,
+        grok: GrokCardModel = GrokCardModel(headline: "Grok 확인 중", detail: nil),
+        agy: AgyCardModel = AgyCardModel(message: "agy 확인 중", groups: []),
         parallelCount: Int,
         active: Bool,
         isMeasuringTeamClaude: Bool,
@@ -2355,13 +2396,17 @@ final class StatusMenuDashboardView: NSView {
             || (teamCodex?.accounts.count ?? 0) != renderedTeamCodexAccountCount
             || (teamCodex != nil) != renderedTeamCodexPresent
             || usageHeight != renderedUsageHeight
+            || HiggsfieldCreditsView.preferredHeight(for: higgsfield) != renderedHiggsfieldHeight
         if structureChanged {
-            frame.size.height = Self.preferredHeight(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage)
+            frame.size.height = Self.preferredHeight(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage, higgsfield: higgsfield)
             configure(
                 teamClaude: teamClaude,
                 codex: codex,
                 teamCodex: teamCodex,
                 usage: usage,
+                higgsfield: higgsfield,
+                grok: grok,
+                agy: agy,
                 parallelCount: parallelCount,
                 active: active,
                 isMeasuringTeamClaude: isMeasuringTeamClaude,
@@ -2392,6 +2437,9 @@ final class StatusMenuDashboardView: NSView {
         codexView?.pool = teamCodex
         codexView?.usage = usage
         codexView?.onRecover = onRecoverTeamCodex
+        higgsfieldView?.data = higgsfield
+        grokView?.model = grok
+        agyView?.model = agy
         usageView?.usage = usage
         usageView?.parallelCount = parallelCount
         usageView?.active = active
@@ -3334,6 +3382,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var currentTeamClaude: TeamClaudeHealth?
     var currentCodex: CodexHealth?
     var currentTeamCodex: TeamCodexPoolHealth?
+    var currentHiggsfield: HiggsfieldCreditsData?
+    private var isFetchingHiggsfield = false
+    private var lastHiggsfieldFetchedAt: Date?
+    var currentGrokSlot: String?
+    var currentGrokCard = GrokCardModel(headline: "Grok 확인 중", detail: nil)
+    private var isFetchingGrok = false
+    private var lastGrokFetchedAt: Date?
+    var grokTimer: Timer?
+    var currentAgyCard = AgyCardModel(message: "agy 확인 중", groups: [])
+    private var isFetchingAgy = false
+    private var lastAgyFetchedAt: Date?
+    private var agyHasValue = false
+    var agyTimer: Timer?
+    var cachedPulseImage: NSImage?
+    var cachedPulseKey: String?
+    var cachedComposedImage: NSImage?
+    var cachedComposedKey: String?
 
     // 롤링 상태
     var rollIndex = 0       // 현재 표시 중인 정보 슬롯
@@ -3416,6 +3481,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.loadUsageInBackground()
         }
         if let t = dataTimer { RunLoop.main.add(t, forMode: .common) }
+
+        grokTimer = Timer.scheduledTimer(withTimeInterval: grokUsageFetchInterval, repeats: true) { [weak self] _ in
+            self?.loadGrokUsageInBackground()
+        }
+        if let t = grokTimer { RunLoop.main.add(t, forMode: .common) }
+
+        agyTimer = Timer.scheduledTimer(withTimeInterval: agyUsageFetchInterval, repeats: true) { [weak self] _ in
+            self?.loadAgyUsageInBackground()
+        }
+        if let t = agyTimer { RunLoop.main.add(t, forMode: .common) }
     }
 
     // MARK: - Tick (1초마다 호출)
@@ -3495,12 +3570,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self = self, let button = self.statusItem?.button else { return }
 
             let slots = self.displaySlots()
-            let info = slots[self.rollIndex % slots.count]
+            let info = slots.isEmpty ? "Claude" : slots[self.rollIndex % slots.count]
             let activeMark = self.isActive ? " ⚡" : ""
-            let text = "\(info)\(activeMark)"
+            let text = self.currentGrokSlot.map { "\($0) · \(info)\(activeMark)" } ?? "\(info)\(activeMark)"
 
             // 좌측: 펄스 도트(활성=초록 숨쉬기, idle=회색 링) + 스파크라인 미니 차트
-            let pulseDot = makePulseDot(active: self.isActive, frame: self.pulseFrame)
+            // idle이거나 같은 프레임이면 이미지를 다시 그리지 않는다. 1초 tick의 lockFocus가 클릭을 밀지 않게.
+            let pulseKey = self.isActive ? "on-\(self.pulseFrame % self.pulseFramesActive.count)" : "idle"
+            if self.cachedPulseKey != pulseKey || self.cachedPulseImage == nil {
+                self.cachedPulseImage = makePulseDot(active: self.isActive, frame: self.pulseFrame)
+                self.cachedPulseKey = pulseKey
+            }
+            let pulseDot = self.cachedPulseImage ?? makePulseDot(active: self.isActive, frame: self.pulseFrame)
 
             // 합성 이미지: [펄스 도트][스파크라인] 가로 배치
             let dotW = pulseDot.size.width
@@ -3512,32 +3593,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
                 sparkline = self.cachedSparklineImage
             } else {
+                if !self.cachedSparklineCosts.isEmpty || self.cachedSparklineImage != nil {
+                    self.cachedSparklineCosts = []
+                    self.cachedSparklineImage = nil
+                }
                 sparkline = nil
             }
-            let sparkW = sparkline?.size.width ?? 0
-            let composedW = dotW + (sparkW > 0 ? 4 + sparkW : 0)
-            let composedH: CGFloat = 16
-
-            let composed = NSImage(size: NSSize(width: composedW, height: composedH))
-            composed.lockFocus()
-            pulseDot.draw(at: NSPoint(x: 0, y: (composedH - pulseDot.size.height) / 2), from: .zero, operation: .sourceOver, fraction: 1.0)
-            if let s = sparkline {
-                s.draw(at: NSPoint(x: dotW + 4, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            let composeKey = "\(pulseKey)|\(sparkline == nil ? "none" : "spark")|\(self.cachedSparklineCosts.map { String($0) }.joined(separator: ","))"
+            if self.cachedComposedKey != composeKey || self.cachedComposedImage == nil {
+                let sparkW = sparkline?.size.width ?? 0
+                let composedW = dotW + (sparkW > 0 ? 4 + sparkW : 0)
+                let composedH: CGFloat = 16
+                let composed = NSImage(size: NSSize(width: composedW, height: composedH))
+                composed.lockFocus()
+                pulseDot.draw(at: NSPoint(x: 0, y: (composedH - pulseDot.size.height) / 2), from: .zero, operation: .sourceOver, fraction: 1.0)
+                if let s = sparkline {
+                    s.draw(at: NSPoint(x: dotW + 4, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+                }
+                composed.unlockFocus()
+                composed.isTemplate = false
+                self.cachedComposedImage = composed
+                self.cachedComposedKey = composeKey
             }
-            composed.unlockFocus()
-            composed.isTemplate = false
 
-            button.image = composed
+            button.image = self.cachedComposedImage
             button.imagePosition = .imageLeading
             button.title = " \(text)"
+            let grokTip = self.currentGrokSlot.map { " · \($0)" } ?? ""
             if let health = self.currentTeamClaude {
                 let fable = health.fableKnown > 0 ? "Fable \(health.fableOver)/\(health.fableKnown)" : "Fable -"
                 let measurement = " · 측정 필요 \(health.measurementPendingCount) · 상태 확인 \(health.measurementUnavailableCount) · 한도 리셋 \(health.quotaLimitedCount)"
                 let integration = health.accountConfigDrift == 0 ? " · 계정 연동 정상" : " · 계정 연동 불일치 \(health.accountConfigDrift)"
                 let codex = self.currentCodex.map { " · codex \($0.statusLabel) · calls \($0.todayCalls)/\($0.weekCalls)" } ?? ""
-                button.toolTip = "Claude Code 사용량 · teamclaude \(health.statusLabel) · \(fable) · active \(health.accountActive)/\(max(health.accountTotal, health.accountConfigured))\(integration)\(measurement)\(codex)"
+                button.toolTip = "Claude Code 사용량 · teamclaude \(health.statusLabel) · \(fable) · active \(health.accountActive)/\(max(health.accountTotal, health.accountConfigured))\(integration)\(measurement)\(codex)\(grokTip)"
             } else if let codex = self.currentCodex {
-                button.toolTip = "Claude Code 사용량 · codex \(codex.statusLabel) · calls \(codex.todayCalls)/\(codex.weekCalls)"
+                button.toolTip = "Claude Code 사용량 · codex \(codex.statusLabel) · calls \(codex.todayCalls)/\(codex.weekCalls)\(grokTip)"
+            } else if let grok = self.currentGrokSlot {
+                button.toolTip = "Claude Code 사용량 · \(grok)"
             }
 
         }
@@ -3551,6 +3643,31 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updateActivity()
         loadFastStatusInBackground()
         loadUsageInBackground()
+        loadHiggsfieldInBackground()
+        loadGrokUsageInBackground(force: true)
+        loadAgyUsageInBackground(force: true)
+    }
+
+    /// 힉스필드 크레딧 조회. CLI 왕복이라 느릴 수 있어 단일 실행만 허용하고 10분 간격으로 제한한다.
+    /// 크레딧은 생성할 때만 움직여서 더 촘촘히 볼 이유가 없다.
+    func loadHiggsfieldInBackground(force: Bool = false) {
+        guard !isFetchingHiggsfield else { return }
+        if !force, let last = lastHiggsfieldFetchedAt, Date().timeIntervalSince(last) < 600 { return }
+        isFetchingHiggsfield = true
+
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let data = fetchHiggsfieldCredits()
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.isFetchingHiggsfield = false
+                self.lastHiggsfieldFetchedAt = Date()
+                // 실패해도 기존 데이터를 지우지 않는다(깜빡임 방지). 첫 조회 실패만 그대로 보여 준다.
+                if data.error == nil || self.currentHiggsfield == nil {
+                    self.currentHiggsfield = data
+                }
+                self.refreshOpenDashboard()
+            }
+        }
     }
 
     func refreshStatusOnly() {
@@ -3571,20 +3688,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func refreshOpenDashboard() {
-        if cachedDashboardView != nil, cachedDashboardItem != nil {
-            updateCachedMenuPresentation()
-            if openDashboardView != nil {
-                print("DASHBOARD-REFRESH: 열린 메뉴 최신 상태 반영")
-                fflush(stdout)
-            }
-            return
-        }
         guard let dashboard = cachedDashboardView ?? openDashboardView else { return }
         dashboard.updateContent(
             teamClaude: currentTeamClaude,
             codex: currentCodex,
             teamCodex: currentTeamCodex,
             usage: currentData,
+            higgsfield: currentHiggsfield,
+            grok: currentGrokCard,
+            agy: currentAgyCard,
             parallelCount: parallelCount,
             active: isActive,
             isMeasuringTeamClaude: isMeasuringTeamClaude,
@@ -3601,7 +3713,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if openDashboardView != nil {
             print("DASHBOARD-REFRESH: 열린 메뉴 최신 상태 반영")
             fflush(stdout)
+            return
         }
+        updateCachedMenuPresentation()
     }
 
     func loadInBackground() {
@@ -3613,6 +3727,75 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         loadTeamClaudeStatusInBackground()
         loadTeamCodexStatusInBackground()
         loadCodexStatusInBackground()
+    }
+
+    /// Grok 사용량은 클릭 경로에 붙이지 않는다. 60초에 한 번, 응답이 도착한 뒤에만 제목을 바꾼다.
+    func loadGrokUsageInBackground(force: Bool = false) {
+        guard !isFetchingGrok else { return }
+        if !force, let last = lastGrokFetchedAt, Date().timeIntervalSince(last) < grokUsageFetchInterval { return }
+        isFetchingGrok = true
+        fetchGrokMenuOutcome { [weak self] outcome in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isFetchingGrok = false
+                self.lastGrokFetchedAt = Date()
+                let slot: String
+                switch outcome {
+                case .percent(let outcome):
+                    self.currentGrokSlot = outcome.slot
+                    self.currentGrokCard = GrokCardModel(
+                        headline: outcome.slot,
+                        detail: grokCardDetail(product: outcome.productPercent, credit: outcome.creditPercent)
+                    )
+                    slot = outcome.slot
+                case .login:
+                    self.currentGrokSlot = "Grok 로그인"
+                    self.currentGrokCard = GrokCardModel(headline: "Grok 로그인", detail: nil)
+                    slot = "Grok 로그인"
+                case .unavailable:
+                    if self.currentGrokSlot == nil
+                        || self.currentGrokSlot == "Grok 로그인"
+                        || self.currentGrokSlot == "Grok 확인 중" {
+                        self.currentGrokSlot = "Grok 확인 필요"
+                        self.currentGrokCard = GrokCardModel(headline: "Grok 확인 필요", detail: nil)
+                    }
+                    slot = self.currentGrokSlot ?? "Grok 확인 필요"
+                }
+                print("GROK-SLOT: \(slot)")
+                fflush(stdout)
+                self.updateTitle()
+                self.refreshOpenDashboard()
+            }
+        }
+    }
+
+    /// agy 할당량도 클릭과 무관하게 60초에 한 번만 읽는다. 실패하면 마지막 정상 값을 유지한다.
+    func loadAgyUsageInBackground(force: Bool = false) {
+        guard !isFetchingAgy else { return }
+        if !force, let last = lastAgyFetchedAt, Date().timeIntervalSince(last) < agyUsageFetchInterval { return }
+        isFetchingAgy = true
+        fetchAgyUsage { [weak self] outcome in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isFetchingAgy = false
+                self.lastAgyFetchedAt = Date()
+                switch outcome {
+                case .missing:
+                    self.agyHasValue = false
+                    self.currentAgyCard = AgyCardModel(message: "agy 없음", groups: [])
+                case .ready(let groups):
+                    self.agyHasValue = true
+                    self.currentAgyCard = AgyCardModel(message: nil, groups: groups)
+                case .failed:
+                    if !self.agyHasValue {
+                        self.currentAgyCard = AgyCardModel(message: "agy 확인 필요", groups: [])
+                    }
+                }
+                print("AGY: \(agyLogLine(self.currentAgyCard))")
+                fflush(stdout)
+                self.refreshOpenDashboard()
+            }
+        }
     }
 
     func commitTeamClaudeHealth(_ candidate: TeamClaudeHealth, outageDuration: TimeInterval = 0) {
@@ -3971,6 +4154,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             codex: currentCodex,
             teamCodex: currentTeamCodex,
             usage: currentData,
+            higgsfield: currentHiggsfield,
+            grok: currentGrokCard,
+            agy: currentAgyCard,
             parallelCount: parallelCount,
             active: isActive,
             isMeasuringTeamClaude: isMeasuringTeamClaude,
@@ -3988,7 +4174,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             teamClaude: currentTeamClaude,
             codex: currentCodex,
             teamCodex: currentTeamCodex,
-            usage: currentData
+            usage: currentData,
+            higgsfield: currentHiggsfield
         )
         dashboard.frame.size.height = contentHeight
         let screenHeight = statusItem?.button?.window?.screen?.visibleFrame.height
@@ -4047,7 +4234,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
            cachedDashboardItem != nil,
            !menu.items.isEmpty {
             openDashboardView = cachedDashboardView
-            updateCachedMenuPresentation()
+            refreshMenuView?.detail = refreshMenuDetailText()
+            measureMenuView?.detail = measureMenuDetailText()
             loadFastStatusInBackground()
             return
         }
@@ -4055,7 +4243,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // 메뉴 열릴 때마다 최신 데이터로 항목 재구성
         menu.removeAllItems()
 
-        let dashboardContentHeight = StatusMenuDashboardView.preferredHeight(teamClaude: currentTeamClaude, codex: currentCodex, teamCodex: currentTeamCodex, usage: currentData)
+        let dashboardContentHeight = StatusMenuDashboardView.preferredHeight(teamClaude: currentTeamClaude, codex: currentCodex, teamCodex: currentTeamCodex, usage: currentData, higgsfield: currentHiggsfield)
         let screenHeight = statusItem?.button?.window?.screen?.visibleFrame.height
             ?? NSScreen.main?.visibleFrame.height
             ?? 900
@@ -4068,6 +4256,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             codex: currentCodex,
             teamCodex: currentTeamCodex,
             usage: currentData,
+            higgsfield: currentHiggsfield,
+            grok: currentGrokCard,
+            agy: currentAgyCard,
             parallelCount: parallelCount,
             active: isActive,
             isMeasuringTeamClaude: isMeasuringTeamClaude,
@@ -4195,6 +4386,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuDidClose(_ menu: NSMenu) {
         openDashboardView = nil
+        updateCachedMenuPresentation()
     }
 
     // MARK: - 액션

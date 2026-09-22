@@ -7,6 +7,18 @@ import {
   type TeamClaudeHealth,
   type TeamCodexPool,
 } from '../../lib/types'
+import {
+  codexAccountNote,
+  codexAccountRecovery,
+  codexAccountState,
+  codexAccountStateLabel,
+  formatResetRemaining,
+  isPermanentlyOut,
+  summarizeCodexPool,
+  type CodexAccountState,
+  type CodexPoolAccount,
+  type CodexRecoveryKind,
+} from './teamCodexPool'
 
 const C = {
   bg: '#111418',
@@ -57,19 +69,20 @@ function formatInteger(value: number): string {
   return new Intl.NumberFormat('ko-KR').format(value)
 }
 
-function codexStatusLabel(status: string, isCurrent: boolean): string {
-  if (status === 'active') return isCurrent ? '사용 중' : '사용 가능'
-  if (status === 'disabled') return '비활성'
-  if (status === 'throttled') return '대기'
-  if (status === 'exhausted') return '한도 도달'
-  if (status === 'error') return '오류'
-  return status === 'configured' ? '설정됨' : status
+function parseTime(value: string | null | undefined): number | null {
+  if (!value) return null
+  const time = new Date(value).getTime()
+  return Number.isNaN(time) ? null : time
 }
 
-function codexStatusTone(status: string): string {
-  if (status === 'active') return C.ok
-  if (status === 'error' || status === 'exhausted') return C.error
-  return status === 'disabled' ? C.textWeak : C.warning
+// 영구 제외(구독 종료·수동 제외)는 가장 조용하게, 일시 한도는 노랑, 진짜 오류는 빨강.
+// 메뉴바 CodexStatusView와 같은 색 배분이다.
+function codexStateTone(state: CodexAccountState): string {
+  if (state === 'retired' || state === 'excluded') return C.textDim
+  if (state === 'failed') return C.error
+  if (state === 'endDateReached' || state === 'limited' || state === 'paused') return C.warning
+  if (state === 'serving') return C.ok
+  return C.textWeak
 }
 
 function StatusPill({ status }: { status: RuntimeHealthStatus }) {
@@ -114,10 +127,27 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function TeamCodexPoolSection({ pool }: { pool: TeamCodexPool }) {
-  const activeCount = pool.accounts.filter((account) => account.status === 'active').length
-  const usableCount = pool.accounts.filter((account) => (
-    account.enabled && !['disabled', 'error', 'exhausted', 'throttled'].includes(account.status)
-  )).length
+  const [pendingAccount, setPendingAccount] = useState<string | null>(null)
+  const [actionResult, setActionResult] = useState<{ name: string; text: string; failed: boolean } | null>(null)
+
+  const checkedAtMs = Number.isNaN(Date.parse(pool.checkedAt)) ? Date.now() : Date.parse(pool.checkedAt)
+  const summary = summarizeCodexPool(pool)
+
+  const runRecovery = useCallback(async (account: CodexPoolAccount, kind: CodexRecoveryKind) => {
+    setPendingAccount(account.name)
+    setActionResult(null)
+    const result = await api.runTeamCodexAccountAction({
+      action: kind,
+      name: account.name,
+      accountUuid: account.accountUuid ?? null,
+    })
+    setPendingAccount(null)
+    setActionResult({
+      name: account.name,
+      text: result.ok ? (result.message ?? '터미널을 열었습니다.') : (result.error ?? '명령을 실행하지 못했습니다.'),
+      failed: !result.ok,
+    })
+  }, [])
 
   return (
     <Section title="TeamCodex 계정 풀">
@@ -133,8 +163,10 @@ function TeamCodexPoolSection({ pool }: { pool: TeamCodexPool }) {
           >
             {pool.serverReachable ? '온라인' : '오프라인'}
           </span>
+          {/* 꺼 둔 계정은 다시 켤 수 있으므로 "제외"라고만 쓰고 "영구"라고 단정하지 않는다. */}
           <span className="text-xs" style={{ color: C.textWeak }}>
-            활성 {activeCount}/{pool.accounts.length} · 사용 가능 {usableCount} · port {pool.serverPort ?? '-'}
+            사용 가능 {summary.usableCount} · 풀 {summary.poolCount} · 제외 {summary.excludedCount}
+            {' · '}활성 {summary.activeCount} · port {pool.serverPort ?? '-'}
           </span>
         </div>
         <span className="text-[11px]" style={{ color: C.textDim }}>
@@ -148,22 +180,29 @@ function TeamCodexPoolSection({ pool }: { pool: TeamCodexPool }) {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg" style={{ border: `1px solid ${C.border}` }}>
-          <table className="w-full min-w-[760px] border-collapse text-left">
+          <table className="w-full min-w-[900px] border-collapse text-left">
             <caption className="sr-only">TeamCodex 계정별 상태와 사용량</caption>
             <thead style={{ backgroundColor: C.cardSub }}>
               <tr className="text-[11px]" style={{ color: C.textWeak }}>
                 <th className="px-3 py-2 font-semibold">계정</th>
                 <th className="px-3 py-2 font-semibold">상태</th>
-                <th className="px-3 py-2 font-semibold">5시간</th>
-                <th className="px-3 py-2 font-semibold">7일</th>
+                <th className="px-3 py-2 font-semibold">5시간 / 초기화</th>
+                <th className="px-3 py-2 font-semibold">7일 / 초기화</th>
                 <th className="px-3 py-2 font-semibold">동시</th>
                 <th className="px-3 py-2 font-semibold">요청</th>
                 <th className="px-3 py-2 font-semibold">토큰</th>
+                <th className="px-3 py-2 font-semibold">되돌리기</th>
               </tr>
             </thead>
             <tbody>
               {pool.accounts.map((account) => {
-                const tone = codexStatusTone(account.status)
+                const state = codexAccountState(account, pool.switchThresholdPercent, checkedAtMs)
+                const tone = codexStateTone(state)
+                const note = codexAccountNote(account, checkedAtMs)
+                const recovery = codexAccountRecovery(account)
+                // 돌아오지 않는 계정에 초기화 카운트다운을 그리면 "곧 복귀"로 오해된다.
+                const showsReset = !isPermanentlyOut(account)
+                const result = actionResult?.name === account.name ? actionResult : null
                 return (
                   <tr
                     key={account.name}
@@ -181,15 +220,71 @@ function TeamCodexPoolSection({ pool }: { pool: TeamCodexPool }) {
                         aria-hidden="true"
                       />
                       {account.name}
+                      {note && (
+                        <span className="mt-0.5 block font-sans text-[11px] font-normal" style={{ color: C.textDim }}>
+                          {note}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 font-semibold" style={{ color: tone }}>
-                      {codexStatusLabel(account.status, account.isCurrent)}
+                      {codexAccountStateLabel(state, account.status, account.errorReason)}
                     </td>
-                    <td className="px-3 py-2.5 font-mono">{formatPercent(account.sessionPercent)}</td>
-                    <td className="px-3 py-2.5 font-mono">{formatPercent(account.weeklyPercent)}</td>
+                    <td className="px-3 py-2.5 font-mono">
+                      {formatPercent(account.sessionPercent)}
+                      {showsReset && (
+                        <span className="mt-0.5 block font-sans text-[11px]" style={{ color: C.textDim }}>
+                          {formatResetRemaining(parseTime(account.sessionResetAt), checkedAtMs)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 font-mono">
+                      {formatPercent(account.weeklyPercent)}
+                      {showsReset && (
+                        <span className="mt-0.5 block font-sans text-[11px]" style={{ color: C.textDim }}>
+                          {formatResetRemaining(parseTime(account.weeklyResetAt), checkedAtMs)}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-2.5 font-mono">{account.inflight}/{account.maxConcurrent}</td>
                     <td className="px-3 py-2.5 font-mono">{formatInteger(account.totalRequests)}</td>
                     <td className="px-3 py-2.5 font-mono">{formatInteger(account.totalTokens)}</td>
+                    <td className="px-3 py-2.5">
+                      {recovery ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => void runRecovery(account, recovery.kind)}
+                            disabled={pendingAccount === account.name}
+                            aria-label={recovery.accessibilityLabel}
+                            title={recovery.toolTip}
+                            className="rounded-md px-2 py-1 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                            style={{
+                              color: recovery.kind === 'enable' ? C.warning : C.error,
+                              backgroundColor: `${recovery.kind === 'enable' ? C.warning : C.error}18`,
+                              border: `1px solid ${recovery.kind === 'enable' ? C.warning : C.error}40`,
+                            }}
+                          >
+                            {pendingAccount === account.name ? '터미널 여는 중' : recovery.title}
+                          </button>
+                          {recovery.followUpNote && (
+                            <span className="mt-1 block text-[11px]" style={{ color: C.textDim }}>
+                              {recovery.followUpNote}
+                            </span>
+                          )}
+                          {result && (
+                            <span
+                              role="status"
+                              className="mt-1 block text-[11px]"
+                              style={{ color: result.failed ? C.error : C.textSub }}
+                            >
+                              {result.text}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ color: C.textDim }}>-</span>
+                      )}
+                    </td>
                   </tr>
                 )
               })}

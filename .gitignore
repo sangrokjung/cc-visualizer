@@ -47,3 +47,8 @@ docs/qjc-webapp-download-page-pr.md
 # 파이썬 바이트코드 (.py 원본만 추적한다)
 __pycache__/
 *.pyc
+
+# 통합 하네스 빌드 출력 및 명시적 타입 선언
+dist-demo/
+src-tauri/resources/harness-scanner.cjs
+!src/renderer/src/features/harness/assets.d.ts

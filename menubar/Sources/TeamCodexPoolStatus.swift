@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
 struct TeamCodexConfigRefreshCoordinator {
     private(set) var runningGeneration: Int?
@@ -52,6 +53,29 @@ struct TeamCodexPoolAccount {
     var accountType: String? = nil
     /// 프록시 status·teamcodex.json의 `provider` (codex). 다른 풀 계정에 codex 명령을 쏘지 않기 위한 가드.
     var providerName: String? = nil
+    var codexResetCredits: Int? = nil
+    var codexResetCreditsAt: Date? = nil
+
+    func resetCreditCount(at now: Date, online: Bool) -> Int? {
+        guard online, status != "configured", let count = codexResetCredits, count >= 0,
+              let measuredAt = codexResetCreditsAt,
+              measuredAt <= now, now.timeIntervalSince(measuredAt) < 600 else { return nil }
+        return count
+    }
+
+    func resetCreditLabel(at now: Date, online: Bool) -> String {
+        resetCreditCount(at: now, online: online).map { "\($0)장" } ?? "미확인"
+    }
+
+    func sessionUsagePercent(at now: Date) -> Double? {
+        guard let sessionResetAt, sessionResetAt > now else { return nil }
+        return sessionPercent
+    }
+
+    func weeklyUsagePercent(at now: Date) -> Double? {
+        guard let weeklyResetAt, weeklyResetAt > now else { return nil }
+        return weeklyPercent
+    }
 
     /// 구독이 확정적으로 끝난 계정. 기다려도 돌아오지 않는다.
     /// `end-date-reached`는 여기 넣지 않는다 — 프록시는 그 상태를 "확인 안 된 종료"로 보고
@@ -106,6 +130,35 @@ struct TeamCodexPoolHealth {
     let currentAccountUuid: String?
     let switchThresholdPercent: Double
     let accounts: [TeamCodexPoolAccount]
+    var resetCreditsEnabled: Bool? = nil
+    var resetCreditsPolicy: String? = nil
+
+    var resetCreditSummary: String {
+        let members = accounts.filter { !$0.isPermanentlyOut(now: checkedAt) }
+        let counts = members.compactMap { $0.resetCreditCount(at: checkedAt, online: serverReachable) }
+        let unknown = members.count - counts.count
+        let total = counts.reduce(0) { sum, count in
+            let result = sum.addingReportingOverflow(count)
+            return result.overflow ? Int.max : result.partialValue
+        }
+        if counts.isEmpty && unknown > 0 { return "활성 풀 리셋권 미확인 \(unknown)계정" }
+        return "활성 풀 리셋권 \(total)장" + (unknown > 0 ? " · 미확인 \(unknown)계정" : "")
+    }
+
+    var resetCreditPolicyLabel: String {
+        guard serverReachable, let enabled = resetCreditsEnabled else { return "자동 리셋 상태 미확인" }
+        if !enabled { return "자동 리셋 꺼짐" }
+        switch resetCreditsPolicy {
+        case "account": return "계정별 한도 소진 시 자동 리셋"
+        case "fleet": return "전체 풀 소진 시 자동 리셋"
+        default: return "자동 리셋 정책 미확인"
+        }
+    }
+
+    var resetCreditAccessibilitySummary: String {
+        let rows = accounts.map { "\($0.name) 리셋권 \($0.resetCreditLabel(at: checkedAt, online: serverReachable))" }
+        return ([resetCreditPolicyLabel, resetCreditSummary] + rows).joined(separator: ", ")
+    }
 
     /// 풀에 남아 있는 계정 중 실제로 응답 중인 계정. 꺼 둔 계정·구독 종료 계정은 세지 않는다.
     var activeCount: Int {
@@ -127,6 +180,12 @@ struct TeamCodexPoolHealth {
         accounts.filter {
             $0.isUsable(switchThresholdPercent: switchThresholdPercent, now: checkedAt)
         }.count
+    }
+
+    var currentQuotaAccount: TeamCodexPoolAccount? {
+        guard serverReachable else { return nil }
+        let matches = accounts.filter { $0.isCurrent && !$0.isPermanentlyOut(now: checkedAt) }
+        return matches.count == 1 ? matches[0] : nil
     }
 
     var statusLabel: String {
@@ -155,6 +214,17 @@ private func teamCodexInt(_ value: Any?) -> Int? {
     if let value = value as? NSNumber { return value.intValue }
     if let value = value as? String { return Int(value) }
     return nil
+}
+
+private func teamCodexCreditCount(_ value: Any?) -> Int? {
+    guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+          let count = Int(exactly: number.doubleValue), count >= 0 else { return nil }
+    return count
+}
+
+private func teamCodexCreditTimestamp(_ value: Any?) -> Date? {
+    guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
+    return teamCodexDate(number)
 }
 
 private func teamCodexDouble(_ value: Any?) -> Double? {
@@ -492,7 +562,9 @@ private func teamCodexAccounts(
             subscriptionEndsAt: teamCodexTimestamp(subscription["endsAt"]),
             planType: teamCodexString(row["planType"]),
             accountType: teamCodexString(row["type"]),
-            providerName: teamCodexString(row["provider"])
+            providerName: teamCodexString(row["provider"]),
+            codexResetCredits: teamCodexCreditCount(quota["codexResetCredits"]),
+            codexResetCreditsAt: teamCodexCreditTimestamp(quota["codexResetCreditsAt"])
         )
     }
 }
@@ -513,6 +585,7 @@ func teamCodexPoolHealth(
         currentAccountUuid: currentAccountUuid
     )
     let resolvedCurrent = accounts.first { $0.isCurrent }
+    let resetCredits = object["resetCredits"] as? [String: Any] ?? [:]
     return TeamCodexPoolHealth(
         checkedAt: checkedAt,
         serverReachable: true,
@@ -521,7 +594,9 @@ func teamCodexPoolHealth(
         currentAccount: resolvedCurrent?.name,
         currentAccountUuid: resolvedCurrent?.accountUuid,
         switchThresholdPercent: (teamCodexDouble(object["switchThreshold"]) ?? 0.98) * 100,
-        accounts: accounts
+        accounts: accounts,
+        resetCreditsEnabled: teamCodexBool(resetCredits["enabled"]),
+        resetCreditsPolicy: teamCodexString(resetCredits["policy"])
     )
 }
 

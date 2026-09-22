@@ -98,7 +98,7 @@ agents(207), skills(191), hooks(100), rules(74), pipelines(18), mcpServers(46)
 |---|---|---|
 | Codex 풀 패널 (계정별 상태 텍스트 컬럼 있음) | `menubar/Sources/CodexStatusView.swift` statusText switch + `TeamCodexPoolStatus.swift` 디코드 | 새 필드는 디코드(builder)와 뷰 양쪽 배선. 라벨은 `teamCodexAccountState`(우선순위) → `teamCodexAccountStateLabel`(낱말) → `teamCodexAccountNote`(보조줄) 3단을 거치므로 뷰에 문자열을 직접 쓰지 말 것 |
 | **Claude 풀 테이블 (상태 텍스트 컬럼 없음!)** | `menubar/Sources/main.swift` — `TeamClaudeAccountHealth` 구조체 + 파싱(`accountRows.append`) + 행 렌더 루프(측정 컬럼 자리에 error 사유 라벨) | 색점+쿼터만 그리는 구조라 텍스트는 측정 컬럼(innerX+790)에 그린다. 구조체는 memberwise init — 새 필드는 `var x: T? = nil` 기본값으로 4개 생성 지점 호환 |
-| **Tauri 앱 표면 (미갱신, 2026-09-06 확인)** | `src/renderer/src/features/runtime-health/RuntimeHealthView.tsx` + `src-tauri/src/commands.rs` | 빌드된 `CC Visualizer.app`이 쓰는 별도 렌더러. `errorReason`·`usable`·`subscription`을 **디코드하지 않아** 꺼 둔 계정을 초록 "사용 가능"으로, 구독 종료를 "오류"로 그린다. 상시 실행이 아니라 이번 정리에서 제외했다 — 이 앱을 다시 쓰기 전에 메뉴바와 같은 낱말로 맞출 것 |
+| **Tauri 앱 표면** | `src/renderer/src/features/runtime-health/RuntimeHealthView.tsx` + `teamCodexPool.ts` + `src-tauri/src/commands.rs` | `errorReason`·`usable`·`subscription`과 복구 신원을 디코드한다. 계정별 **다시 켜기/재인증 필요** 버튼은 구조화 IPC를 통해 검증한 config와 Codex CLI로 연결한다. 구독종료·조직차단·송신실패는 재인증 대상에서 제외하며, 재시작은 터미널에 표시된 config 고정 명령을 사용한다. |
 | 프록시 자체 표면 | teamclaude repo: CLI `status`(index.js) · TUI(tui.js) | 프록시 repo에서 함께 배선. **낱말·우선순위 SSOT는 프록시다** — tui.js `_renderAccounts`(disabled → ended → error → end-date-reached → cancellation-scheduled → status)와 index.js `subscriptionDisplay`/`ERROR_REASON_LABELS`를 먼저 읽고 맞춘다 |
 
 - 계정 error 사유 라벨: `errorReason` → 조직차단/**구독종료**/인증만료/인증거부/갱신실패/송신실패 (프록시 계약: teamclaude CLAUDE.md 참조). `teamAccountErrorReasonLabel`은 두 렌더러가 공유하는 canonical 라벨이다.
@@ -109,7 +109,7 @@ agents(207), skills(191), hooks(100), rules(74), pipelines(18), mcpServers(46)
   - 확정 종료(`ended`·`errorReason=subscription-ended`)와 꺼 둔 계정에만 초기화 카운트다운을 그리지 않는다.
   - 요약줄은 `제외`라고만 쓴다. 구독 종료(영구)와 운영자가 끈 계정(되돌릴 수 있음)이 같이 들어가므로 **집계 문구에서 "영구"라고 단정하지 않는다** — 영구 여부는 각 줄의 낱말이 말한다.
   - 행 라벨·보조줄·카운트다운은 집계와 **같은 시각(`pool.checkedAt`)**으로 판정한다. 서로 다른 `now`를 쓰면 한 화면에서 줄과 요약이 어긋난다.
-  - `usable` 필드가 없는 행(오프라인 스냅샷·프록시 미로드 계정)은 "사용 가능"으로 세지 않는다 — 요약줄과 행 라벨(`설정됨`)이 어긋나면 안 된다.
+  - 오프라인 스냅샷·프록시 미로드 계정(`configured`)은 "사용 가능"으로 세지 않는다. Tauri의 구버전 `active` 응답은 `usable`이 없을 때 상태·쿼터로 추론하는 호환 예외가 있으며, 최신 응답은 `usable` 판정을 우선한다.
   - 낱말은 Claude 풀 표(`TeamClaudeMeasurementIssue`)와 맞춘다. 같은 개념에 두 단어를 만들지 말 것(`비활성` ↔ 구 `사용안함`).
 - 빌드: `bash menubar/build.sh` (SwiftPM 아님 — Package.swift 없음, swiftc 직접). 배포: KeepAlive라 기존 `cc-menubar` 프로세스 kill이면 launchd가 새 바이너리로 재기동. `launchctl kickstart`는 권한 정책상 거부될 수 있음.
 - **완료 기준: 코드 수정이 아니라 재빌드+재기동+사용자 화면 확인까지.** "프록시에 데이터 있음"은 완료가 아니다.

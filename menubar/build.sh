@@ -14,16 +14,23 @@ echo "  소스: ${SOURCES[*]}"
 echo "  출력: $BINARY"
 
 mkdir -p "$BUILD_DIR"
+python3 "$SCRIPT_DIR/Tests/test_usage_regressions.py" UsageRegressionTests -v
+
+CANDIDATE="$(mktemp "$BUILD_DIR/cc-menubar.XXXXXX")"
+trap 'rm -f "$CANDIDATE"' EXIT
 
 swiftc \
+    -j 1 \
+    -num-threads 1 \
     -O \
     -framework Cocoa \
     -framework Foundation \
     -target arm64-apple-macosx13.0 \
     "${SOURCES[@]}" \
-    -o "$BINARY"
+    -o "$CANDIDATE"
 
-chmod +x "$BINARY"
+chmod +x "$CANDIDATE"
+mv -f "$CANDIDATE" "$BINARY"
 
 echo ""
 echo "✅ 빌드 완료"

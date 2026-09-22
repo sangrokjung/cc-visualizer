@@ -35,6 +35,7 @@
       "icons/icon.ico"
     ],
     "resources": {
+      "resources/harness-scanner.cjs": "harness-scanner.cjs",
       "../scripts/scan-system.ts": "scripts/scan-system.ts",
       "../scripts/scan-usage.ts": "scripts/scan-usage.ts",
       "../src/renderer/src/lib/agent-category-map.ts": "src/renderer/src/lib/agent-category-map.ts",
