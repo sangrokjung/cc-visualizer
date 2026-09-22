@@ -2,6 +2,37 @@ import Cocoa
 import Darwin
 import Foundation
 
+// MARK: - 크래시 기록
+
+/// 마지막으로 그리기 시작한 구간. 예외 핸들러가 같이 적어 어느 draw 구간에서 죽었는지 남긴다.
+var lastDrawBreadcrumb = "startup"
+
+func markDraw(_ label: String) {
+    lastDrawBreadcrumb = label
+}
+
+/// KeepAlive가 조용히 되살리는 NSException 크래시를 시각·사유·구간과 함께 파일에 남긴다.
+/// `~/.claude/cache/cc-menubar-err.log`(launchd stderr)에는 시각이 없어 사고 시각을 알 수 없었다.
+func installCrashRecorder() {
+    NSSetUncaughtExceptionHandler { exception in
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        var line = "CRASH \(stamp) \(exception.name.rawValue): \(exception.reason ?? "-") | breadcrumb=\(lastDrawBreadcrumb)\n"
+        for symbol in exception.callStackSymbols.prefix(12) {
+            line += "  \(symbol)\n"
+        }
+        let data = Data(line.utf8)
+        FileHandle.standardError.write(data)
+        let path = "\(NSHomeDirectory())/.claude/cache/cc-menubar-crash.log"
+        if let handle = FileHandle(forWritingAtPath: path) {
+            handle.seekToEndOfFile()
+            handle.write(data)
+            handle.closeFile()
+        } else {
+            FileManager.default.createFile(atPath: path, contents: data, attributes: [.posixPermissions: 0o600])
+        }
+    }
+}
+
 // MARK: - 데이터 모델
 
 struct DailyUsage {
@@ -1893,6 +1924,7 @@ final class TeamClaudeTableView: NSView {
 
         let innerX = card.minX + 16
         let topY = card.minY + 14
+        markDraw("TeamClaudeTableView.header")
         drawText("TeamClaude", innerX, topY, titleFont, text)
         pill(health.serverReachable ? "실행중" : "오프라인", x: innerX + 122, y: topY - 2, color: health.serverReachable ? green : red)
         let integrationLabel = health.accountConfigDrift == 0 ? "연동 정상" : "연동 불일치 \(health.accountConfigDrift)"
@@ -1950,12 +1982,14 @@ final class TeamClaudeTableView: NSView {
         fillRound(actionRect, actionColor.withAlphaComponent(0.11), 8)
         strokeRound(actionRect, actionColor.withAlphaComponent(0.45), 8)
         let actionIcon = isMeasuring ? "↻" : (pendingCount > 0 || unconfirmed > 0 || excluded > 0 || limited > 0 ? "!" : "✓")
+        markDraw("TeamClaudeTableView.action")
         drawText(actionIcon, actionRect.minX + 12, actionRect.minY + 8, titleFont, actionColor)
         drawText(clipped(actionTitle, 28), actionRect.minX + 40, actionRect.minY + 6, subFont, actionColor)
         drawText(clipped(actionDetail, 38), actionRect.minX + 40, actionRect.minY + 25, smallFont, muted)
 
         let statY = topY + (hostLineShown ? 78 : 58)
         let statW = (card.width - 32 - 27) / 4
+        markDraw("TeamClaudeTableView.stats")
         stat("Fable 사용 가능", "\(ready) / \(totalAccounts)", "계정", x: innerX, y: statY, width: statW, color: ready > 0 ? green : red, prominent: true)
         stat("한도 · 요청 대기", "\(limited)", "계정", x: innerX + statW + 9, y: statY, width: statW, color: limited > 0 ? yellow : muted)
         stat("구독 · 오류 · 비활성", "\(excluded)", "제외", x: innerX + (statW + 9) * 2, y: statY, width: statW, color: excluded > 0 ? red : muted)
@@ -1981,6 +2015,7 @@ final class TeamClaudeTableView: NSView {
         drawText("Fable 주간", innerX + 620, tableY + 8, headFont, muted)
         drawText("측정", innerX + 790, tableY + 8, headFont, muted)
 
+        markDraw("TeamClaudeTableView.rows")
         for (i, row) in health.accounts.enumerated() {
             let y = tableY + 34 + CGFloat(i) * 72
             let rowRect = NSRect(x: innerX, y: y, width: card.width - 32, height: 70)
@@ -2069,6 +2104,7 @@ final class TeamClaudeTableView: NSView {
         NSBezierPath.strokeLine(from: NSPoint(x: innerX, y: footerY - 8), to: NSPoint(x: card.maxX - 16, y: footerY - 8))
         let thresholdLabel = health.quotaThresholdPercent.isFinite ? String(format: "%.0f", health.quotaThresholdPercent) : "미확인"
         drawText("Fable 가능 = 세션 + 전체 주간 + Fable 여유 · \(thresholdLabel)%부터 대기 · 미측정 제외", innerX, footerY, smallFont, muted)
+        markDraw("TeamClaudeTableView.done")
     }
 }
 
@@ -5396,4 +5432,5 @@ if CommandLine.arguments.contains("--selftest") {
 let delegate = AppDelegate()
 let app = NSApplication.shared
 app.delegate = delegate
+installCrashRecorder()
 app.run()
