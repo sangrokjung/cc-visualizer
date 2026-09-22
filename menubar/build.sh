@@ -14,7 +14,15 @@ echo "  소스: ${SOURCES[*]}"
 echo "  출력: $BINARY"
 
 mkdir -p "$BUILD_DIR"
-python3 "$SCRIPT_DIR/Tests/test_usage_regressions.py" UsageRegressionTests -v
+if [ "${CC_MENUBAR_SKIP_TESTS:-0}" != "1" ]; then
+    bash "$SCRIPT_DIR/run-tests.sh"
+fi
+if command -v git >/dev/null 2>&1; then
+    DIRTY="$(git -C "$SCRIPT_DIR" status --porcelain -- Sources 2>/dev/null | wc -l | tr -d ' ')"
+    if [ "${DIRTY:-0}" != "0" ]; then
+        echo "⚠ 미커밋 소스 ${DIRTY}개 파일로 빌드합니다. 배포 전 커밋하세요."
+    fi
+fi
 
 CANDIDATE="$(mktemp "$BUILD_DIR/cc-menubar.XXXXXX")"
 trap 'rm -f "$CANDIDATE"' EXIT
