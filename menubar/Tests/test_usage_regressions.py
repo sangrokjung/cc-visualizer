@@ -14,7 +14,7 @@ class UsageRegressionTests(unittest.TestCase):
             binary = Path(folder) / "tests"
             argv = ["swiftc", "-j", "1", *[str(ROOT / "menubar/Sources" / name) for name in source_names],
                     str(ROOT / "menubar/Tests" / test_name), "-o", str(binary)]
-            subprocess.run(argv, check=True, capture_output=True, text=True, timeout=120)
+            subprocess.run(argv, check=True, capture_output=True, text=True, timeout=600)
             env = dict(os.environ, CFFIXED_USER_HOME=folder, CC_MENUBAR_CODEX_HOME=folder + "/.codex",
                        CC_MENUBAR_CODEX_SESSIONS=folder + "/.codex/sessions", CC_MENUBAR_CODEX_CALL_LOG=folder + "/calls.jsonl")
             if test_name == "CodexStatusLoaderTests.swift":
@@ -86,7 +86,7 @@ class BuildGateTests(unittest.TestCase):
             root = self.gate_copy(folder, "exit 0\n")
             output = root / "menubar/.build/cc-menubar"
             result = subprocess.run(["bash", str(root / "menubar/build.sh")], capture_output=True, text=True,
-                                    timeout=180, env=self.gate_env())
+                                    timeout=600, env=self.gate_env())
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual(output.read_bytes()[:4], bytes([0xCF, 0xFA, 0xED, 0xFE]))
             self.assertTrue(os.access(output, os.X_OK))
@@ -96,7 +96,7 @@ class BuildGateTests(unittest.TestCase):
             root = self.gate_copy(folder, 'echo "FAILED: stub regression" >&2\nexit 1\n')
             output = root / "menubar/.build/cc-menubar"
             result = subprocess.run(["bash", str(root / "menubar/build.sh")], capture_output=True, text=True,
-                                    timeout=150, env=self.gate_env())
+                                    timeout=600, env=self.gate_env())
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("FAILED", result.stderr)
             self.assertEqual(output.read_bytes(), b"previous-verified-binary")

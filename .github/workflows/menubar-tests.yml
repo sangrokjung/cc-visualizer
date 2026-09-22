@@ -12,6 +12,7 @@ on:
 jobs:
   build-and-test:
     runs-on: macos-14
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: 러너 + 빌드 + 스냅샷 스모크

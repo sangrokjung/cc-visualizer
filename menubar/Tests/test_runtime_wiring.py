@@ -25,6 +25,9 @@ class RuntimeWiringTests(unittest.TestCase):
         self.assertIn("var runtimeSummary: String? = nil", pool)
         self.assertIn('teamRuntimeSummary(', pool)
         self.assertIn("pool.runtimeSummary", view)
+        main = (SOURCES / "main.swift").read_text()
+        # 정렬 함수가 새 TeamCodexPoolHealth를 만들 때 runtime 줄을 잃지 않아야 한다(운영 경로는 항상 정렬을 거친다).
+        self.assertIn("runtimeSummary: pool.runtimeSummary", main)
 
 
 if __name__ == "__main__":

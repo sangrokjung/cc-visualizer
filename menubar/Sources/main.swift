@@ -1679,6 +1679,7 @@ enum TeamClaudePalette {
     static let yellow = NSColor(calibratedRed: 0.93, green: 0.76, blue: 0.22, alpha: 1.0)
     static let red = NSColor(calibratedRed: 0.96, green: 0.26, blue: 0.32, alpha: 1.0)
     static let blue = NSColor(calibratedRed: 0.28, green: 0.55, blue: 0.90, alpha: 1.0)
+    static let inactive = NSColor(calibratedWhite: 0.62, alpha: 1)
     static let titleFont = NSFont.systemFont(ofSize: 18, weight: .bold)
     static let subFont = NSFont.systemFont(ofSize: 13, weight: .medium)
     static let headFont = NSFont.systemFont(ofSize: 12, weight: .semibold)
@@ -1689,7 +1690,7 @@ enum TeamClaudePalette {
 
     /// 정적 멤버 전부를 한 번 건드려 첫 draw 안이 아니라 기동 시점에 팔레트를 만든다.
     static func prewarm() {
-        _ = (bg, panel, panel2, line, text, muted, green, yellow, red, blue, titleFont, subFont, headFont, rowFont, smallFont, statValueFont, statValueProminentFont)
+        _ = (bg, panel, panel2, line, text, muted, green, yellow, red, blue, inactive, titleFont, subFont, headFont, rowFont, smallFont, statValueFont, statValueProminentFont)
     }
 }
 
@@ -2059,7 +2060,7 @@ final class TeamClaudeTableView: NSView {
             let rowRect = NSRect(x: innerX, y: y, width: card.width - 32, height: 70)
             let state = availability[i]
             let subscriptionMuted = state.subscriptionAppearance.isMuted
-            let inactive = NSColor(calibratedWhite: 0.62, alpha: 1)
+            let inactive = TeamClaudePalette.inactive
             let showCurrent = row.isCurrent && !subscriptionMuted
             if showCurrent {
                 fillRound(rowRect, green.withAlphaComponent(0.13), 7)
@@ -3203,7 +3204,8 @@ func teamCodexPoolHealth(
         switchThresholdPercent: pool.switchThresholdPercent,
         accounts: accounts,
         resetCreditsEnabled: pool.resetCreditsEnabled,
-        resetCreditsPolicy: pool.resetCreditsPolicy
+        resetCreditsPolicy: pool.resetCreditsPolicy,
+        runtimeSummary: pool.runtimeSummary
     )
 }
 
@@ -5000,11 +5002,13 @@ if CommandLine.arguments.contains("--teamcodex-dashboard-selftest") {
     var creditPool = pool(accounts: [creditAccount], currentAccount: nil, currentAccountUuid: nil)
     creditPool.resetCreditsEnabled = true
     creditPool.resetCreditsPolicy = "account"
+    creditPool.runtimeSummary = "빌드 abcdef012345 · 재시작 1회"
     let creditAligned = teamCodexPoolHealth(aligning: creditPool, to: snapshot(2, signature: 100))
     precondition(creditAligned.accounts[0].codexResetCredits == 3)
     precondition(creditAligned.accounts[0].codexResetCreditsAt == creditAccount.codexResetCreditsAt)
     precondition(creditAligned.accounts[1].codexResetCredits == nil)
     precondition(creditAligned.resetCreditsPolicy == "account" && creditAligned.resetCreditsEnabled == true)
+    precondition(creditAligned.runtimeSummary == "빌드 abcdef012345 · 재시작 1회")
 
     _ = NSApplication.shared
     func verifySubscriptionLayout(_ view: NSView, count: Int) {
@@ -5411,11 +5415,10 @@ if let snapshotIndex = CommandLine.arguments.firstIndex(of: "--teamclaude-table-
     installCrashRecorder()
     _ = NSApplication.shared
     let health = parseTeamClaudeHealth(config: nil, server: nil, status: status, port: 3456)
-    let rowCount = max(1, health.accounts.count)
     let view = TeamClaudeTableView(frame: NSRect(
         x: 0, y: 0,
         width: StatusMenuDashboardView.preferredWidth,
-        height: CGFloat(420 + rowCount * 34)
+        height: StatusMenuDashboardView.teamContentHeight(health)
     ))
     view.health = health
     view.layoutSubtreeIfNeeded()
