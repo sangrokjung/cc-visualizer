@@ -144,6 +144,7 @@ struct TeamCodexPoolHealth {
     let accounts: [TeamCodexPoolAccount]
     var resetCreditsEnabled: Bool? = nil
     var resetCreditsPolicy: String? = nil
+    var runtimeSummary: String? = nil
 
     var resetCreditSummary: String {
         let members = accounts.filter { !$0.isPermanentlyOut(now: checkedAt) }
@@ -624,7 +625,7 @@ func teamCodexPoolHealth(
     )
     let resolvedCurrent = accounts.first { $0.isCurrent }
     let resetCredits = object["resetCredits"] as? [String: Any] ?? [:]
-    return TeamCodexPoolHealth(
+    var pool = TeamCodexPoolHealth(
         checkedAt: checkedAt,
         serverReachable: true,
         serverPort: port,
@@ -636,6 +637,8 @@ func teamCodexPoolHealth(
         resetCreditsEnabled: teamCodexBool(resetCredits["enabled"]),
         resetCreditsPolicy: teamCodexString(resetCredits["policy"])
     )
+    pool.runtimeSummary = teamRuntimeSummary(object["runtime"], short: true)
+    return pool
 }
 
 func teamCodexPoolOfflineHealth(

@@ -1,0 +1,26 @@
+from pathlib import Path
+import unittest
+
+ROOT = Path(__file__).resolve().parents[2]
+SOURCES = ROOT / "menubar" / "Sources"
+
+
+class RuntimeWiringTests(unittest.TestCase):
+    def test_team_claude_table_decodes_and_draws_runtime(self):
+        main = (SOURCES / "main.swift").read_text()
+        self.assertIn("var runtimeSummary: String? = nil", main)
+        self.assertIn('teamRuntimeSummary(status?["runtime"]', main)
+        self.assertIn("health.runtimeSummary", main)
+        # 쿼터 유지·병합 경로가 새 TeamClaudeHealth를 만들 때 runtime 줄을 잃지 않아야 한다.
+        self.assertGreaterEqual(main.count("merged.runtimeSummary = candidate.runtimeSummary"), 2)
+
+    def test_codex_card_decodes_and_draws_runtime(self):
+        pool = (SOURCES / "TeamCodexPoolStatus.swift").read_text()
+        view = (SOURCES / "CodexStatusView.swift").read_text()
+        self.assertIn("var runtimeSummary: String? = nil", pool)
+        self.assertIn('teamRuntimeSummary(', pool)
+        self.assertIn("pool.runtimeSummary", view)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -261,7 +261,9 @@ final class CodexStatusView: NSView {
             drawText("TeamCodex 계정 풀", poolRect.minX + 12, poolRect.minY + 9, subFont, text)
             pill(pool.statusLabel, x: poolRect.minX + 145, y: poolRect.minY + 5, color: poolTone)
             // 구독 종료(영구)와 운영자가 끈 계정(되돌릴 수 있음)이 함께 들어가므로 "영구"라고 쓰지 않는다.
-            drawRight("사용 가능 \(pool.usableCount) · 풀 \(pool.poolCount) · 제외 \(pool.excludedCount) · port \(pool.serverPort)", poolRect.maxX - 12, poolRect.minY + 10, smallFont, muted)
+            var headerRight = "사용 가능 \(pool.usableCount) · 풀 \(pool.poolCount) · 제외 \(pool.excludedCount) · port \(pool.serverPort)"
+            if let runtime = pool.runtimeSummary { headerRight += " · \(runtime)" }
+            drawRight(headerRight, poolRect.maxX - 12, poolRect.minY + 10, smallFont, muted)
 
             drawText(pool.resetCreditPolicyLabel, poolRect.minX + 12, poolRect.minY + 33, smallFont, muted)
             drawRight(pool.resetCreditSummary, poolRect.maxX - 12, poolRect.minY + 33, smallFont, text)

@@ -116,6 +116,7 @@ struct TeamClaudeHealth {
     let accounts: [TeamClaudeAccountHealth]
     let hints: [String]
     let host: TeamClaudeHostMetrics?
+    var runtimeSummary: String? = nil
 
     // 호스트 CPU/RAM 한 줄 요약 (표시할 값이 없으면 nil → 라인 생략)
     var hostSummaryText: String? {
@@ -712,7 +713,7 @@ func parseTeamClaudeHealth(config: [String: Any]?, server: [String: Any]?,
         )
     }
 
-    return TeamClaudeHealth(
+    var health = TeamClaudeHealth(
         checkedAt: now,
         overallStatus: overallStatus,
         configPresent: config != nil,
@@ -740,6 +741,8 @@ func parseTeamClaudeHealth(config: [String: Any]?, server: [String: Any]?,
         hints: hints,
         host: hostMetrics
     )
+    health.runtimeSummary = teamRuntimeSummary(status?["runtime"])
+    return health
 }
 
 func teamClaudeRetainingQuota(
@@ -815,7 +818,7 @@ func teamClaudeRetainingQuota(
     )
     let adjusted = teamClaudeHealthMergingQuota(candidate: quotaPending, previous: previous)
 
-    return TeamClaudeHealth(
+    var merged = TeamClaudeHealth(
         checkedAt: candidate.checkedAt,
         overallStatus: "error",
         configPresent: candidate.configPresent,
@@ -843,6 +846,8 @@ func teamClaudeRetainingQuota(
         hints: candidate.hints + ["서버 재연결 중 · 마지막 정상 주간/Fable 표시"],
         host: candidate.host
     )
+    merged.runtimeSummary = candidate.runtimeSummary
+    return merged
 }
 
 func teamClaudeQuotaPair(for account: TeamClaudeAccountHealth) -> TeamClaudeQuotaPair? {
@@ -990,7 +995,7 @@ func teamClaudeHealthMergingQuota(
             || measurementPending > 0 || candidate.accountConfigDrift > 0
     ))
 
-    return TeamClaudeHealth(
+    var merged = TeamClaudeHealth(
         checkedAt: candidate.checkedAt,
         overallStatus: overallStatus,
         configPresent: candidate.configPresent,
@@ -1020,6 +1025,8 @@ func teamClaudeHealthMergingQuota(
             : candidate.hints,
         host: candidate.host
     )
+    merged.runtimeSummary = candidate.runtimeSummary
+    return merged
 }
 
 // MARK: - ccusage 호출
@@ -1946,7 +1953,9 @@ final class TeamClaudeTableView: NSView {
         drawText("TeamClaude", innerX, topY, titleFont, text)
         pill(health.serverReachable ? "실행중" : "오프라인", x: innerX + 122, y: topY - 2, color: health.serverReachable ? green : red)
         let integrationLabel = health.accountConfigDrift == 0 ? "연동 정상" : "연동 불일치 \(health.accountConfigDrift)"
-        drawText("port \(health.serverPort ?? 0)  ·  pid \(health.serverPid.map(String.init) ?? "-")  ·  \(integrationLabel)", innerX, topY + 29, subFont, health.accountConfigDrift == 0 ? muted : yellow)
+        var serverLine = "port \(health.serverPort ?? 0)  ·  pid \(health.serverPid.map(String.init) ?? "-")  ·  \(integrationLabel)"
+        if let runtime = health.runtimeSummary { serverLine += "  ·  \(runtime)" }
+        drawText(serverLine, innerX, topY + 29, subFont, health.accountConfigDrift == 0 ? muted : yellow)
         let hostLineShown = health.hostSummaryText != nil
         if let hostText = health.hostSummaryText {
             drawText(hostText, innerX, topY + 48, subFont, health.hostIsWarning ? red : muted)

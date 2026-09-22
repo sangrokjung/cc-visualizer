@@ -63,7 +63,9 @@ class UsageRegressionTests(unittest.TestCase):
         self.assertIn("Legacy quota cache rejected", output)
 
     def test_pool_preserves_unknown_zero_and_current_account(self):
-        self.run_swift(["TeamCodexPoolStatus.swift", "CodexStatusLayout.swift"], "TeamCodexPoolStatusTests.swift")
+        # TeamCodexPoolStatus.swift가 status의 runtime 블록을 teamRuntimeSummary(TeamClaudePresentationLogic.swift)로 읽으므로 같이 컴파일한다.
+        self.run_swift(["TeamCodexPoolStatus.swift", "CodexStatusLayout.swift", "TeamClaudePresentationLogic.swift"],
+                       "TeamCodexPoolStatusTests.swift")
 
     def test_menu_title_uses_tokens(self):
         output = self.run_swift(["CodexStatusModels.swift", "CodexStatusParsing.swift"], "CodexTitleQuotaTests.swift")
