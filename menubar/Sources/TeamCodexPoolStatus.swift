@@ -119,6 +119,18 @@ struct TeamCodexPoolAccount {
             .contains(status)
             && !isQuotaBlocked(switchThresholdPercent: switchThresholdPercent)
     }
+
+    /// 한도 때문에 빠진 계정이 돌아오는 시각. 막힌 창(5시간·주간)이 전부 초기화돼야 돌아오므로 늦은 쪽을 쓴다.
+    /// 오류·종료·꺼 둔 계정은 기다려도 안 돌아오니 nil.
+    func quotaRecoveryAt(switchThresholdPercent: Double, now: Date) -> Date? {
+        guard enabled, errorReason == nil, !isSubscriptionRetired(now: now) else { return nil }
+        var blockers: [Date] = []
+        if let percent = sessionPercent, percent >= switchThresholdPercent,
+           let at = sessionResetAt, at > now { blockers.append(at) }
+        if let percent = weeklyPercent, percent >= switchThresholdPercent,
+           let at = weeklyResetAt, at > now { blockers.append(at) }
+        return blockers.max()
+    }
 }
 
 struct TeamCodexPoolHealth {
@@ -188,9 +200,35 @@ struct TeamCodexPoolHealth {
         return matches.count == 1 ? matches[0] : nil
     }
 
-    var statusLabel: String {
-        serverReachable ? "온라인" : "오프라인"
+    /// 프록시엔 닿지만 지금 요청을 받을 계정이 하나도 없는 상태. "온라인"만으로는 0/7을 못 말한다.
+    var isExhausted: Bool {
+        serverReachable && poolCount > 0 && usableCount == 0
     }
+
+    /// 한도로 빠진 계정 중 가장 먼저 돌아오는 시각.
+    var soonestQuotaRecoveryAt: Date? {
+        accounts
+            .compactMap { $0.quotaRecoveryAt(switchThresholdPercent: switchThresholdPercent, now: checkedAt) }
+            .min()
+    }
+
+    var statusLabel: String {
+        if !serverReachable { return "오프라인" }
+        return isExhausted ? "소진" : "온라인"
+    }
+
+    func titleSlot(timeZone: TimeZone = .current) -> String {
+        if !serverReachable { return "Codex 오프라인" }
+        if isExhausted {
+            if let at = soonestQuotaRecoveryAt {
+                return "Codex 소진 · \(teamCodexShortClock(at, timeZone: timeZone)) 복구"
+            }
+            return "Codex 소진 0/\(poolCount)"
+        }
+        return "Codex \(usableCount)/\(poolCount)"
+    }
+
+    var titleSlot: String { titleSlot(timeZone: .current) }
 
     var accessibilitySummary: String {
         "TeamCodex \(statusLabel), 지금 쓸 수 있는 계정 \(usableCount)개, "
@@ -716,4 +754,13 @@ func loadTeamCodexPoolHealth(home: String = NSHomeDirectory()) -> TeamCodexPoolH
         switchThresholdPercent: 98,
         accounts: []
     )
+}
+
+/// 메뉴바 타이틀용 짧은 시각. 예: "9/25 14:01".
+func teamCodexShortClock(_ date: Date, timeZone: TimeZone) -> String {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = timeZone
+    formatter.dateFormat = "M/d HH:mm"
+    return formatter.string(from: date)
 }

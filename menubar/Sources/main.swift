@@ -3580,9 +3580,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         let teamClaudeSlot = currentTeamClaude?.titleSlot
         let codexSlot = currentCodex?.titleSlot
+        let teamCodexSlot = currentTeamCodex?.titleSlot
         // 데이터 없으면 최소 정보 — 병렬 세션 수만이라도 의미 있음
         guard let usage = currentData, let today = usage.today else {
-            return [teamClaudeSlot, codexSlot, "병렬 \(parallelCount)"].compactMap { $0 }
+            return [teamClaudeSlot, teamCodexSlot, codexSlot, "병렬 \(parallelCount)"].compactMap { $0 }
         }
         let todayTokens = today.inputTokens + today.cacheCreationTokens
                         + today.cacheReadTokens + today.outputTokens
@@ -3595,6 +3596,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         var slots = [
             teamClaudeSlot,
+            teamCodexSlot,
             codexSlot,
             "오늘 \(formatCost(today.totalCost))",
             "오늘 \(formatKRWShort(today.totalCost, rate: rate))",
