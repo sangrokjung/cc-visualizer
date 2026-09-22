@@ -53,7 +53,9 @@ class TeamClaudeStatusIdentityTests(unittest.TestCase):
         transport = "func teamCodexStatusRequest" + excerpt(
             shared, "func teamCodexStatusRequest", "func loadTeamCodexPoolHealth"
         )
-        loader = excerpt(main, "func loadTeamClaudeHealth()", "let accounts =")
+        # Stop at the loader's last statement so the slice stays inside loadTeamClaudeHealth()
+        # (the first "let accounts =" after it now lives in parseTeamClaudeHealth).
+        loader = excerpt(main, "func loadTeamClaudeHealth()", "return parseTeamClaudeHealth(")
         call = "let status = " + loader.split("let status = ", 1)[1]
         source = pathlib.Path(cls.temp.name) / "main.swift"
         source.write_text(

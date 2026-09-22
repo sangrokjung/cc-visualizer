@@ -81,30 +81,44 @@ class UsageRegressionTests(unittest.TestCase):
 class BuildGateTests(unittest.TestCase):
     def test_successful_build_replaces_existing_binary(self):
         with tempfile.TemporaryDirectory(prefix="menubar-successful-build-") as folder:
-            root = Path(folder)
-            shutil.copytree(ROOT / "menubar", root / "menubar", ignore=shutil.ignore_patterns(".build"))
+            root = self.gate_copy(folder, "exit 0\n")
             output = root / "menubar/.build/cc-menubar"
-            output.parent.mkdir()
-            output.write_bytes(b"previous-verified-binary")
-            result = subprocess.run(["bash", str(root / "menubar/build.sh")], capture_output=True, text=True, timeout=180)
+            result = subprocess.run(["bash", str(root / "menubar/build.sh")], capture_output=True, text=True,
+                                    timeout=180, env=self.gate_env())
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual(output.read_bytes()[:4], bytes([0xCF, 0xFA, 0xED, 0xFE]))
             self.assertTrue(os.access(output, os.X_OK))
 
     def test_failed_regression_does_not_replace_existing_binary(self):
         with tempfile.TemporaryDirectory(prefix="menubar-build-gate-") as folder:
-            root = Path(folder)
-            shutil.copytree(ROOT / "menubar", root / "menubar", ignore=shutil.ignore_patterns(".build"))
+            root = self.gate_copy(folder, 'echo "FAILED: stub regression" >&2\nexit 1\n')
             output = root / "menubar/.build/cc-menubar"
-            output.parent.mkdir()
-            output.write_bytes(b"previous-verified-binary")
-            (root / "menubar/Tests/CodexTitleQuotaTests.swift").write_text(
-                'import Foundation\n@main struct Fail { static func main() { preconditionFailure("regression") } }\n'
-            )
-            result = subprocess.run(["bash", str(root / "menubar/build.sh")], capture_output=True, text=True, timeout=150)
+            result = subprocess.run(["bash", str(root / "menubar/build.sh")], capture_output=True, text=True,
+                                    timeout=150, env=self.gate_env())
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("FAILED", result.stderr)
             self.assertEqual(output.read_bytes(), b"previous-verified-binary")
+
+    # The gate under test is only "runner exit code => binary replaced or kept". The real runner is
+    # exercised by the other test classes, so the temp copy gets a stub runner that just reports a result;
+    # otherwise the nested build.sh would re-run the whole suite (and this class inside it) recursively.
+    @staticmethod
+    def gate_copy(folder, runner_script):
+        root = Path(folder)
+        shutil.copytree(ROOT / "menubar", root / "menubar", ignore=shutil.ignore_patterns(".build"))
+        runner = root / "menubar/run-tests.sh"
+        runner.write_text("#!/usr/bin/env bash\n" + runner_script)
+        runner.chmod(0o755)
+        output = root / "menubar/.build/cc-menubar"
+        output.parent.mkdir()
+        output.write_bytes(b"previous-verified-binary")
+        return root
+
+    # run-tests.sh exports CC_MENUBAR_SKIP_TESTS=1 for the Python tests it runs (its recursion guard);
+    # drop it so the nested build.sh really consults the stub runner.
+    @staticmethod
+    def gate_env():
+        return {key: value for key, value in os.environ.items() if key != "CC_MENUBAR_SKIP_TESTS"}
 
 
 if __name__ == "__main__":
