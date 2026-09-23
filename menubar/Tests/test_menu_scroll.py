@@ -73,16 +73,15 @@ class MenuScrollRegressionTests(unittest.TestCase):
             body,
             "a refresh while the menu is open must not reassign the scrolling document",
         )
-        open_branch, _, after_open = body.partition("if openDashboardView != nil")
-        self.assertNotEqual(after_open, "")
-        before_rebuild, _, _ = after_open.partition("updateCachedMenuPresentation()")
-        self.assertIn(
-            "return",
-            before_rebuild,
-            "the open menu must return before any geometry rebuild",
-        )
-        self.assertNotIn("updateCachedMenuPresentation()", before_rebuild)
-        self.assertNotIn("documentView", open_branch)
+        # 닫힌 메뉴 분기가 먼저 온다: 캐시 프레젠테이션 갱신 한 번 + return. 그 뒤가 열린 메뉴 경로이고,
+        # 거기서는 문서 뷰를 다시 꽂거나 geometry를 다시 만들지 않는다.
+        _, _, closed_and_open = body.partition("if openDashboardView == nil {")
+        self.assertNotEqual(closed_and_open, "", "the closed-menu branch must remain discoverable")
+        closed_branch, _, open_path = closed_and_open.partition("return")
+        self.assertIn("updateCachedMenuPresentation()", closed_branch)
+        self.assertNotEqual(open_path, "")
+        self.assertNotIn("updateCachedMenuPresentation()", open_path, "the open menu must not rebuild geometry")
+        self.assertNotIn("documentView", open_path)
 
     def test_team_account_list_is_part_of_the_single_page(self):
         # 계정 표는 더 이상 자기 스크롤 뷰를 갖지 않는다. 표의 스크롤 위치는 곧 페이지의 스크롤 위치이고,

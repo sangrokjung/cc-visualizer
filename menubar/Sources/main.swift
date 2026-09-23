@@ -3805,6 +3805,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             print("DASHBOARD-REFRESH: reason=\(reason) open=\(openDashboardView != nil) elapsed=\(elapsedMs)ms")
             fflush(stdout)
         }
+        // 메뉴가 닫혀 있으면 캐시 프레젠테이션 갱신 한 번으로 끝낸다(그 안에서 updateContent 1회). 예전엔 여기서 한 번 더 돌아 비용이 2배였다.
+        if openDashboardView == nil {
+            updateCachedMenuPresentation()
+            return
+        }
         dashboard.updateContent(
             teamClaude: currentTeamClaude,
             codex: currentCodex,
@@ -3827,8 +3832,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         dashboard.needsDisplay = true
         updatePinnedSectionHeader()
-        if openDashboardView != nil { return }
-        updateCachedMenuPresentation()
     }
 
     func loadInBackground() {
@@ -4269,6 +4272,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let contentHeight = dashboard.frame.height
 
         if contentHeight > available {
+            // 이미 같은 대시보드를 같은 높이로 호스팅 중이면 다시 꽂지 않는다(문서 뷰 재할당·스크롤 복원은 매 갱신마다 필요 없다).
+            if let existing = item.view as? NSScrollView,
+               existing === dashboardScrollView,
+               existing.documentView === dashboard,
+               existing.frame.height == available {
+                updatePinnedSectionHeader()
+                return
+            }
             let scrollView = (item.view as? NSScrollView) ?? NSScrollView(frame: .zero)
             if dashboardScrollView !== scrollView {
                 installPinnedSectionHeader(in: scrollView)

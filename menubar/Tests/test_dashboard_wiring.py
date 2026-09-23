@@ -104,6 +104,15 @@ class DashboardRefreshCostTests(unittest.TestCase):
         self.assertGreaterEqual(self.main.count("scheduleDashboardRefresh(reason:"), 12)
         self.assertEqual(0, self.main.count("refreshOpenDashboard()"), "call sites must go through scheduleDashboardRefresh")
         self.assertIn('print("DASHBOARD-REFRESH: reason=', self.main)
+        # 닫힌 메뉴 경로는 updateContent를 한 번만(캐시 프레젠테이션 안에서) 돌린다 — 예전엔 두 번이라 10초마다 300~800ms를 썼다.
+        start = self.main.index('    func refreshOpenDashboard(reason: String = "direct") {')
+        end = self.main.index("\n    }\n", start)
+        body = self.main[start:end]
+        self.assertLess(body.index("if openDashboardView == nil {"), body.index("dashboard.updateContent("))
+        self.assertEqual(1, body.count("dashboard.updateContent("))
+        host_start = self.main.index("    func hostDashboard(")
+        host_end = self.main.index("\n    }\n", host_start)
+        self.assertIn("existing.documentView === dashboard", self.main[host_start:host_end])
 
 
 if __name__ == "__main__":
