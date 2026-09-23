@@ -3809,12 +3809,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// 로더 완료마다 곧장 다시 그리지 않고 300ms 안의 요청을 한 번으로 합친다(10초마다 로더 3개가 각각 열린 대시보드를 재배치하던 비용 제거).
     /// 측정·재인증 액션 경로는 `immediate: true`로 바로 반영한다(로더 완료는 +300ms 합류).
     func scheduleDashboardRefresh(reason: String, immediate: Bool = false) {
-        pendingDashboardRefresh?.cancel()
         if immediate {
+            pendingDashboardRefresh?.cancel()
             pendingDashboardRefresh = nil
             refreshOpenDashboard(reason: reason)
             return
         }
+        // 스로틀: 이미 대기 중이면 그 마감을 유지한다. 새 요청마다 재예약(디바운스)하면 10초마다 오는 로더 완료가
+        // 30초 창을 영원히 밀어내 닫힌 메뉴 캐시가 한 번도 갱신되지 않는다(2026-09-23 실측 0건/120초).
+        if pendingDashboardRefresh != nil { return }
         let item = DispatchWorkItem { [weak self] in
             guard let self else { return }
             self.pendingDashboardRefresh = nil
