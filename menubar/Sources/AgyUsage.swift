@@ -252,13 +252,12 @@ func fetchAgyUsage(completion: @escaping (AgyFetchOutcome) -> Void) {
     }
 }
 
-/// 메뉴바 제목용 짧은 표기 — 그룹 순서대로 주간 잔량만 모은다("Agy 99/31%"). 데이터가 없으면 nil이라 아무것도 그리지 않는다.
+/// 메뉴바 제목용 짧은 표기 — 우리가 쓰는 레인인 Gemini의 주간 잔량만 보여준다("Agy 99%").
+/// 같은 계정의 Claude·GPT 그룹은 규칙상 쓰지 않으므로 제목에 올리지 않는다(대시보드 카드에는 그대로 둔다).
+/// Gemini 그룹이나 주간 버킷이 없으면 nil이라 아무것도 그리지 않는다.
 func agyTitleSlot(_ card: AgyCardModel) -> String? {
-    let percents: [Int] = card.groups.compactMap { group in
-        guard let weekly = group.weekly,
-              let fraction = agyFiniteFraction(weekly.remaining) else { return nil }
-        return Int((fraction * 100).rounded())
-    }
-    guard !percents.isEmpty else { return nil }
-    return "Agy " + percents.map { String($0) }.joined(separator: "/") + "%"
+    guard let gemini = card.groups.first(where: { $0.name.lowercased().contains("gemini") }),
+          let weekly = gemini.weekly,
+          let fraction = agyFiniteFraction(weekly.remaining) else { return nil }
+    return "Agy \(Int((fraction * 100).rounded()))%"
 }

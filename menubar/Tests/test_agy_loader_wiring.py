@@ -44,6 +44,13 @@ class AgyLoaderWiringTests(unittest.TestCase):
         self.assertIn("output.fileHandleForReading.readabilityHandler", self.fetch)
         self.assertNotIn("readDataToEndOfFile", self.fetch)
 
+    def test_title_carries_only_the_gemini_lane(self):
+        # 제목에 Claude·GPT 한도를 올리지 않는다 — 우리는 그 모델을 쓰지 않는다(agy 레인 규칙).
+        slot = re.search(r"func agyTitleSlot\(.*?\n\}\n", self.agy, re.DOTALL)
+        self.assertIsNotNone(slot)
+        self.assertIn('contains("gemini")', slot.group(0))
+        self.assertNotIn("joined(separator: \"/\")", slot.group(0))
+
     def test_title_shows_agy_next_to_grok(self):
         self.assertIn("func agyTitleSlot(", self.agy)
         self.assertIn("agyTitleSlot(self.currentAgyCard)", self.main)
