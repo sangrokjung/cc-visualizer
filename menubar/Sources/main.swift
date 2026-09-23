@@ -2267,7 +2267,27 @@ final class ServiceAvailabilitySummaryView: NSView {
 
 /// 메뉴 대시보드 한 장. 요약 카드 아래로 섹션(제목 띠 + 본문)이 이어지는 하나의 연속 문서다 — 섹션별 안쪽 스크롤은 없다.
 /// 화면보다 길면 AppDelegate.hostDashboard가 통째로 NSScrollView에 넣고 현재 섹션 이름을 고정 헤더로 띄운다.
+/// 대시보드 갱신 비용을 단계별로 재는 작은 누산기. DASHBOARD-REFRESH 로그의 `phases=` 필드가 된다.
+final class DashboardRefreshPhases {
+    private var marks: [(String, Double)] = []
+    private var last = ProcessInfo.processInfo.systemUptime
+    func mark(_ name: String) {
+        let now = ProcessInfo.processInfo.systemUptime
+        marks.append((name, (now - last) * 1_000))
+        last = now
+    }
+    var summary: String { marks.map { "\($0.0):\(Int($0.1))" }.joined(separator: " ") }
+}
+
+/// 이 스레드의 CPU 시간(ms). 벽시계 elapsed와 비교해 "바빴는지 / 굶었는지"를 가른다.
+func dashboardThreadCPUMs() -> Double {
+    var ts = timespec()
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts)
+    return Double(ts.tv_sec) * 1_000 + Double(ts.tv_nsec) / 1_000_000
+}
+
 final class StatusMenuDashboardView: NSView {
+    var lastRefreshPhases: DashboardRefreshPhases?
     static let preferredWidth: CGFloat = 880
 
     private var summaryView: ServiceAvailabilitySummaryView?
@@ -2498,18 +2518,23 @@ final class StatusMenuDashboardView: NSView {
             return
         }
 
+        let phases = DashboardRefreshPhases()
+        lastRefreshPhases = phases
         summaryView?.teamClaude = teamClaude
         summaryView?.teamCodex = teamCodex
         summaryView?.evaluatedAt = Date()
+        phases.mark("summary")
         teamClaudeView?.health = teamClaude
         teamClaudeView?.isMeasuring = isMeasuringTeamClaude
         teamClaudeView?.measurementDetail = teamClaudeMeasureDetail
         teamClaudeView?.onMeasure = onMeasureTeamClaude
         teamClaudeView?.onReauthenticate = onReauthenticateTeamClaude
+        phases.mark("team")
         codexView?.health = codex
         codexView?.pool = teamCodex
         codexView?.usage = usage
         codexView?.onRecover = onRecoverTeamCodex
+        phases.mark("codex")
         higgsfieldView?.data = higgsfield
         grokView?.model = grok
         agyView?.model = agy
@@ -2517,7 +2542,9 @@ final class StatusMenuDashboardView: NSView {
         usageView?.parallelCount = parallelCount
         usageView?.active = active
         usageView?.needsDisplay = true
+        phases.mark("cards")
         refreshSectionSummaries(Self.sectionSummaries(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage, higgsfield: higgsfield))
+        phases.mark("sections")
     }
 }
 
@@ -3800,9 +3827,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func refreshOpenDashboard(reason: String = "direct") {
         guard let dashboard = cachedDashboardView ?? openDashboardView else { return }
         let startedAt = ProcessInfo.processInfo.systemUptime
+        let cpuStart = dashboardThreadCPUMs()
         defer {
             let elapsedMs = Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000)
-            print("DASHBOARD-REFRESH: reason=\(reason) open=\(openDashboardView != nil) elapsed=\(elapsedMs)ms")
+            let cpuMs = Int(dashboardThreadCPUMs() - cpuStart)
+            let phases = dashboard.lastRefreshPhases?.summary ?? "-"
+            print("DASHBOARD-REFRESH: reason=\(reason) open=\(openDashboardView != nil) elapsed=\(elapsedMs)ms cpu=\(cpuMs)ms phases=\(phases)")
             fflush(stdout)
         }
         // 메뉴가 닫혀 있으면 캐시 프레젠테이션 갱신 한 번으로 끝낸다(그 안에서 updateContent 1회). 예전엔 여기서 한 번 더 돌아 비용이 2배였다.
@@ -4391,8 +4421,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             usage: currentData,
             higgsfield: currentHiggsfield
         )
+        dashboard.lastRefreshPhases?.mark("height")
         dashboard.frame.size.height = contentHeight
+        dashboard.lastRefreshPhases?.mark("frame")
         hostDashboard(dashboard, in: dashboardItem, previousScrollOrigin: previousScrollOrigin)
+        dashboard.lastRefreshPhases?.mark("host")
 
         refreshMenuView?.detail = refreshMenuDetailText()
         measureMenuView?.detail = measureMenuDetailText()
