@@ -2488,7 +2488,6 @@ final class StatusMenuDashboardView: NSView {
         onReauthenticateTeamClaude: ((String, String?) -> Void)? = nil,
         onRecoverTeamCodex: ((String, String?, TeamCodexAccountRecoveryKind) -> Void)? = nil
     ) {
-        let previousTeamScrollOrigin = teamClaudeView?.enclosingScrollView?.contentView.bounds.origin
         let accountCount = teamClaude?.accounts.count ?? 0
         let usageHeight = UsageDashboardView.preferredHeight(for: usage)
         let structureChanged = accountCount != renderedAccountCount
