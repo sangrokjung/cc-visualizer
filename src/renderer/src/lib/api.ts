@@ -2,7 +2,12 @@
 // 모든 IPC 호출을 한 곳에서 관리
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import type { TeamClaudeHealth, TeamCodexPool } from './types'
+import type {
+  HiggsfieldAccount,
+  HiggsfieldTransactions,
+  TeamClaudeHealth,
+  TeamCodexPool,
+} from './types'
 
 export const api = {
   // Commands (Request/Response)
@@ -164,6 +169,33 @@ export const api = {
       return { ok: result.ok, message: result.message, needsRestart: result.needsRestart }
     } catch (error) {
       return { ok: false, error: String(error) }
+    }
+  },
+
+  // 힉스필드 잔액·플랜. 브라우저 dev(invoke 미존재)나 CLI 실패는 ok:false로 내려 화면이 사유를 렌더한다.
+  fetchHiggsfieldAccount: async (): Promise<HiggsfieldAccount> => {
+    try {
+      return await invoke<HiggsfieldAccount>('fetch_higgsfield_account')
+    } catch (error) {
+      return {
+        ok: false,
+        checkedAt: new Date().toISOString(),
+        error: `힉스필드 계정 정보를 불러오지 못했습니다: ${String(error)}`,
+      }
+    }
+  },
+
+  // 힉스필드 거래내역. pages 기본 3 (구독 갱신 간격을 재려면 2주기 이상이 필요).
+  fetchHiggsfieldTransactions: async (pages = 3): Promise<HiggsfieldTransactions> => {
+    try {
+      return await invoke<HiggsfieldTransactions>('fetch_higgsfield_transactions', { pages })
+    } catch (error) {
+      return {
+        ok: false,
+        checkedAt: new Date().toISOString(),
+        error: `힉스필드 거래내역을 불러오지 못했습니다: ${String(error)}`,
+        items: [],
+      }
     }
   },
 

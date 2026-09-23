@@ -260,6 +260,41 @@ export const SessionEventSchema = z.object({
 })
 export type SessionEvent = z.infer<typeof SessionEventSchema>
 
+// ─── 힉스필드(Higgsfield AI) 크레딧 ───
+// CLI(`higgsfield account ...`) 응답을 그대로 담는다. 필드가 늘어도 깨지지 않도록 미지의 키는 무시한다.
+
+export const HiggsfieldAccountSchema = z.object({
+  ok: z.boolean(),
+  checkedAt: z.string(),
+  error: z.string().optional(),
+  account: z.object({
+    credits: z.number(),
+    email: z.string().optional(),
+    // 플랜 종류(ultra 등)는 값이 늘어날 수 있어 enum으로 굳히지 않는다.
+    subscription_plan_type: z.string().optional(),
+  }).optional(),
+})
+export type HiggsfieldAccount = z.infer<typeof HiggsfieldAccountSchema>
+
+/// 거래 1건. `action`은 spend(사용) · grant(구독 지급) · deduct(갱신 시 잔여분 회수).
+export const HiggsfieldTransactionSchema = z.object({
+  action: z.string(),
+  created_at: z.string(),
+  credits: z.number(),
+  display_name: z.string().optional(),
+})
+export type HiggsfieldTransaction = z.infer<typeof HiggsfieldTransactionSchema>
+
+export const HiggsfieldTransactionsSchema = z.object({
+  ok: z.boolean(),
+  checkedAt: z.string(),
+  error: z.string().optional(),
+  // 일부 페이지만 받아온 경우의 사유. items는 그대로 쓰고 화면에 주의만 표시한다.
+  partialError: z.string().nullable().optional(),
+  items: z.array(HiggsfieldTransactionSchema),
+})
+export type HiggsfieldTransactions = z.infer<typeof HiggsfieldTransactionsSchema>
+
 // 이벤트 타입별 시각 설정
 export const SESSION_EVENT_CONFIG: Record<string, { icon: string; color: string; label: string }> = {
   user:           { icon: '▶', color: '#2D72D2', label: '사용자' },
