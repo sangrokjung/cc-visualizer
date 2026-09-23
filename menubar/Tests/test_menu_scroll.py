@@ -22,15 +22,27 @@ class MenuScrollRegressionTests(unittest.TestCase):
             "refresh must capture the user's existing dashboard scroll position",
         )
         self.assertIn(
+            "hostDashboard(dashboard, in: dashboardItem, previousScrollOrigin: previousScrollOrigin)",
+            body,
+            "refresh must hand the captured position to the shared hosting helper",
+        )
+        host = re.search(
+            r"    func hostDashboard\((?P<body>.*?)\n    \}\n",
+            source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(host, "the shared dashboard hosting helper must remain discoverable")
+        self.assertIn(
             "scrollView.contentView.scroll(to: NSPoint(x: previousScrollOrigin.x",
-            body,
-            "refresh must restore the captured position after replacing the document view",
+            host.group("body"),
+            "hosting must restore the captured position after replacing the document view",
         )
-        self.assertNotIn(
-            "scrollView.contentView.scroll(to: .zero)",
-            body,
-            "periodic status refresh must not force the open menu back to the top",
-        )
+        for text in (body, host.group("body")):
+            self.assertNotIn(
+                "scrollView.contentView.scroll(to: .zero)",
+                text,
+                "periodic status refresh must not force the open menu back to the top",
+            )
 
     def test_cached_menu_open_does_not_rebuild_dashboard_on_the_click(self):
         source = SOURCE.read_text()
@@ -72,7 +84,9 @@ class MenuScrollRegressionTests(unittest.TestCase):
         self.assertNotIn("updateCachedMenuPresentation()", before_rebuild)
         self.assertNotIn("documentView", open_branch)
 
-    def test_team_account_scroll_survives_dashboard_rebuild(self):
+    def test_team_account_list_is_part_of_the_single_page(self):
+        # 계정 표는 더 이상 자기 스크롤 뷰를 갖지 않는다. 표의 스크롤 위치는 곧 페이지의 스크롤 위치이고,
+        # 그것은 updateCachedMenuPresentation → hostDashboard가 보존한다.
         source = SOURCE.read_text()
         match = re.search(
             r"    func updateContent\((?P<body>.*?)\n    \}\n}\n\nfinal class UsageDashboardView",
@@ -81,16 +95,13 @@ class MenuScrollRegressionTests(unittest.TestCase):
         )
         self.assertIsNotNone(match, "dashboard update method must remain discoverable")
         body = match.group("body")
-        self.assertIn(
-            "let previousTeamScrollOrigin = teamClaudeView?.enclosingScrollView?.contentView.bounds.origin",
+        self.assertNotIn(
+            "enclosingScrollView",
             body,
-            "a dashboard rebuild must capture the account-list scroll position",
+            "the account table has no inner scroll view to capture or restore",
         )
-        self.assertIn(
-            "teamScrollView.contentView.scroll(to: NSPoint(x: previousTeamScrollOrigin.x",
-            body,
-            "a dashboard rebuild must restore the account-list scroll position",
-        )
+        dashboard_class = source.split("final class StatusMenuDashboardView", 1)[1].split("\nfinal class ", 1)[0]
+        self.assertNotIn("NSScrollView(", dashboard_class, "the dashboard must be one continuous document")
 
 
 if __name__ == "__main__":

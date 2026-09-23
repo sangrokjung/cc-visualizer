@@ -2265,10 +2265,10 @@ final class ServiceAvailabilitySummaryView: NSView {
 }
 
 
+/// 메뉴 대시보드 한 장. 요약 카드 아래로 섹션(제목 띠 + 본문)이 이어지는 하나의 연속 문서다 — 섹션별 안쪽 스크롤은 없다.
+/// 화면보다 길면 AppDelegate.hostDashboard가 통째로 NSScrollView에 넣고 현재 섹션 이름을 고정 헤더로 띄운다.
 final class StatusMenuDashboardView: NSView {
     static let preferredWidth: CGFloat = 880
-    static let maxTeamHeight: CGFloat = 596
-    static let maxMenuDashboardHeight: CGFloat = 936
 
     private var summaryView: ServiceAvailabilitySummaryView?
     private var teamClaudeView: TeamClaudeTableView?
@@ -2277,6 +2277,8 @@ final class StatusMenuDashboardView: NSView {
     private var grokView: GrokQuotaCardView?
     private var agyView: AgyQuotaCardView?
     private var usageView: UsageDashboardView?
+    private(set) var sections: [DashboardSection] = []
+    private var headerViews: [DashboardSectionHeaderView] = []
     private var renderedHiggsfieldHeight: CGFloat = 0
     private var renderedAccountCount = -1
     private var renderedTeamClaudePresent = false
@@ -2293,25 +2295,61 @@ final class StatusMenuDashboardView: NSView {
         return base + CGFloat(health.accounts.count) * 72
     }
 
-    static func teamHeight(_ health: TeamClaudeHealth?) -> CGFloat {
-        min(teamContentHeight(health), maxTeamHeight)
-    }
-
     static func codexHeight(_ health: CodexHealth?, teamCodex: TeamCodexPoolHealth?) -> CGFloat {
         health == nil && teamCodex == nil ? 0 : CodexStatusView.preferredHeight(for: teamCodex)
     }
 
+    /// 첫 섹션 헤더가 놓이는 문서 y — 위 4pt, 요약 카드, 아래 4pt.
+    static let sectionStartY: CGFloat = 4 + ServiceAvailabilitySummaryView.preferredHeight + 4
+
+    /// "CLI 쿼터" 본문 = Grok 카드 + 4pt + Agy 카드. 두 카드 모델은 옵셔널이 아니라 항상 그린다.
+    static let cliHeight: CGFloat = GrokQuotaCardView.fixedHeight + 4 + AgyQuotaCardView.fixedHeight
+
     static func preferredHeight(teamClaude: TeamClaudeHealth?, codex: CodexHealth?, teamCodex: TeamCodexPoolHealth?, usage: UsageData?, higgsfield: HiggsfieldCreditsData? = nil) -> CGFloat {
-        let team = teamHeight(teamClaude)
-        let codex = codexHeight(codex, teamCodex: teamCodex)
-        let usage = UsageDashboardView.preferredHeight(for: usage)
-        let higgs = HiggsfieldCreditsView.preferredHeight(for: higgsfield)
-        let summary = ServiceAvailabilitySummaryView.preferredHeight
-        return 8 + summary + 4 + team + (team > 0 ? 4 : 0) + codex + (codex > 0 ? 4 : 0)
-            + higgs + (higgs > 0 ? 4 : 0)
-            + GrokQuotaCardView.fixedHeight + 4
-            + AgyQuotaCardView.fixedHeight + 4
-            + usage + 8
+        dashboardSectionLayout(startY: sectionStartY, bodies: [
+            (id: "claude", title: "Claude 풀", summary: "", height: teamContentHeight(teamClaude)),
+            (id: "codex", title: "Codex 풀", summary: "", height: codexHeight(codex, teamCodex: teamCodex)),
+            (id: "higgsfield", title: "Higgsfield", summary: "", height: HiggsfieldCreditsView.preferredHeight(for: higgsfield)),
+            (id: "cli", title: "CLI 쿼터", summary: "", height: cliHeight),
+            (id: "usage", title: "사용량", summary: "", height: UsageDashboardView.preferredHeight(for: usage)),
+        ]).totalHeight
+    }
+
+    /// 섹션 헤더 우측 한 줄 요약. 모델에 이미 있는 값만 쓰고, 모르면 빈 문자열(헤더는 제목만 그린다).
+    static func sectionSummaries(teamClaude: TeamClaudeHealth?, codex: CodexHealth?, teamCodex: TeamCodexPoolHealth?, usage: UsageData?, higgsfield: HiggsfieldCreditsData?) -> [String: String] {
+        var out: [String: String] = [:]
+        if let teamClaude {
+            // 요약 카드와 같은 숫자: 전체 계정 수, Fable 기준 지금 요청을 받을 수 있는 계정 수.
+            let usable = teamClaude.fableAvailability(now: Date()).filter { $0.state == .ready }.count
+            out["claude"] = "계정 \(teamClaude.accounts.count) · 사용 가능 \(usable)"
+        }
+        if let teamCodex {
+            out["codex"] = "\(teamCodex.statusLabel) · 사용 가능 \(teamCodex.usableCount)/\(teamCodex.poolCount)"
+        } else if let codex {
+            out["codex"] = codex.statusLabel
+        }
+        if let higgsfield, higgsfield.error == nil {
+            out["higgsfield"] = higgsfieldFormatCredits(higgsfield.credits)
+        }
+        out["cli"] = "Grok · Agy"
+        if let usage, let today = usage.today {
+            out["usage"] = "오늘 \(formatKRWShort(today.totalCost, rate: usage.usdKrwRate)) · 총 \(formatTokens(usage.allTimeTokens))"
+        }
+        return out
+    }
+
+    /// 구조가 그대로일 때: 헤더의 요약 글만 바꾸고 다시 그린다.
+    private func refreshSectionSummaries(_ summaries: [String: String]) {
+        sections = sections.map { section in
+            var updated = section
+            updated.summary = summaries[section.id] ?? ""
+            return updated
+        }
+        for header in headerViews {
+            guard let id = header.section?.id,
+                  let section = sections.first(where: { $0.id == id }) else { continue }
+            header.section = section
+        }
     }
 
     func configure(
@@ -2331,6 +2369,10 @@ final class StatusMenuDashboardView: NSView {
         onRecoverTeamCodex: ((String, String?, TeamCodexAccountRecoveryKind) -> Void)? = nil
     ) {
         subviews.removeAll()
+        headerViews = []
+        teamClaudeView = nil
+        codexView = nil
+        higgsfieldView = nil
         renderedAccountCount = teamClaude?.accounts.count ?? 0
         renderedTeamClaudePresent = teamClaude != nil
         renderedCodexPresent = codex != nil
@@ -2338,86 +2380,76 @@ final class StatusMenuDashboardView: NSView {
         renderedTeamCodexPresent = teamCodex != nil
         renderedUsageHeight = UsageDashboardView.preferredHeight(for: usage)
         renderedHiggsfieldHeight = HiggsfieldCreditsView.preferredHeight(for: higgsfield)
-        var y: CGFloat = 4
 
-        let summary = ServiceAvailabilitySummaryView(frame: NSRect(x: 0, y: y, width: bounds.width, height: ServiceAvailabilitySummaryView.preferredHeight))
+        let summary = ServiceAvailabilitySummaryView(frame: NSRect(x: 0, y: 4, width: bounds.width, height: ServiceAvailabilitySummaryView.preferredHeight))
         summary.teamClaude = teamClaude
         summary.teamCodex = teamCodex
         summary.evaluatedAt = Date()
         addSubview(summary)
         summaryView = summary
-        y += ServiceAvailabilitySummaryView.preferredHeight + 4
 
-        if let teamClaude = teamClaude {
-            let contentHeight = Self.teamContentHeight(teamClaude)
-            let height = Self.teamHeight(teamClaude)
-            let view = TeamClaudeTableView(frame: NSRect(x: 0, y: 0, width: bounds.width, height: contentHeight))
-            view.health = teamClaude
-            view.isMeasuring = isMeasuringTeamClaude
-            view.measurementDetail = teamClaudeMeasureDetail
-            view.onMeasure = onMeasureTeamClaude
-            view.onReauthenticate = onReauthenticateTeamClaude
-            teamClaudeView = view
+        // preferredHeight와 같은 순서·같은 높이. 섹션을 더하면 두 목록과 sectionSummaries를 같이 고친다.
+        let summaries = Self.sectionSummaries(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage, higgsfield: higgsfield)
+        sections = dashboardSectionLayout(startY: Self.sectionStartY, bodies: [
+            (id: "claude", title: "Claude 풀", summary: summaries["claude"] ?? "", height: Self.teamContentHeight(teamClaude)),
+            (id: "codex", title: "Codex 풀", summary: summaries["codex"] ?? "", height: Self.codexHeight(codex, teamCodex: teamCodex)),
+            (id: "higgsfield", title: "Higgsfield", summary: summaries["higgsfield"] ?? "", height: HiggsfieldCreditsView.preferredHeight(for: higgsfield)),
+            (id: "cli", title: "CLI 쿼터", summary: summaries["cli"] ?? "", height: Self.cliHeight),
+            (id: "usage", title: "사용량", summary: summaries["usage"] ?? "", height: UsageDashboardView.preferredHeight(for: usage)),
+        ]).sections
 
-            if contentHeight > height {
-                let scrollView = NSScrollView(frame: NSRect(x: 0, y: y, width: bounds.width, height: height))
-                scrollView.documentView = view
-                scrollView.hasVerticalScroller = true
-                scrollView.autohidesScrollers = true
-                scrollView.scrollerStyle = .overlay
-                scrollView.drawsBackground = false
-                scrollView.borderType = .noBorder
-                scrollView.contentView.scroll(to: .zero)
-                addSubview(scrollView)
-            } else {
-                view.frame.origin.y = y
+        for section in sections {
+            let header = DashboardSectionHeaderView(frame: NSRect(x: 0, y: section.y, width: bounds.width, height: dashboardSectionHeaderHeight))
+            header.section = section
+            addSubview(header)
+            headerViews.append(header)
+            let bodyY = dashboardSectionBodyY(section)
+            let bodyHeight = section.height - dashboardSectionHeaderHeight - dashboardSectionGap
+
+            switch section.id {
+            case "claude":
+                // 표는 전체 높이로 한 장에 그린다 — 안쪽 스크롤 없이 페이지가 통째로 스크롤된다.
+                let view = TeamClaudeTableView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: bodyHeight))
+                view.health = teamClaude
+                view.isMeasuring = isMeasuringTeamClaude
+                view.measurementDetail = teamClaudeMeasureDetail
+                view.onMeasure = onMeasureTeamClaude
+                view.onReauthenticate = onReauthenticateTeamClaude
                 addSubview(view)
+                teamClaudeView = view
+            case "codex":
+                let view = CodexStatusView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: bodyHeight))
+                view.health = codex
+                view.pool = teamCodex
+                view.usage = usage
+                view.onRecover = onRecoverTeamCodex
+                addSubview(view)
+                codexView = view
+            case "higgsfield":
+                let higgsView = HiggsfieldCreditsView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: bodyHeight))
+                higgsView.data = higgsfield
+                addSubview(higgsView)
+                higgsfieldView = higgsView
+            case "cli":
+                let grokCard = GrokQuotaCardView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: GrokQuotaCardView.fixedHeight))
+                grokCard.model = grok
+                addSubview(grokCard)
+                grokView = grokCard
+                let agyCard = AgyQuotaCardView(frame: NSRect(x: 0, y: bodyY + GrokQuotaCardView.fixedHeight + 4, width: bounds.width, height: AgyQuotaCardView.fixedHeight))
+                agyCard.model = agy
+                addSubview(agyCard)
+                agyView = agyCard
+            case "usage":
+                let view = UsageDashboardView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: bodyHeight))
+                view.usage = usage
+                view.parallelCount = parallelCount
+                view.active = active
+                addSubview(view)
+                usageView = view
+            default:
+                break
             }
-            y += height + 4
         }
-
-        if codex != nil || teamCodex != nil {
-            let codexHeight = CodexStatusView.preferredHeight(for: teamCodex)
-            let view = CodexStatusView(frame: NSRect(x: 0, y: y, width: bounds.width, height: codexHeight))
-            view.health = codex
-            view.pool = teamCodex
-            view.usage = usage
-            view.onRecover = onRecoverTeamCodex
-            addSubview(view)
-            codexView = view
-            y += codexHeight + 4
-        }
-
-        let higgsHeight = HiggsfieldCreditsView.preferredHeight(for: higgsfield)
-        if higgsHeight > 0 {
-            let higgsView = HiggsfieldCreditsView(frame: NSRect(x: 0, y: y, width: bounds.width, height: higgsHeight))
-            higgsView.data = higgsfield
-            addSubview(higgsView)
-            higgsfieldView = higgsView
-            y += higgsHeight + 4
-        } else {
-            higgsfieldView = nil
-        }
-
-        let grokCard = GrokQuotaCardView(frame: NSRect(x: 0, y: y, width: bounds.width, height: GrokQuotaCardView.fixedHeight))
-        grokCard.model = grok
-        addSubview(grokCard)
-        grokView = grokCard
-        y += GrokQuotaCardView.fixedHeight + 4
-
-        let agyCard = AgyQuotaCardView(frame: NSRect(x: 0, y: y, width: bounds.width, height: AgyQuotaCardView.fixedHeight))
-        agyCard.model = agy
-        addSubview(agyCard)
-        agyView = agyCard
-        y += AgyQuotaCardView.fixedHeight + 4
-
-        let usageHeight = UsageDashboardView.preferredHeight(for: usage)
-        let view = UsageDashboardView(frame: NSRect(x: 0, y: y, width: bounds.width, height: usageHeight))
-        view.usage = usage
-        view.parallelCount = parallelCount
-        view.active = active
-        addSubview(view)
-        usageView = view
     }
 
     func updateContent(
@@ -2436,7 +2468,6 @@ final class StatusMenuDashboardView: NSView {
         onReauthenticateTeamClaude: ((String, String?) -> Void)? = nil,
         onRecoverTeamCodex: ((String, String?, TeamCodexAccountRecoveryKind) -> Void)? = nil
     ) {
-        let previousTeamScrollOrigin = teamClaudeView?.enclosingScrollView?.contentView.bounds.origin
         let accountCount = teamClaude?.accounts.count ?? 0
         let usageHeight = UsageDashboardView.preferredHeight(for: usage)
         let structureChanged = accountCount != renderedAccountCount
@@ -2464,13 +2495,6 @@ final class StatusMenuDashboardView: NSView {
                 onReauthenticateTeamClaude: onReauthenticateTeamClaude,
                 onRecoverTeamCodex: onRecoverTeamCodex
             )
-            if let previousTeamScrollOrigin,
-               let teamView = teamClaudeView,
-               let teamScrollView = teamView.enclosingScrollView {
-                let maximumY = max(0, teamView.bounds.height - teamScrollView.contentView.bounds.height)
-                let restoredY = min(max(previousTeamScrollOrigin.y, 0), maximumY)
-                teamScrollView.contentView.scroll(to: NSPoint(x: previousTeamScrollOrigin.x, y: restoredY))
-            }
             return
         }
 
@@ -2493,6 +2517,7 @@ final class StatusMenuDashboardView: NSView {
         usageView?.parallelCount = parallelCount
         usageView?.active = active
         usageView?.needsDisplay = true
+        refreshSectionSummaries(Self.sectionSummaries(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage, higgsfield: higgsfield))
     }
 }
 
@@ -3478,6 +3503,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     weak var openDashboardView: StatusMenuDashboardView?
     var cachedDashboardView: StatusMenuDashboardView?
     weak var cachedDashboardItem: NSMenuItem?
+    /// 대시보드가 화면보다 길 때 그 스크롤 뷰 위에 떠서 현재 섹션 이름을 말하는 고정 헤더 (스크롤 뷰 하나에 하나).
+    var pinnedSectionHeader: DashboardSectionHeaderView?
+    weak var dashboardScrollView: NSScrollView?
+    var dashboardScrollObserver: NSObjectProtocol?
     weak var refreshMenuView: MenuActionRowView?
     weak var measureMenuView: MenuActionRowView?
     var hasScheduledMenuPrewarm = false
@@ -3762,6 +3791,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         )
         dashboard.needsDisplay = true
+        updatePinnedSectionHeader()
         if openDashboardView != nil {
             print("DASHBOARD-REFRESH: 열린 메뉴 최신 상태 반영")
             fflush(stdout)
@@ -4194,6 +4224,94 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             : "모든 계정 측정 완료"
     }
 
+    /// 대시보드를 메뉴 항목에 올린다. 화면에 다 들어가면 그대로 항목 뷰가 되고, 넘치면 화면 높이만큼의
+    /// NSScrollView 한 겹에 문서로 넣고 현재 섹션 이름을 말하는 고정 헤더를 띄운다(섹션별 상한은 없다).
+    /// menuWillOpen의 재구성과 updateCachedMenuPresentation의 제자리 갱신이 같이 쓰는 유일한 호스팅 경로다.
+    func hostDashboard(_ dashboard: StatusMenuDashboardView, in item: NSMenuItem, previousScrollOrigin: NSPoint?) {
+        let screenVisibleHeight = statusItem?.button?.window?.screen?.visibleFrame.height
+            ?? NSScreen.main?.visibleFrame.height
+            ?? 900
+        let actionAreaHeight = CGFloat(8) * MenuActionRowView.preferredHeight + 72
+        let available = max(320, screenVisibleHeight - actionAreaHeight - 16)
+        let contentHeight = dashboard.frame.height
+
+        if contentHeight > available {
+            let scrollView = (item.view as? NSScrollView) ?? NSScrollView(frame: .zero)
+            if dashboardScrollView !== scrollView {
+                installPinnedSectionHeader(in: scrollView)
+            }
+            scrollView.frame = NSRect(
+                x: 0,
+                y: 0,
+                width: StatusMenuDashboardView.preferredWidth,
+                height: available
+            )
+            scrollView.documentView = dashboard
+            scrollView.hasVerticalScroller = true
+            scrollView.autohidesScrollers = true
+            scrollView.scrollerStyle = .overlay
+            scrollView.drawsBackground = false
+            scrollView.borderType = .noBorder
+            scrollView.verticalScrollElasticity = .allowed
+            if let previousScrollOrigin {
+                let maximumY = max(0, contentHeight - scrollView.contentView.bounds.height)
+                let restoredY = min(max(previousScrollOrigin.y, 0), maximumY)
+                scrollView.contentView.scroll(to: NSPoint(x: previousScrollOrigin.x, y: restoredY))
+            }
+            item.view = scrollView
+        } else {
+            if let scrollView = item.view as? NSScrollView {
+                scrollView.documentView = nil
+            }
+            removePinnedSectionHeader()
+            dashboard.frame.origin = .zero
+            item.view = dashboard
+        }
+        updatePinnedSectionHeader()
+    }
+
+    /// 스크롤 뷰 하나당 한 번: 고정 헤더를 floating subview로 얹고 clip view의 bounds 변화를 구독한다.
+    /// 이전 스크롤 뷰의 구독은 여기서 푼다 — 구독 수명은 스크롤 뷰 수명과 같다(menuDidClose는 건드리지 않는다).
+    private func installPinnedSectionHeader(in scrollView: NSScrollView) {
+        removePinnedSectionHeader()
+        let pinned = DashboardSectionHeaderView(frame: NSRect(x: 0, y: 0, width: StatusMenuDashboardView.preferredWidth, height: dashboardSectionHeaderHeight))
+        pinned.isHidden = true
+        scrollView.addFloatingSubview(pinned, for: .vertical)
+        scrollView.contentView.postsBoundsChangedNotifications = true
+        dashboardScrollObserver = NotificationCenter.default.addObserver(
+            forName: NSView.boundsDidChangeNotification,
+            object: scrollView.contentView,
+            queue: nil
+        ) { [weak self] _ in
+            self?.updatePinnedSectionHeader()
+        }
+        pinnedSectionHeader = pinned
+        dashboardScrollView = scrollView
+    }
+
+    private func removePinnedSectionHeader() {
+        if let token = dashboardScrollObserver {
+            NotificationCenter.default.removeObserver(token)
+            dashboardScrollObserver = nil
+        }
+        pinnedSectionHeader?.removeFromSuperview()
+        pinnedSectionHeader = nil
+        dashboardScrollView = nil
+    }
+
+    /// 지금 스크롤 위치에서 고정 헤더가 말할 섹션을 정한다. 요약 카드가 위에 보이는 동안(nil)은 숨긴다.
+    /// 호스팅 직후와 updateContent 뒤에도 불러 갱신이 낡은 제목을 남기지 않게 한다.
+    func updatePinnedSectionHeader() {
+        guard let pinned = pinnedSectionHeader,
+              let scrollView = dashboardScrollView,
+              let dashboard = scrollView.documentView as? StatusMenuDashboardView else {
+            pinnedSectionHeader?.isHidden = true
+            return
+        }
+        pinned.section = dashboardCurrentSection(dashboard.sections, scrollOffset: scrollView.contentView.bounds.origin.y)
+        pinned.isHidden = (pinned.section == nil)
+    }
+
     func updateCachedMenuPresentation() {
         guard let dashboard = cachedDashboardView,
               let dashboardItem = cachedDashboardItem else {
@@ -4230,44 +4348,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             higgsfield: currentHiggsfield
         )
         dashboard.frame.size.height = contentHeight
-        let screenHeight = statusItem?.button?.window?.screen?.visibleFrame.height
-            ?? NSScreen.main?.visibleFrame.height
-            ?? 900
-        let actionAreaHeight = CGFloat(8) * MenuActionRowView.preferredHeight + 72
-        let dashboardHeight = min(
-            contentHeight,
-            min(StatusMenuDashboardView.maxMenuDashboardHeight, max(320, screenHeight - actionAreaHeight))
-        )
-
-        if contentHeight > dashboardHeight {
-            let scrollView = (dashboardItem.view as? NSScrollView)
-                ?? NSScrollView(frame: .zero)
-            scrollView.frame = NSRect(
-                x: 0,
-                y: 0,
-                width: StatusMenuDashboardView.preferredWidth,
-                height: dashboardHeight
-            )
-            scrollView.documentView = dashboard
-            scrollView.hasVerticalScroller = true
-            scrollView.autohidesScrollers = true
-            scrollView.scrollerStyle = .overlay
-            scrollView.drawsBackground = false
-            scrollView.borderType = .noBorder
-            scrollView.verticalScrollElasticity = .none
-            if let previousScrollOrigin {
-                let maximumY = max(0, contentHeight - scrollView.contentView.bounds.height)
-                let restoredY = min(max(previousScrollOrigin.y, 0), maximumY)
-                scrollView.contentView.scroll(to: NSPoint(x: previousScrollOrigin.x, y: restoredY))
-            }
-            dashboardItem.view = scrollView
-        } else {
-            if let scrollView = dashboardItem.view as? NSScrollView {
-                scrollView.documentView = nil
-            }
-            dashboard.frame.origin = .zero
-            dashboardItem.view = dashboard
-        }
+        hostDashboard(dashboard, in: dashboardItem, previousScrollOrigin: previousScrollOrigin)
 
         refreshMenuView?.detail = refreshMenuDetailText()
         measureMenuView?.detail = measureMenuDetailText()
@@ -4296,12 +4377,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.removeAllItems()
 
         let dashboardContentHeight = StatusMenuDashboardView.preferredHeight(teamClaude: currentTeamClaude, codex: currentCodex, teamCodex: currentTeamCodex, usage: currentData, higgsfield: currentHiggsfield)
-        let screenHeight = statusItem?.button?.window?.screen?.visibleFrame.height
-            ?? NSScreen.main?.visibleFrame.height
-            ?? 900
-        let actionAreaHeight = CGFloat(8) * MenuActionRowView.preferredHeight + 72
-        let screenLimitedHeight = max(320, screenHeight - actionAreaHeight)
-        let dashboardHeight = min(dashboardContentHeight, min(StatusMenuDashboardView.maxMenuDashboardHeight, screenLimitedHeight))
         let dashboard = StatusMenuDashboardView(frame: NSRect(x: 0, y: 0, width: StatusMenuDashboardView.preferredWidth, height: dashboardContentHeight))
         dashboard.configure(
             teamClaude: currentTeamClaude,
@@ -4326,20 +4401,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         openDashboardView = dashboard
         cachedDashboardView = dashboard
         let dashboardItem = NSMenuItem()
-        if dashboardContentHeight > dashboardHeight {
-            let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: StatusMenuDashboardView.preferredWidth, height: dashboardHeight))
-            scrollView.documentView = dashboard
-            scrollView.hasVerticalScroller = true
-            scrollView.autohidesScrollers = true
-            scrollView.scrollerStyle = .overlay
-            scrollView.drawsBackground = false
-            scrollView.borderType = .noBorder
-            scrollView.verticalScrollElasticity = .none
-            scrollView.contentView.scroll(to: .zero)
-            dashboardItem.view = scrollView
-        } else {
-            dashboardItem.view = dashboard
-        }
+        hostDashboard(dashboard, in: dashboardItem, previousScrollOrigin: nil)
         menu.addItem(dashboardItem)
         cachedDashboardItem = dashboardItem
 
