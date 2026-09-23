@@ -3821,13 +3821,27 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self.refreshOpenDashboard(reason: reason)
         }
         pendingDashboardRefresh = item
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: item)
+        // 열린 메뉴는 0.3초 안에 합쳐 바로 반영, 닫힌 메뉴는 30초 단위로만 캐시를 데운다(열 때 pending이 있으면 그 자리에서 반영).
+        let window: TimeInterval = openDashboardView != nil ? 0.3 : closedMenuRefreshWindow
+        DispatchQueue.main.asyncAfter(deadline: .now() + window, execute: item)
+    }
+
+    /// 닫힌 메뉴의 캐시 프레젠테이션 갱신 주기. 10초마다 로더 3개가 각각 재구성하던 비용(굶는 메인 스레드에서 2~6초)을 1/9로 줄인다.
+    let closedMenuRefreshWindow: TimeInterval = 30
+
+    /// 대기 중인 닫힌 메뉴 갱신을 지금 실행한다(메뉴를 여는 순간 최신 데이터로).
+    func flushPendingDashboardRefresh(reason: String) {
+        guard let pending = pendingDashboardRefresh else { return }
+        pending.cancel()
+        pendingDashboardRefresh = nil
+        refreshOpenDashboard(reason: reason)
     }
 
     func refreshOpenDashboard(reason: String = "direct") {
         guard let dashboard = cachedDashboardView ?? openDashboardView else { return }
         let startedAt = ProcessInfo.processInfo.systemUptime
         let cpuStart = dashboardThreadCPUMs()
+        dashboard.lastRefreshPhases = nil
         defer {
             let elapsedMs = Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000)
             let cpuMs = Int(dashboardThreadCPUMs() - cpuStart)
@@ -4443,6 +4457,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let cachedDashboardView,
            cachedDashboardItem != nil,
            !menu.items.isEmpty {
+            flushPendingDashboardRefresh(reason: "menuWillOpen")
             openDashboardView = cachedDashboardView
             refreshMenuView?.detail = refreshMenuDetailText()
             measureMenuView?.detail = measureMenuDetailText()

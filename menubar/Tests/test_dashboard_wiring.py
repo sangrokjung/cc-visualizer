@@ -104,6 +104,12 @@ class DashboardRefreshCostTests(unittest.TestCase):
         self.assertGreaterEqual(self.main.count("scheduleDashboardRefresh(reason:"), 12)
         self.assertEqual(0, self.main.count("refreshOpenDashboard()"), "call sites must go through scheduleDashboardRefresh")
         self.assertIn('print("DASHBOARD-REFRESH: reason=', self.main)
+        # 닫힌 메뉴는 30초 단위로만 캐시를 데우고, 메뉴를 열 때 대기 중인 갱신을 그 자리에서 반영한다.
+        self.assertIn("let closedMenuRefreshWindow: TimeInterval = 30", self.main)
+        self.assertIn("openDashboardView != nil ? 0.3 : closedMenuRefreshWindow", self.main)
+        open_start = self.main.index("    func menuWillOpen(")
+        open_end = self.main.index("menu.removeAllItems()", open_start)
+        self.assertIn('flushPendingDashboardRefresh(reason: "menuWillOpen")', self.main[open_start:open_end])
         # 닫힌 메뉴 경로는 updateContent를 한 번만(캐시 프레젠테이션 안에서) 돌린다 — 예전엔 두 번이라 10초마다 300~800ms를 썼다.
         start = self.main.index('    func refreshOpenDashboard(reason: String = "direct") {')
         end = self.main.index("\n    }\n", start)
