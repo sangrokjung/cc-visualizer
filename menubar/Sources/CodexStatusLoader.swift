@@ -515,6 +515,19 @@ private func scanCodexSessionFile(
     return stats
 }
 
+private let codexLastScanReportLock = NSLock()
+private var codexLastScanReport: CodexScanReport?
+
+func codexLastScan() -> CodexScanReport? {
+    codexLastScanReportLock.lock(); defer { codexLastScanReportLock.unlock() }
+    return codexLastScanReport
+}
+
+private func recordCodexScan(files: Int, changed: Int, bytesRead: Int64) {
+    codexLastScanReportLock.lock(); defer { codexLastScanReportLock.unlock() }
+    codexLastScanReport = CodexScanReport(files: files, changed: changed, bytesRead: bytesRead)
+}
+
 func loadCodexSessionStats(root: String) -> CodexCallStats {
     let files = recentCodexSessionFiles(root: root)
     let scannedBytes = files.reduce(Int64(0)) { $0 + $1.size }
@@ -530,10 +543,13 @@ func loadCodexSessionStats(root: String) -> CodexCallStats {
     codexSessionStatsCacheLock.lock()
     if let cached = codexSessionStatsCache, cached.signature == signature {
         codexSessionStatsCacheLock.unlock()
+        recordCodexScan(files: files.count, changed: 0, bytesRead: 0)
         return cached.stats
     }
     codexSessionStatsCacheLock.unlock()
     var fileStatsList: [CodexSessionFileStats] = []
+    var changedFiles = 0
+    var bytesRead: Int64 = 0
     var activeFilePaths = Set<String>()
 
     for file in files {
@@ -553,6 +569,8 @@ func loadCodexSessionStats(root: String) -> CodexCallStats {
             parsedStats = autoreleasepool {
                 scanCodexSessionFile(file, calendar: calendar, weekStart: weekStart, existing: cached.stats)
             }
+            changedFiles += 1
+            bytesRead += max(0, parsedStats.parsedBytes - cached.stats.parsedBytes)
         } else if let cached = cachedEntry,
                   cached.dayKey == dayKey,
                   cached.size == file.size,
@@ -562,6 +580,8 @@ func loadCodexSessionStats(root: String) -> CodexCallStats {
             parsedStats = autoreleasepool {
                 scanCodexSessionFile(file, calendar: calendar, weekStart: weekStart)
             }
+            changedFiles += 1
+            bytesRead += max(0, parsedStats.parsedBytes)
         }
 
         codexSessionStatsCacheLock.lock()
@@ -685,6 +705,7 @@ func loadCodexSessionStats(root: String) -> CodexCallStats {
     codexSessionStatsCacheLock.lock()
     codexSessionStatsCache = (signature, stats)
     codexSessionStatsCacheLock.unlock()
+    recordCodexScan(files: files.count, changed: changedFiles, bytesRead: bytesRead)
     return stats
 }
 
@@ -748,7 +769,7 @@ func loadCodexHealth() -> CodexHealth {
         status = "ok"
     }
 
-    return CodexHealth(
+    var health = CodexHealth(
         checkedAt: Date(),
         overallStatus: status,
         configPresent: config.present,
@@ -777,4 +798,6 @@ func loadCodexHealth() -> CodexHealth {
         profiles: stats.profiles,
         hints: hints
     )
+    health.scan = codexLastScan()
+    return health
 }

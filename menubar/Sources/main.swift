@@ -3451,6 +3451,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem?
     var dataTimer: Timer?       // ccusage 갱신 (60초)
     var statusTimer: Timer?     // TeamClaude/Codex 상태 갱신 (10초)
+    var codexScanTimer: Timer?  // Codex 세션 코퍼스 스캔 (60초, 디스크 작업)
     var rollTimer: Timer?       // 정보 롤링 + 펄스 (1초)
     var activityTimer: Timer?   // 활동 감지 (5초)
     var currentData: UsageData?
@@ -3554,6 +3555,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.loadFastStatusInBackground()
         }
         if let t = statusTimer { RunLoop.main.add(t, forMode: .common) }
+
+        // 60초마다 Codex 세션 코퍼스 스캔 (10초 틱에서 분리 — 최근 8일 수백 파일·수 GB를 stat/tail 하는 디스크 작업)
+        codexScanTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
+            self?.loadCodexStatusInBackground()
+        }
+        if let t = codexScanTimer { RunLoop.main.add(t, forMode: .common) }
 
         // 5분마다 ccusage 갱신
         dataTimer = Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { [weak self] _ in
@@ -3746,7 +3753,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 if data.error == nil || self.currentHiggsfield == nil {
                     self.currentHiggsfield = data
                 }
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "loadHiggsfieldInBackground")
             }
         }
     }
@@ -3761,6 +3768,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rollIndex = 0
         updateActivity()
         loadFastStatusInBackground()
+        loadCodexStatusInBackground()
         if isFetching {
             loadUsageQuickInBackground(reason: "manual")
         } else {
@@ -3768,8 +3776,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    func refreshOpenDashboard() {
+    private var pendingDashboardRefresh: DispatchWorkItem?
+
+    /// 로더 완료마다 곧장 다시 그리지 않고 300ms 안의 요청을 한 번으로 합친다(10초마다 로더 3개가 각각 열린 대시보드를 재배치하던 비용 제거).
+    /// 사용자 동작(새로고침·측정·복구)은 `immediate: true`로 바로 반영한다.
+    func scheduleDashboardRefresh(reason: String, immediate: Bool = false) {
+        pendingDashboardRefresh?.cancel()
+        if immediate {
+            pendingDashboardRefresh = nil
+            refreshOpenDashboard(reason: reason)
+            return
+        }
+        let item = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.pendingDashboardRefresh = nil
+            self.refreshOpenDashboard(reason: reason)
+        }
+        pendingDashboardRefresh = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: item)
+    }
+
+    func refreshOpenDashboard(reason: String = "direct") {
         guard let dashboard = cachedDashboardView ?? openDashboardView else { return }
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        defer {
+            let elapsedMs = Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000)
+            print("DASHBOARD-REFRESH: reason=\(reason) open=\(openDashboardView != nil) elapsed=\(elapsedMs)ms")
+            fflush(stdout)
+        }
         dashboard.updateContent(
             teamClaude: currentTeamClaude,
             codex: currentCodex,
@@ -3792,23 +3826,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         dashboard.needsDisplay = true
         updatePinnedSectionHeader()
-        if openDashboardView != nil {
-            print("DASHBOARD-REFRESH: 열린 메뉴 최신 상태 반영")
-            fflush(stdout)
-            return
-        }
+        if openDashboardView != nil { return }
         updateCachedMenuPresentation()
     }
 
     func loadInBackground() {
         loadFastStatusInBackground()
+        loadCodexStatusInBackground()
         loadUsageInBackground()
     }
 
+    /// 10초 틱: 프록시 상태 2종(HTTP 한 번씩)만. Codex 세션 코퍼스 스캔은 디스크 작업이라 `codexScanTimer`(60초)가 따로 돈다.
     func loadFastStatusInBackground() {
         loadTeamClaudeStatusInBackground()
         loadTeamCodexStatusInBackground()
-        loadCodexStatusInBackground()
     }
 
     /// Grok 사용량은 클릭 경로에 붙이지 않는다. 60초에 한 번, 응답이 도착한 뒤에만 제목을 바꾼다.
@@ -3846,7 +3877,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 print("GROK-SLOT: \(slot)")
                 fflush(stdout)
                 self.updateTitle()
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "loadGrokUsageInBackground")
             }
         }
     }
@@ -3875,7 +3906,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
                 print("AGY: \(agyLogLine(self.currentAgyCard))")
                 fflush(stdout)
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "loadAgyUsageInBackground")
             }
         }
     }
@@ -4001,7 +4032,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self.teamClaudeOutageStartedAt = teamClaude.serverReachable ? nil : outageStartedAt
                 self.commitTeamClaudeHealth(teamClaude, outageDuration: outageDuration)
                 let shouldRefreshAgain = self.teamClaudeRefreshCoordinator.finish()
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "loadTeamClaudeStatusInBackground")
                 self.updateTitle()
                 let displayed = self.currentTeamClaude ?? teamClaude
                 print("TEAMCLAUDE-REFRESH: status=\(displayed.statusLabel) usable=\(displayed.accountUsable)/\(max(displayed.accountTotal, displayed.accountConfigured)) drift=\(displayed.accountConfigDrift) pending=\(displayed.measurementPendingCount) unavailable=\(displayed.measurementUnavailableCount) quotaLimited=\(displayed.quotaLimitedCount)")
@@ -4016,7 +4047,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func loadCodexStatusInBackground() {
         guard !isRefreshingCodex else { return }
         isRefreshingCodex = true
-        DispatchQueue.global(qos: .utility).async { [weak self] in
+        // 디스크 바운드 스캔은 background QoS — 대표의 작업·다른 프로세스와 디스크를 다투지 않는다.
+        DispatchQueue.global(qos: .background).async { [weak self] in
             let startedAt = ProcessInfo.processInfo.systemUptime
             let codex = autoreleasepool { loadCodexHealth() }
             let elapsedMs = Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000)
@@ -4025,9 +4057,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 guard let self = self else { return }
                 self.currentCodex = codex
                 self.isRefreshingCodex = false
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "loadCodexStatusInBackground")
                 self.updateTitle()
-                print("CODEX-REFRESH: status=\(codex.statusLabel) calls=\(codex.todayCalls)/\(codex.weekCalls) duration=\(elapsedMs)ms")
+                let scan = codex.scan.map { " scan=files:\($0.files) changed:\($0.changed) bytes:\($0.bytesRead)" } ?? ""
+                print("CODEX-REFRESH: status=\(codex.statusLabel) calls=\(codex.todayCalls)/\(codex.weekCalls) duration=\(elapsedMs)ms\(scan)")
                 fflush(stdout)
             }
         }
@@ -4072,7 +4105,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             teamCodexPoolHealth(aligning: candidate, to: $0)
         } ?? candidate
         currentTeamCodex = aligned
-        refreshOpenDashboard()
+        scheduleDashboardRefresh(reason: "commitTeamCodexHealth")
         updateTitle()
         print("TEAMCODEX-REFRESH: status=\(aligned.statusLabel) accounts=\(aligned.accounts.count) current=\(aligned.currentAccount ?? "-")")
         fflush(stdout)
@@ -4106,7 +4139,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 fflush(stdout)
                 DispatchQueue.main.async {
                     self?.currentData = quickData
-                    self?.refreshOpenDashboard()
+                    self?.scheduleDashboardRefresh(reason: "loadUsageInBackground")
                     self?.updateTitle()
                 }
             }
@@ -4135,7 +4168,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     }
                     self.currentData = finalData // 실패 시 기존 데이터 유지 (깜빡임 방지)
                 }
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "loadUsageInBackground")
                 self.updateTitle()
             }
         }
@@ -4177,7 +4210,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     self.currentData = quickData
                     self.lastUsageQuickCompletedAt = Date()
                 }
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "loadUsageQuickInBackground")
                 self.updateTitle()
             }
         }
@@ -4531,7 +4564,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let proxyAuthorizationValue = tcString(tcDict(config?["proxy"])?["apiKey"])
         isMeasuringTeamClaude = true
         teamClaudeMeasureDetail = "OAuth 갱신 중"
-        refreshOpenDashboard()
+        scheduleDashboardRefresh(reason: "measureTeamClaudeAction", immediate: true)
         updateTitle()
 
         DispatchQueue.global(qos: .utility).async { [weak self] in
@@ -4540,7 +4573,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 DispatchQueue.main.async {
                     self?.isMeasuringTeamClaude = false
                     self?.teamClaudeMeasureDetail = "OAuth 갱신 실패"
-                    self?.refreshOpenDashboard()
+                    self?.scheduleDashboardRefresh(reason: "measureTeamClaudeAction", immediate: true)
                     self?.updateTitle()
                 }
                 return
@@ -4548,7 +4581,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
             DispatchQueue.main.async {
                 self?.teamClaudeMeasureDetail = "서버 동기화 중"
-                self?.refreshOpenDashboard()
+                self?.scheduleDashboardRefresh(reason: "measureTeamClaudeAction", immediate: true)
                 self?.updateTitle()
             }
             _ = kickstartTeamClaudeServer()
@@ -4564,7 +4597,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 DispatchQueue.main.async {
                     self?.isMeasuringTeamClaude = false
                     self?.teamClaudeMeasureDetail = "서버 연결 실패"
-                    self?.refreshOpenDashboard()
+                    self?.scheduleDashboardRefresh(reason: "measureTeamClaudeAction", immediate: true)
                     self?.updateTitle()
                 }
                 return
@@ -4572,7 +4605,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
             DispatchQueue.main.async {
                 self?.teamClaudeMeasureDetail = "계정 사용량 측정 중"
-                self?.refreshOpenDashboard()
+                self?.scheduleDashboardRefresh(reason: "measureTeamClaudeAction", immediate: true)
                 self?.updateTitle()
             }
             let exitCode = runTeamClaudeBareClaudeProbe(port: port, apiKey: proxyAuthorizationValue, model: model)
@@ -4603,7 +4636,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 } else {
                     self.teamClaudeMeasureDetail = "\(teamClaude.accounts.count)개 계정 측정 완료"
                 }
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "measureTeamClaudeAction", immediate: true)
                 self.updateTitle()
                 print("TEAMCLAUDE-MEASURE: pending=\(pending) unavailable=\(unavailable) quotaLimited=\(quotaLimited) result=\(self.teamClaudeMeasureDetail ?? "-")")
                 fflush(stdout)
@@ -4691,7 +4724,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 aligning: currentTeamCodex,
                 to: snapshot
             )
-            refreshOpenDashboard()
+            scheduleDashboardRefresh(reason: "observeTeamCodexConfigChanges")
             updateTitle()
         }
         print("TEAMCODEX-WATCH: 계정 구성 변경 감지 generation=\(generation)")

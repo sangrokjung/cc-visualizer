@@ -76,5 +76,31 @@ class DashboardWiringTests(unittest.TestCase):
         self.assertEqual(ids[5:], expected)
 
 
+class DashboardRefreshCostTests(unittest.TestCase):
+    """성능 회귀: Codex 세션 스캔은 10초 틱 밖(60초 타이머, background QoS), 열린 대시보드 리드로는 합쳐서 한 번."""
+
+    def setUp(self):
+        self.main = (SOURCES / "main.swift").read_text()
+
+    def test_fast_tick_no_longer_scans_codex_sessions(self):
+        start = self.main.index("func loadFastStatusInBackground()")
+        end = self.main.index("\n    }\n", start)
+        self.assertNotIn("loadCodexStatusInBackground", self.main[start:end])
+        self.assertIn("codexScanTimer = Timer.scheduledTimer(withTimeInterval: 60.0", self.main)
+
+    def test_codex_scan_runs_at_background_qos(self):
+        start = self.main.index("func loadCodexStatusInBackground()")
+        end = self.main.index("\n    }\n\n", start)
+        self.assertIn("DispatchQueue.global(qos: .background)", self.main[start:end])
+        self.assertNotIn("qos: .utility", self.main[start:end])
+        self.assertIn("scan=files:", self.main[start:end])
+
+    def test_open_dashboard_redraws_are_coalesced(self):
+        self.assertIn("func scheduleDashboardRefresh(reason: String, immediate: Bool = false)", self.main)
+        self.assertGreaterEqual(self.main.count("scheduleDashboardRefresh(reason:"), 12)
+        self.assertEqual(0, self.main.count("refreshOpenDashboard()"), "call sites must go through scheduleDashboardRefresh")
+        self.assertIn('print("DASHBOARD-REFRESH: reason=', self.main)
+
+
 if __name__ == "__main__":
     unittest.main()

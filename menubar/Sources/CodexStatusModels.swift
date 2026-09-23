@@ -49,6 +49,13 @@ struct CodexCallStats {
     let profiles: [CodexProfileHealth]
 }
 
+/// 한 번의 세션 코퍼스 스캔이 실제로 만진 양. 진단 로그(`CODEX-REFRESH … scan=`)용.
+struct CodexScanReport: Equatable {
+    let files: Int
+    let changed: Int
+    let bytesRead: Int64
+}
+
 struct CodexHealth {
     let checkedAt: Date
     let overallStatus: String
@@ -77,6 +84,7 @@ struct CodexHealth {
     let scannedLogBytes: Int64
     let profiles: [CodexProfileHealth]
     let hints: [String]
+    var scan: CodexScanReport? = nil
 
     var isWarning: Bool { overallStatus == "warning" }
     var isError: Bool { overallStatus == "error" }
