@@ -55,6 +55,7 @@ struct TeamCodexPoolAccount {
     var providerName: String? = nil
     var codexResetCredits: Int? = nil
     var codexResetCreditsAt: Date? = nil
+    var rateLimitedUntil: Date? = nil
 
     func resetCreditCount(at now: Date, online: Bool) -> Int? {
         guard online, status != "configured", let count = codexResetCredits, count >= 0,
@@ -123,8 +124,10 @@ struct TeamCodexPoolAccount {
     /// 한도 때문에 빠진 계정이 돌아오는 시각. 막힌 창(5시간·주간)이 전부 초기화돼야 돌아오므로 늦은 쪽을 쓴다.
     /// 오류·종료·꺼 둔 계정은 기다려도 안 돌아오니 nil.
     func quotaRecoveryAt(switchThresholdPercent: Double, now: Date) -> Date? {
-        guard enabled, errorReason == nil, !isSubscriptionRetired(now: now) else { return nil }
+        // 오류 행은 사유 라벨이 없어도 복구 시각을 약속하지 않는다(초기화돼도 돌아오지 않는다).
+        guard enabled, status != "error", errorReason == nil, !isSubscriptionRetired(now: now) else { return nil }
         var blockers: [Date] = []
+        if let until = rateLimitedUntil, until > now { blockers.append(until) }
         if let percent = sessionPercent, percent >= switchThresholdPercent,
            let at = sessionResetAt, at > now { blockers.append(at) }
         if let percent = weeklyPercent, percent >= switchThresholdPercent,
@@ -603,7 +606,8 @@ private func teamCodexAccounts(
             accountType: teamCodexString(row["type"]),
             providerName: teamCodexString(row["provider"]),
             codexResetCredits: teamCodexCreditCount(quota["codexResetCredits"]),
-            codexResetCreditsAt: teamCodexCreditTimestamp(quota["codexResetCreditsAt"])
+            codexResetCreditsAt: teamCodexCreditTimestamp(quota["codexResetCreditsAt"]),
+            rateLimitedUntil: teamCodexTimestamp(row["rateLimitedUntil"])
         )
     }
 }

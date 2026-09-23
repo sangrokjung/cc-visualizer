@@ -39,6 +39,25 @@ struct TeamCodexTitleSlotTests {
         precondition(offline.titleSlot(timeZone: seoul) == "Codex 오프라인", offline.titleSlot(timeZone: seoul))
 
         precondition(exhausted.accessibilitySummary.hasPrefix("TeamCodex 소진, "), exhausted.accessibilitySummary)
-        print("TeamCodexTitleSlotTests: status label, exhaustion, recovery clock, title slot passed")
+        // 복구 시각 규칙: 오류 행은 사유 라벨이 없어도 제외, rateLimitedUntil은 추가 blocker.
+        var errorRow = row("e0", usable: false, weekly: 1, weeklyResetIn: 600)
+        errorRow["status"] = "error"
+        let errorOnly = try pool([errorRow])
+        precondition(errorOnly.soonestQuotaRecoveryAt == nil, "error rows must not promise a recovery time")
+        precondition(errorOnly.titleSlot(timeZone: seoul) == "Codex 소진 0/1", errorOnly.titleSlot(timeZone: seoul))
+
+        var limitedRow = row("r0", usable: false, weekly: 0.2, weeklyResetIn: -60)
+        limitedRow["rateLimitedUntil"] = (now.timeIntervalSince1970 + 900) * 1000
+        let limited = try pool([limitedRow])
+        let limitedUntil = now.addingTimeInterval(900)
+        precondition(limited.soonestQuotaRecoveryAt == limitedUntil, "rate-limit window is the recovery time when quota windows already reset")
+        precondition(limited.titleSlot(timeZone: seoul) == "Codex 소진 · \(teamCodexShortClock(limitedUntil, timeZone: seoul)) 복구", limited.titleSlot(timeZone: seoul))
+
+        var mixedLimited = row("m0", usable: false, weekly: 1, weeklyResetIn: 1800)
+        mixedLimited["rateLimitedUntil"] = (now.timeIntervalSince1970 + 3600) * 1000
+        let mixed = try pool([mixedLimited, errorRow, row("m2", usable: false, weekly: 1, weeklyResetIn: 7200)])
+        precondition(mixed.soonestQuotaRecoveryAt == now.addingTimeInterval(3600), "a row recovers only when both its quota window and its rate-limit window end; the pool takes the soonest such row")
+
+        print("TeamCodexTitleSlotTests: status label, exhaustion, recovery clock, title slot, recovery-clock rules passed")
     }
 }
