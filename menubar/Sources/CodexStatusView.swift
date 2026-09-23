@@ -7,7 +7,7 @@ final class CodexStatusView: NSView {
     }
     static func poolSectionHeight(for pool: TeamCodexPoolHealth?) -> CGFloat {
         guard let pool = pool else { return 0 }
-        return 62 + CGFloat(max(1, poolRowCount(for: pool))) * 36
+        return 112 + CGFloat(max(1, poolRowCount(for: pool))) * 56
     }
     static func preferredHeight(for pool: TeamCodexPoolHealth?) -> CGFloat {
         baseHeight + (pool == nil ? 0 : poolSectionHeight(for: pool) + 10)
@@ -32,6 +32,8 @@ final class CodexStatusView: NSView {
     private var recoveryButtons: [NSButton] = []
     private var recoveryTargets: [ObjectIdentifier: (name: String, accountUuid: String?, kind: TeamCodexAccountRecoveryKind)] = [:]
     private var recoverySignature = ""
+    private var subscriptionButtons: [AccountSubscriptionButton] = []
+    private var subscriptionSignature = ""
     var usage: UsageData? {
         didSet { needsDisplay = true }
     }
@@ -56,7 +58,7 @@ final class CodexStatusView: NSView {
 
     private func updateAccessibility() {
         let codexSummary = health?.accessibilitySummary ?? "Codex 상태"
-        let poolSummary = pool.map { ", \($0.accessibilitySummary)" } ?? ""
+        let poolSummary = pool.map { ", \($0.accessibilitySummary), \($0.resetCreditAccessibilitySummary)" } ?? ""
         setAccessibilityLabel(codexSummary + poolSummary)
     }
 
@@ -99,6 +101,26 @@ final class CodexStatusView: NSView {
         }
     }
 
+    private func ensureSubscriptionButtons() {
+        let rows = pool?.accounts ?? []
+        let signature = rows.map { row in
+            let local = accountSubscriptionLocalAccount(provider: "codex", uuid: row.accountUuid, name: row.name)
+            return "\(local.uuid ?? "-"):\(row.name):\(row.planType ?? local.plan ?? "-")"
+        }.joined(separator: "|")
+        guard signature != subscriptionSignature else {
+            subscriptionButtons.forEach { $0.refreshTitle() }
+            return
+        }
+        subscriptionSignature = signature
+        subscriptionButtons.forEach { $0.removeFromSuperview() }
+        subscriptionButtons = rows.map { row in
+            let button = AccountSubscriptionButton(provider: "codex", accountUuid: row.accountUuid,
+                                                   accountName: row.name, plan: row.planType)
+            addSubview(button)
+            return button
+        }
+    }
+
     @objc private func recoveryButtonClicked(_ sender: NSButton) {
         guard let target = recoveryTargets[ObjectIdentifier(sender)] else { return }
         onRecover?(target.name, target.accountUuid, target.kind)
@@ -125,18 +147,29 @@ final class CodexStatusView: NSView {
     override func layout() {
         super.layout()
         ensureRecoveryButtons()
+        ensureSubscriptionButtons()
+        if let pool {
+            for (button, account) in zip(subscriptionButtons, pool.accounts) {
+                button.refreshTitle(now: pool.checkedAt,
+                    appearance: account.isSubscriptionRetired(now: pool.checkedAt) ? .ended : .standard)
+            }
+        }
         guard let poolRect = poolTableRect() else { return }
         // 마지막 칸(토큰, +720)을 버튼이 통째로 쓴다. 같은 행의 토큰 값은 draw에서 건너뛴다.
         let buttonX = poolRect.minX + 720
         let buttonWidth = max(60, poolRect.maxX - 12 - buttonX)
-        let headerY = poolRect.minY + 36
+        let headerY = poolRect.minY + 86
         for (button, row) in zip(recoveryButtons, recoveryRows()) {
             button.frame = NSRect(
                 x: buttonX,
-                y: headerY + 22 + CGFloat(row.index) * 36 + 6,
+                y: headerY + 22 + CGFloat(row.index) * 56 + 6,
                 width: buttonWidth,
                 height: 22
             )
+        }
+        for (index, button) in subscriptionButtons.enumerated() {
+            button.frame = NSRect(x: poolRect.minX + 12, y: headerY + 22 + CGFloat(index) * 56 + 34,
+                                  width: poolRect.width - 28, height: 20)
         }
     }
 
@@ -228,26 +261,43 @@ final class CodexStatusView: NSView {
             drawText("TeamCodex 계정 풀", poolRect.minX + 12, poolRect.minY + 9, subFont, text)
             pill(pool.statusLabel, x: poolRect.minX + 145, y: poolRect.minY + 5, color: poolTone)
             // 구독 종료(영구)와 운영자가 끈 계정(되돌릴 수 있음)이 함께 들어가므로 "영구"라고 쓰지 않는다.
-            drawRight("사용 가능 \(pool.usableCount) · 풀 \(pool.poolCount) · 제외 \(pool.excludedCount) · port \(pool.serverPort)", poolRect.maxX - 12, poolRect.minY + 10, smallFont, muted)
+            var headerRight = "사용 가능 \(pool.usableCount) · 풀 \(pool.poolCount) · 제외 \(pool.excludedCount) · port \(pool.serverPort)"
+            if let runtime = pool.runtimeSummary { headerRight += " · \(runtime)" }
+            drawRight(headerRight, poolRect.maxX - 12, poolRect.minY + 10, smallFont, muted)
 
-            let headerY = poolRect.minY + 36
+            drawText(pool.resetCreditPolicyLabel, poolRect.minX + 12, poolRect.minY + 33, smallFont, muted)
+            drawRight(pool.resetCreditSummary, poolRect.maxX - 12, poolRect.minY + 33, smallFont, text)
+            let rows = pool.accounts
+            let readyNames = rows
+                .filter { $0.isUsable(switchThresholdPercent: pool.switchThresholdPercent, now: pool.checkedAt) }
+                .map(\.name)
+            let readySummary = readyNames.isEmpty
+                ? "사용 가능 계정: 없음 · 측정 또는 제한 상태 확인"
+                : "사용 가능 계정: " + readyNames.joined(separator: " · ")
+            let availableStrip = NSRect(x: poolRect.minX + 8, y: poolRect.minY + 53,
+                                        width: poolRect.width - 16, height: 22)
+            fillRound(availableStrip, (pool.usableCount > 0 ? green : yellow).withAlphaComponent(0.10), 6)
+            drawText(readySummary, availableStrip.minX + 10, availableStrip.minY + 4, smallFont,
+                     pool.usableCount > 0 ? green : yellow)
+
+            let headerY = poolRect.minY + 86
             drawText("계정", poolRect.minX + 12, headerY, headFont, muted)
             drawText("상태", poolRect.minX + 250, headerY, headFont, muted)
             drawText("5시간 / 초기화", poolRect.minX + 355, headerY, headFont, muted)
             drawText("7일 / 초기화", poolRect.minX + 445, headerY, headFont, muted)
             drawText("동시", poolRect.minX + 530, headerY, headFont, muted)
-            drawText("요청", poolRect.minX + 620, headerY, headFont, muted)
+            drawText("요청", poolRect.minX + 580, headerY, headFont, muted)
+            drawText("리셋권", poolRect.minX + 640, headerY, headFont, muted)
             drawText("토큰", poolRect.minX + 720, headerY, headFont, muted)
 
-            let rows = pool.accounts
             if rows.isEmpty {
                 drawText("TeamCodex에 등록된 계정이 없습니다", poolRect.minX + 12, headerY + 25, rowFont, dim)
                 return
             }
             for (index, account) in rows.enumerated() {
-                let rowY = headerY + 22 + CGFloat(index) * 36
+                let rowY = headerY + 22 + CGFloat(index) * 56
                 if index % 2 == 1 {
-                    fillRound(NSRect(x: poolRect.minX + 4, y: rowY - 2, width: poolRect.width - 8, height: 35), NSColor.white.withAlphaComponent(0.035), 7)
+                    fillRound(NSRect(x: poolRect.minX + 4, y: rowY - 2, width: poolRect.width - 8, height: 55), NSColor.white.withAlphaComponent(0.035), 7)
                 }
                 let accountState = teamCodexAccountState(
                     account,
@@ -260,13 +310,15 @@ final class CodexStatusView: NSView {
                 // 영구 제외(구독 종료·수동 제외)는 가장 조용하게, 일시 한도는 노랑, 진짜 오류는 빨강.
                 let accountTone: NSColor
                 switch accountState {
-                case .retired, .excluded: accountTone = dim
+                case .retired: accountTone = NSColor(calibratedWhite: 0.62, alpha: 1)
+                case .excluded: accountTone = dim
                 case .failed: accountTone = red
                 case .endDateReached, .limited, .paused: accountTone = yellow
                 case .serving: accountTone = green
                 case .other: accountTone = muted
                 }
-                let marker = account.isCurrent ? "● " : "  "
+                let retired = accountState == .retired
+                let marker = account.isCurrent && !retired ? "● " : "  "
                 // 오류 사유는 두 렌더러(Claude 표·Codex 풀)가 같은 canonical 라벨을 쓴다는 회귀 가드.
                 let statusText = accountState == .failed
                     ? teamAccountErrorReasonLabel(account.errorReason)
@@ -292,19 +344,26 @@ final class CodexStatusView: NSView {
                 if let followUp = recovery?.followUpNote, !drawsResetCountdown {
                     drawText(followUp, poolRect.minX + 250, rowY + 17, smallFont, dim)
                 }
-                drawText(formatCodexPercent(account.sessionPercent), poolRect.minX + 355, rowY, rowFont, limitTone(account.sessionPercent))
-                drawText(formatCodexPercent(account.weeklyPercent), poolRect.minX + 445, rowY, rowFont, limitTone(account.weeklyPercent))
+                let sessionPercent = account.sessionUsagePercent(at: pool.checkedAt)
+                let weeklyPercent = account.weeklyUsagePercent(at: pool.checkedAt)
+                drawText(retired ? "—" : formatCodexPercent(sessionPercent), poolRect.minX + 355, rowY, rowFont, retired ? accountTone : limitTone(sessionPercent))
+                drawText(retired ? "—" : formatCodexPercent(weeklyPercent), poolRect.minX + 445, rowY, rowFont, retired ? accountTone : limitTone(weeklyPercent))
                 // 돌아오지 않는 계정에 초기화 카운트다운을 그리면 "곧 복귀"로 오해된다.
                 if drawsResetCountdown {
                     drawText(formatTeamCodexResetRemaining(account.sessionResetAt), poolRect.minX + 355, rowY + 17, smallFont, quotaBlocked ? accountTone : dim)
                     drawText(formatTeamCodexResetRemaining(account.weeklyResetAt), poolRect.minX + 445, rowY + 17, smallFont, dim)
                 }
-                drawText("\(account.inflight)/\(account.maxConcurrent)", poolRect.minX + 530, rowY, rowFont, muted)
-                drawText("\(account.totalRequests)", poolRect.minX + 620, rowY, rowFont, muted)
+                drawText("\(account.inflight)/\(account.maxConcurrent)", poolRect.minX + 530, rowY, rowFont, retired ? accountTone : muted)
+                drawText("\(account.totalRequests)", poolRect.minX + 580, rowY, rowFont, retired ? accountTone : muted)
+                let credits = account.resetCreditCount(at: pool.checkedAt, online: pool.serverReachable)
+                let creditTone = account.isPermanentlyOut(now: pool.checkedAt) ? dim
+                    : (credits == nil ? yellow : (credits == 0 ? muted : green))
+                drawText(account.resetCreditLabel(at: pool.checkedAt, online: pool.serverReachable),
+                         poolRect.minX + 640, rowY, rowFont, creditTone)
                 // 마지막 칸은 버튼과 자리를 나눠 쓴다. 고장 난 계정의 누적 토큰보다
                 // 되돌리는 방법이 먼저다(Claude 표도 같은 자리를 버튼에 내준다).
                 if recovery == nil {
-                    drawText(formatCodexTokens(account.totalTokens), poolRect.minX + 720, rowY, rowFont, muted)
+                    drawText(formatCodexTokens(account.totalTokens), poolRect.minX + 720, rowY, rowFont, retired ? accountTone : muted)
                 }
             }
         }
@@ -330,8 +389,11 @@ final class CodexStatusView: NSView {
         let effort = health.reasoningEffort ?? "-"
         let effortText = effort == "-" ? "" : " · effort \(effort)"
         let context = health.contextWindow.map { "\($0 / 1000)K ctx" } ?? "ctx -"
-        let primaryColor = limitTone(health.primaryUsedPercent)
-        let secondaryColor = limitTone(health.secondaryUsedPercent)
+        let quotaAccount = pool?.currentQuotaAccount
+        let sessionPercent = quotaAccount?.sessionUsagePercent(at: Date())
+        let weeklyPercent = quotaAccount?.weeklyUsagePercent(at: Date())
+        let primaryColor = limitTone(sessionPercent)
+        let secondaryColor = limitTone(weeklyPercent)
         let codexModels = usage?.modelBreakdown.filter { $0.provider == "Codex" } ?? []
         let codexMonthlyCost = codexModels.reduce(0) { $0 + $1.cost }
         let codexMonthlyTokens = codexModels.reduce(0) { $0 + $1.tokens }
@@ -346,8 +408,8 @@ final class CodexStatusView: NSView {
         let statY = CGFloat(layout.metricsY)
         let gap: CGFloat = 9
         let statW = (card.width - 32 - gap * 3) / 4
-        metric("5시간 사용", formatCodexPercent(health.primaryUsedPercent), "리셋 \(formatCodexReset(health.primaryResetAt))", percent: health.primaryUsedPercent, x: innerX, y: statY, width: statW, color: primaryColor)
-        metric("7일 사용", formatCodexPercent(health.secondaryUsedPercent), "리셋 \(formatCodexReset(health.secondaryResetAt))", percent: health.secondaryUsedPercent, x: innerX + (statW + gap), y: statY, width: statW, color: secondaryColor)
+        metric("현재 계정 · 5시간", formatCodexPercent(sessionPercent), sessionPercent == nil ? "한도 정보 없음" : "리셋 \(formatCodexReset(quotaAccount?.sessionResetAt))", percent: sessionPercent, x: innerX, y: statY, width: statW, color: primaryColor)
+        metric("현재 계정 · 7일", formatCodexPercent(weeklyPercent), weeklyPercent == nil ? "한도 정보 없음" : "리셋 \(formatCodexReset(quotaAccount?.weeklyResetAt))", percent: weeklyPercent, x: innerX + (statW + gap), y: statY, width: statW, color: secondaryColor)
         metric("오늘 토큰", formatCodexTokens(health.todayTokens), "\(health.todayCalls)회", x: innerX + (statW + gap) * 2, y: statY, width: statW, color: blue)
         let monthlyDetail = codexMonthlyCost > 0 ? formatKRWShort(codexMonthlyCost, rate: usage?.usdKrwRate ?? 1450) : formatCodexTokens(codexMonthlyTokens)
         metric("월 환산비용", codexMonthlyCost > 0 ? formatCost(codexMonthlyCost) : "-", monthlyDetail, x: innerX + (statW + gap) * 3, y: statY, width: statW, color: blue)
@@ -413,6 +475,6 @@ final class CodexStatusView: NSView {
         let footerY = card.maxY - 30
         let hint = health.hints.first ?? "프롬프트: 목표 · 성공 기준 · 권한 · 검증만 명확하게"
         drawText(hint, innerX, footerY, smallFont, health.hints.isEmpty ? dim : tone)
-        drawRight("files \(health.scannedLogFiles) · tok \(formatCodexTokens(health.totalTokens)) · 7d reset \(formatCodexReset(health.secondaryResetAt))", card.maxX - 16, footerY, smallFont, dim)
+        drawRight("files \(health.scannedLogFiles) · tok \(formatCodexTokens(health.totalTokens)) · 7d reset \(weeklyPercent == nil ? "-" : formatCodexReset(quotaAccount?.weeklyResetAt))", card.maxX - 16, footerY, smallFont, dim)
     }
 }

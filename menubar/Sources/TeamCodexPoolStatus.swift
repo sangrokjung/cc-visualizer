@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
 struct TeamCodexConfigRefreshCoordinator {
     private(set) var runningGeneration: Int?
@@ -52,6 +53,30 @@ struct TeamCodexPoolAccount {
     var accountType: String? = nil
     /// 프록시 status·teamcodex.json의 `provider` (codex). 다른 풀 계정에 codex 명령을 쏘지 않기 위한 가드.
     var providerName: String? = nil
+    var codexResetCredits: Int? = nil
+    var codexResetCreditsAt: Date? = nil
+    var rateLimitedUntil: Date? = nil
+
+    func resetCreditCount(at now: Date, online: Bool) -> Int? {
+        guard online, status != "configured", let count = codexResetCredits, count >= 0,
+              let measuredAt = codexResetCreditsAt,
+              measuredAt <= now, now.timeIntervalSince(measuredAt) < 600 else { return nil }
+        return count
+    }
+
+    func resetCreditLabel(at now: Date, online: Bool) -> String {
+        resetCreditCount(at: now, online: online).map { "\($0)장" } ?? "미확인"
+    }
+
+    func sessionUsagePercent(at now: Date) -> Double? {
+        guard let sessionResetAt, sessionResetAt > now else { return nil }
+        return sessionPercent
+    }
+
+    func weeklyUsagePercent(at now: Date) -> Double? {
+        guard let weeklyResetAt, weeklyResetAt > now else { return nil }
+        return weeklyPercent
+    }
 
     /// 구독이 확정적으로 끝난 계정. 기다려도 돌아오지 않는다.
     /// `end-date-reached`는 여기 넣지 않는다 — 프록시는 그 상태를 "확인 안 된 종료"로 보고
@@ -95,6 +120,20 @@ struct TeamCodexPoolAccount {
             .contains(status)
             && !isQuotaBlocked(switchThresholdPercent: switchThresholdPercent)
     }
+
+    /// 한도 때문에 빠진 계정이 돌아오는 시각. 막힌 창(5시간·주간)이 전부 초기화돼야 돌아오므로 늦은 쪽을 쓴다.
+    /// 오류·종료·꺼 둔 계정은 기다려도 안 돌아오니 nil.
+    func quotaRecoveryAt(switchThresholdPercent: Double, now: Date) -> Date? {
+        // 오류 행은 사유 라벨이 없어도 복구 시각을 약속하지 않는다(초기화돼도 돌아오지 않는다).
+        guard enabled, status != "error", errorReason == nil, !isSubscriptionRetired(now: now) else { return nil }
+        var blockers: [Date] = []
+        if let until = rateLimitedUntil, until > now { blockers.append(until) }
+        if let percent = sessionPercent, percent >= switchThresholdPercent,
+           let at = sessionResetAt, at > now { blockers.append(at) }
+        if let percent = weeklyPercent, percent >= switchThresholdPercent,
+           let at = weeklyResetAt, at > now { blockers.append(at) }
+        return blockers.max()
+    }
 }
 
 struct TeamCodexPoolHealth {
@@ -106,6 +145,36 @@ struct TeamCodexPoolHealth {
     let currentAccountUuid: String?
     let switchThresholdPercent: Double
     let accounts: [TeamCodexPoolAccount]
+    var resetCreditsEnabled: Bool? = nil
+    var resetCreditsPolicy: String? = nil
+    var runtimeSummary: String? = nil
+
+    var resetCreditSummary: String {
+        let members = accounts.filter { !$0.isPermanentlyOut(now: checkedAt) }
+        let counts = members.compactMap { $0.resetCreditCount(at: checkedAt, online: serverReachable) }
+        let unknown = members.count - counts.count
+        let total = counts.reduce(0) { sum, count in
+            let result = sum.addingReportingOverflow(count)
+            return result.overflow ? Int.max : result.partialValue
+        }
+        if counts.isEmpty && unknown > 0 { return "활성 풀 리셋권 미확인 \(unknown)계정" }
+        return "활성 풀 리셋권 \(total)장" + (unknown > 0 ? " · 미확인 \(unknown)계정" : "")
+    }
+
+    var resetCreditPolicyLabel: String {
+        guard serverReachable, let enabled = resetCreditsEnabled else { return "자동 리셋 상태 미확인" }
+        if !enabled { return "자동 리셋 꺼짐" }
+        switch resetCreditsPolicy {
+        case "account": return "계정별 한도 소진 시 자동 리셋"
+        case "fleet": return "전체 풀 소진 시 자동 리셋"
+        default: return "자동 리셋 정책 미확인"
+        }
+    }
+
+    var resetCreditAccessibilitySummary: String {
+        let rows = accounts.map { "\($0.name) 리셋권 \($0.resetCreditLabel(at: checkedAt, online: serverReachable))" }
+        return ([resetCreditPolicyLabel, resetCreditSummary] + rows).joined(separator: ", ")
+    }
 
     /// 풀에 남아 있는 계정 중 실제로 응답 중인 계정. 꺼 둔 계정·구독 종료 계정은 세지 않는다.
     var activeCount: Int {
@@ -129,9 +198,41 @@ struct TeamCodexPoolHealth {
         }.count
     }
 
-    var statusLabel: String {
-        serverReachable ? "온라인" : "오프라인"
+    var currentQuotaAccount: TeamCodexPoolAccount? {
+        guard serverReachable else { return nil }
+        let matches = accounts.filter { $0.isCurrent && !$0.isPermanentlyOut(now: checkedAt) }
+        return matches.count == 1 ? matches[0] : nil
     }
+
+    /// 프록시엔 닿지만 지금 요청을 받을 계정이 하나도 없는 상태. "온라인"만으로는 0/7을 못 말한다.
+    var isExhausted: Bool {
+        serverReachable && poolCount > 0 && usableCount == 0
+    }
+
+    /// 한도로 빠진 계정 중 가장 먼저 돌아오는 시각.
+    var soonestQuotaRecoveryAt: Date? {
+        accounts
+            .compactMap { $0.quotaRecoveryAt(switchThresholdPercent: switchThresholdPercent, now: checkedAt) }
+            .min()
+    }
+
+    var statusLabel: String {
+        if !serverReachable { return "오프라인" }
+        return isExhausted ? "소진" : "온라인"
+    }
+
+    func titleSlot(timeZone: TimeZone = .current) -> String {
+        if !serverReachable { return "Codex 오프라인" }
+        if isExhausted {
+            if let at = soonestQuotaRecoveryAt {
+                return "Codex 소진 · \(teamCodexShortClock(at, timeZone: timeZone)) 복구"
+            }
+            return "Codex 소진 0/\(poolCount)"
+        }
+        return "Codex \(usableCount)/\(poolCount)"
+    }
+
+    var titleSlot: String { titleSlot(timeZone: .current) }
 
     var accessibilitySummary: String {
         "TeamCodex \(statusLabel), 지금 쓸 수 있는 계정 \(usableCount)개, "
@@ -155,6 +256,17 @@ private func teamCodexInt(_ value: Any?) -> Int? {
     if let value = value as? NSNumber { return value.intValue }
     if let value = value as? String { return Int(value) }
     return nil
+}
+
+private func teamCodexCreditCount(_ value: Any?) -> Int? {
+    guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+          let count = Int(exactly: number.doubleValue), count >= 0 else { return nil }
+    return count
+}
+
+private func teamCodexCreditTimestamp(_ value: Any?) -> Date? {
+    guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
+    return teamCodexDate(number)
 }
 
 private func teamCodexDouble(_ value: Any?) -> Double? {
@@ -492,7 +604,10 @@ private func teamCodexAccounts(
             subscriptionEndsAt: teamCodexTimestamp(subscription["endsAt"]),
             planType: teamCodexString(row["planType"]),
             accountType: teamCodexString(row["type"]),
-            providerName: teamCodexString(row["provider"])
+            providerName: teamCodexString(row["provider"]),
+            codexResetCredits: teamCodexCreditCount(quota["codexResetCredits"]),
+            codexResetCreditsAt: teamCodexCreditTimestamp(quota["codexResetCreditsAt"]),
+            rateLimitedUntil: teamCodexTimestamp(row["rateLimitedUntil"])
         )
     }
 }
@@ -513,7 +628,8 @@ func teamCodexPoolHealth(
         currentAccountUuid: currentAccountUuid
     )
     let resolvedCurrent = accounts.first { $0.isCurrent }
-    return TeamCodexPoolHealth(
+    let resetCredits = object["resetCredits"] as? [String: Any] ?? [:]
+    var pool = TeamCodexPoolHealth(
         checkedAt: checkedAt,
         serverReachable: true,
         serverPort: port,
@@ -521,8 +637,12 @@ func teamCodexPoolHealth(
         currentAccount: resolvedCurrent?.name,
         currentAccountUuid: resolvedCurrent?.accountUuid,
         switchThresholdPercent: (teamCodexDouble(object["switchThreshold"]) ?? 0.98) * 100,
-        accounts: accounts
+        accounts: accounts,
+        resetCreditsEnabled: teamCodexBool(resetCredits["enabled"]),
+        resetCreditsPolicy: teamCodexString(resetCredits["policy"])
     )
+    pool.runtimeSummary = teamRuntimeSummary(object["runtime"], short: true)
+    return pool
 }
 
 func teamCodexPoolOfflineHealth(
@@ -641,4 +761,13 @@ func loadTeamCodexPoolHealth(home: String = NSHomeDirectory()) -> TeamCodexPoolH
         switchThresholdPercent: 98,
         accounts: []
     )
+}
+
+/// 메뉴바 타이틀용 짧은 시각. 예: "9/25 14:01".
+func teamCodexShortClock(_ date: Date, timeZone: TimeZone) -> String {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = timeZone
+    formatter.dateFormat = "M/d HH:mm"
+    return formatter.string(from: date)
 }

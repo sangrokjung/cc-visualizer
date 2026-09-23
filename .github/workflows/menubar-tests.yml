@@ -1,0 +1,26 @@
+name: Menubar tests
+
+on:
+  push:
+    paths:
+      - 'menubar/**'
+      - '.github/workflows/menubar-tests.yml'
+  pull_request:
+    paths:
+      - 'menubar/**'
+
+jobs:
+  build-and-test:
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: 러너 + 빌드 + 스냅샷 스모크
+        run: bash menubar/build.sh
+      - name: 테스트 로그 보존
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: menubar-test-logs
+          path: menubar/.build/tests/*.log
+          if-no-files-found: ignore

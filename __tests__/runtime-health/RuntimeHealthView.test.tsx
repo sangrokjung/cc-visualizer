@@ -2,15 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import type { TeamClaudeHealth } from '../../src/renderer/src/lib/types'
 
-const { mockFetchTeamClaudeHealth, mockFetchTeamCodexPool } = vi.hoisted(() => ({
+const { mockFetchTeamClaudeHealth, mockFetchTeamCodexPool, mockRunTeamCodexAccountAction } = vi.hoisted(() => ({
   mockFetchTeamClaudeHealth: vi.fn(),
   mockFetchTeamCodexPool: vi.fn(),
+  mockRunTeamCodexAccountAction: vi.fn(),
 }))
 
 vi.mock('../../src/renderer/src/lib/api', () => ({
   api: {
     fetchTeamClaudeHealth: mockFetchTeamClaudeHealth,
     fetchTeamCodexPool: mockFetchTeamCodexPool,
+    runTeamCodexAccountAction: mockRunTeamCodexAccountAction,
   },
 }))
 
@@ -120,6 +122,12 @@ describe('RuntimeHealthView', () => {
   beforeEach(() => {
     mockFetchTeamClaudeHealth.mockReset()
     mockFetchTeamCodexPool.mockReset()
+    mockRunTeamCodexAccountAction.mockReset()
+    mockRunTeamCodexAccountAction.mockResolvedValue({
+      ok: true,
+      needsRestart: true,
+      message: '터미널에서 다시 켜기 명령을 실행합니다. 반영되지 않으면 teamcodex codex restart가 필요합니다.',
+    })
     mockFetchTeamCodexPool.mockResolvedValue({
       checkedAt: '2026-07-24T00:00:00.000Z',
       serverReachable: true,
@@ -149,6 +157,61 @@ describe('RuntimeHealthView', () => {
           inflight: 3,
           maxConcurrent: 3,
           totalRequests: 36_748,
+          totalTokens: 0,
+        },
+        {
+          // 프록시는 꺼 둔 계정도 status:"active"로 준다. 화면은 비활성이라고 써야 한다.
+          name: 'codex-off@example.com',
+          accountUuid: '33333333-3333-4333-8333-333333333333',
+          isCurrent: false,
+          enabled: false,
+          status: 'active',
+          errorReason: null,
+          usable: false,
+          accountType: 'oauth',
+          provider: 'codex',
+          subscription: { state: 'active', endsAt: null },
+          sessionPercent: null,
+          weeklyPercent: null,
+          inflight: 0,
+          maxConcurrent: 3,
+          totalRequests: 0,
+          totalTokens: 0,
+        },
+        {
+          name: 'codex-auth@example.com',
+          accountUuid: '44444444-4444-4444-8444-444444444444',
+          isCurrent: false,
+          enabled: true,
+          status: 'error',
+          errorReason: 'auth-revoked',
+          usable: false,
+          accountType: 'oauth',
+          provider: 'codex',
+          subscription: { state: 'active', endsAt: null },
+          sessionPercent: null,
+          weeklyPercent: null,
+          inflight: 0,
+          maxConcurrent: 3,
+          totalRequests: 0,
+          totalTokens: 0,
+        },
+        {
+          name: 'codex-ended@example.com',
+          accountUuid: '55555555-5555-4555-8555-555555555555',
+          isCurrent: false,
+          enabled: false,
+          status: 'error',
+          errorReason: 'subscription-ended',
+          usable: false,
+          accountType: 'oauth',
+          provider: 'codex',
+          subscription: { state: 'ended', endsAt: '2026-07-01T00:00:00.000Z' },
+          sessionPercent: null,
+          weeklyPercent: null,
+          inflight: 0,
+          maxConcurrent: 3,
+          totalRequests: 0,
           totalTokens: 0,
         },
       ],
@@ -181,6 +244,54 @@ describe('RuntimeHealthView', () => {
     expect(screen.getAllByText('0/0').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('남아 있음')).toBeTruthy()
     expect(screen.getByText(/teamclaude 서버에 연결할 수 없습니다/)).toBeTruthy()
+  })
+
+  it('꺼 둔 계정·구독 종료 계정을 사용 가능으로 세지 않는다', async () => {
+    mockFetchTeamClaudeHealth.mockResolvedValue(warningHealth)
+
+    render(<RuntimeHealthView />)
+
+    await screen.findByText('codex-main@example.com')
+    // 5개 중 꺼 둔 계정 1 + 구독 종료 1이 빠져 풀 3, 그중 실제 사용 가능은 codex-main 하나뿐이다.
+    expect(screen.getByText(/사용 가능 1 · 풀 3 · 제외 2/)).toBeTruthy()
+    expect(screen.getByText('비활성')).toBeTruthy()
+    expect(screen.getByText('직접 꺼 둔 계정')).toBeTruthy()
+    expect(screen.getByText('구독종료')).toBeTruthy()
+    expect(screen.getByText('돌아오지 않음')).toBeTruthy()
+    expect(screen.getByText('인증만료')).toBeTruthy()
+  })
+
+  it('되돌릴 수 있는 계정에만 버튼을 붙인다', async () => {
+    mockFetchTeamClaudeHealth.mockResolvedValue(warningHealth)
+
+    render(<RuntimeHealthView />)
+
+    await screen.findByText('codex-main@example.com')
+    expect(screen.getByRole('button', { name: '다시 켜기: codex-off@example.com' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '재인증 필요: codex-auth@example.com' })).toBeTruthy()
+    // 구독 종료·정상 계정에는 되돌리기 버튼이 없다.
+    expect(screen.queryByRole('button', { name: /codex-ended@example.com/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /codex-main@example.com/ })).toBeNull()
+    // 다시 켜기는 실행 중 서버에 즉시 반영되지 않는다는 사실을 누르기 전에 말한다.
+    expect(screen.getByText(/teamcodex codex restart/)).toBeTruthy()
+  })
+
+  it('다시 켜기 버튼은 구조화된 입력으로 Tauri 커맨드를 부른다', async () => {
+    mockFetchTeamClaudeHealth.mockResolvedValue(warningHealth)
+
+    render(<RuntimeHealthView />)
+
+    await screen.findByText('codex-main@example.com')
+    fireEvent.click(screen.getByRole('button', { name: '다시 켜기: codex-off@example.com' }))
+
+    await waitFor(() => {
+      expect(mockRunTeamCodexAccountAction).toHaveBeenCalledWith({
+        action: 'enable',
+        name: 'codex-off@example.com',
+        accountUuid: '33333333-3333-4333-8333-333333333333',
+      })
+    })
+    expect(await screen.findByRole('status')).toBeTruthy()
   })
 
   it('새로고침 버튼으로 진단 정보를 다시 불러온다', async () => {

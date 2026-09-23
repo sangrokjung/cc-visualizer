@@ -147,7 +147,7 @@
 8. 반응속도: 메뉴 사전 구성 + Codex JSONL 증분 캐시
 ### 데이터 소스
 - `npx ccusage {daily,weekly,monthly} --json` (fnm symlink 직접 spawn, tmp 파일 redirect로 pipe deadlock 회피)
-- `~/.codex/sessions/**/*.jsonl` + `~/.codex/cache/cc-menubar-session-stats-v1.json`
+- `~/.codex/sessions/**/*.jsonl` + `~/.codex/cache/cc-menubar-session-stats-v4.json`
 - TeamClaude runtime health + TeamCodex `/teamclaude/status`
 - 동시 호출 가드(`isFetching`) — 60초 주기 호출이 겹쳐 ccusage 자식 무한 누적되는 버그 차단 (426 좀비 사고)
 ### 빌드/배포

@@ -44,7 +44,7 @@ launchctl load ~/Library/LaunchAgents/com.qjc.cc-menubar.plist # 로그인 자�
 - 모델 추적: `parseModelBreakdown`(이번 달 modelBreakdowns) + `providerOf`(claude/gpt·codex/gemini 분류) → Claude/Codex/Gemini 제공자별 + 모델별 비용. codex(gpt-*) 가시 추적. `shortenModelName`은 8자리 날짜 접미사 제거+공백 버전(TS `modelLabel` 정합), `formatCost` 천단위 구분
 - 환율: open.er-api.com 라이브 USD→KRW + UserDefaults 12h 캐시 + 폴백 1450 (`fetchUsdKrwRate`/`formatKRW`)
 - AI 계정: TeamClaude + TeamCodex(`127.0.0.1:3457`) 다계정 상태, 5시간/7일 quota와 reset 남은 시간, OAuth 계정 추가 액션
-- Codex 캐시: `~/.codex/cache/cc-menubar-session-stats-v1.json` 증분 파싱 캐시(0600) + 메뉴 prewarm
+- Codex 캐시: `~/.codex/cache/cc-menubar-session-stats-v4.json` 증분 파싱 캐시(0600, 날짜별 버킷이라 자정에 재파싱 없음) + 메뉴 prewarm
 - 병렬 감지: Claude/Codex/Hermes 관련 프로세스 수
 
 ## 직원 배포 (docs/INSTALL-for-employees.md)
@@ -114,7 +114,7 @@ agents(207), skills(191), hooks(100), rules(74), pipelines(18), mcpServers(46)
 |---|---|---|
 | Codex 풀 패널 (계정별 상태 텍스트 컬럼 있음) | `menubar/Sources/CodexStatusView.swift` statusText switch + `TeamCodexPoolStatus.swift` 디코드 | 새 필드는 디코드(builder)와 뷰 양쪽 배선. 라벨은 `teamCodexAccountState`(우선순위) → `teamCodexAccountStateLabel`(낱말) → `teamCodexAccountNote`(보조줄) 3단을 거치므로 뷰에 문자열을 직접 쓰지 말 것 |
 | **Claude 풀 테이블 (상태 텍스트 컬럼 없음!)** | `menubar/Sources/main.swift` — `TeamClaudeAccountHealth` 구조체 + 파싱(`accountRows.append`) + 행 렌더 루프(측정 컬럼 자리에 error 사유 라벨) | 색점+쿼터만 그리는 구조라 텍스트는 측정 컬럼(innerX+790)에 그린다. 구조체는 memberwise init — 새 필드는 `var x: T? = nil` 기본값으로 4개 생성 지점 호환 |
-| **Tauri 앱 표면 (미갱신, 2026-09-06 확인)** | `src/renderer/src/features/runtime-health/RuntimeHealthView.tsx` + `src-tauri/src/commands.rs` | 빌드된 `CC Visualizer.app`이 쓰는 별도 렌더러. `errorReason`·`usable`·`subscription`을 **디코드하지 않아** 꺼 둔 계정을 초록 "사용 가능"으로, 구독 종료를 "오류"로 그린다. 상시 실행이 아니라 이번 정리에서 제외했다 — 이 앱을 다시 쓰기 전에 메뉴바와 같은 낱말로 맞출 것 |
+| **Tauri 앱 표면** | `src/renderer/src/features/runtime-health/RuntimeHealthView.tsx` + `teamCodexPool.ts` + `src-tauri/src/commands.rs` | `errorReason`·`usable`·`subscription`과 복구 신원을 디코드한다. 계정별 **다시 켜기/재인증 필요** 버튼은 구조화 IPC를 통해 검증한 config와 Codex CLI로 연결한다. 구독종료·조직차단·송신실패는 재인증 대상에서 제외하며, 재시작은 터미널에 표시된 config 고정 명령을 사용한다. |
 | 프록시 자체 표면 | teamclaude repo: CLI `status`(index.js) · TUI(tui.js) | 프록시 repo에서 함께 배선. **낱말·우선순위 SSOT는 프록시다** — tui.js `_renderAccounts`(disabled → ended → error → end-date-reached → cancellation-scheduled → status)와 index.js `subscriptionDisplay`/`ERROR_REASON_LABELS`를 먼저 읽고 맞춘다 |
 
 - 계정 error 사유 라벨: `errorReason` → 조직차단/**구독종료**/인증만료/인증거부/갱신실패/송신실패 (프록시 계약: teamclaude CLAUDE.md 참조). `teamAccountErrorReasonLabel`은 두 렌더러가 공유하는 canonical 라벨이다.
@@ -125,7 +125,13 @@ agents(207), skills(191), hooks(100), rules(74), pipelines(18), mcpServers(46)
   - 확정 종료(`ended`·`errorReason=subscription-ended`)와 꺼 둔 계정에만 초기화 카운트다운을 그리지 않는다.
   - 요약줄은 `제외`라고만 쓴다. 구독 종료(영구)와 운영자가 끈 계정(되돌릴 수 있음)이 같이 들어가므로 **집계 문구에서 "영구"라고 단정하지 않는다** — 영구 여부는 각 줄의 낱말이 말한다.
   - 행 라벨·보조줄·카운트다운은 집계와 **같은 시각(`pool.checkedAt`)**으로 판정한다. 서로 다른 `now`를 쓰면 한 화면에서 줄과 요약이 어긋난다.
-  - `usable` 필드가 없는 행(오프라인 스냅샷·프록시 미로드 계정)은 "사용 가능"으로 세지 않는다 — 요약줄과 행 라벨(`설정됨`)이 어긋나면 안 된다.
+  - 오프라인 스냅샷·프록시 미로드 계정(`configured`)은 "사용 가능"으로 세지 않는다. Tauri의 구버전 `active` 응답은 `usable`이 없을 때 상태·쿼터로 추론하는 호환 예외가 있으며, 최신 응답은 `usable` 판정을 우선한다.
   - 낱말은 Claude 풀 표(`TeamClaudeMeasurementIssue`)와 맞춘다. 같은 개념에 두 단어를 만들지 말 것(`비활성` ↔ 구 `사용안함`).
 - 빌드: `bash menubar/build.sh` (SwiftPM 아님 — Package.swift 없음, swiftc 직접). 배포: KeepAlive라 기존 `cc-menubar` 프로세스 kill이면 launchd가 새 바이너리로 재기동. `launchctl kickstart`는 권한 정책상 거부될 수 있음.
+- **스케줄링 클래스 (2026-09-23)**: LaunchAgent plist에 `ProcessType=Interactive`가 필수다. 이 호스트는 배치 프로세스로 load 40~200이 상시라 Standard 클래스면 메인 스레드가 굶어 갱신 한 번에 CPU 170~280ms인데 벽시계로 2.6~6.3초가 걸렸다(Interactive 전환 뒤 벽시계 93~135ms ≈ CPU 90~124ms)(`DASHBOARD-REFRESH … elapsed= cpu=` 로그로 판별). 템플릿(`menubar/com.qjc.cc-menubar.plist.template`)과 설치된 plist 둘 다 유지.
 - **완료 기준: 코드 수정이 아니라 재빌드+재기동+사용자 화면 확인까지.** "프록시에 데이터 있음"은 완료가 아니다.
+- **`runtime` 블록 (2026-09-22)**: 프록시 status 최상위 `runtime`(`artifact`·`version`·`uptimeMs`·`workerRestarts`·`lastWorkerRestartAt`)은 `teamRuntimeSummary()`(TeamClaudePresentationLogic.swift) 한 곳에서 문구를 만들고, TeamClaude 표는 port/pid 줄에, TeamCodex 카드는 헤더 우측에 `short` 형으로 그린다. 프록시가 안 주면 `nil`이라 아무것도 안 그린다. port/pid 줄은 우측 액션 박스와 겹치지 않도록 `teamServerLine()`이 전문 → 축약 → 생략 순으로 폭에 맞춘다(`runtimeSummary`/`runtimeSummaryShort` 둘 다 파서와 병합 헬퍼 3곳에서 채운다).
+- **TeamCodex 상태 낱말 `소진` (2026-09-22)**: `statusLabel`은 오프라인/소진/온라인 3단이다. `소진` = 프록시엔 닿지만 `usableCount == 0`(풀에 계정은 있음). 타이틀 슬롯은 `Codex N/M`, 소진이면 `Codex 소진 · M/d HH:mm 복구`(한도로 빠진 계정이 가장 먼저 돌아오는 시각, `quotaRecoveryAt`), 복구 시각을 모르면 `Codex 소진 0/M`. "온라인"만으로 0/7을 말하지 않는다.
+- **테스트 러너**: `bash menubar/run-tests.sh`(build.sh가 먼저 호출한다 — 실패하면 바이너리 교체를 막는다). main.swift 심볼에 의존하는 Swift 테스트 3개(`SKIP_TESTS`)는 러너가 건너뛰고 이름을 출력하며, 짝 `test_*.py`가 직접 컴파일해 돌린다. 외부 표면이 필요한 테스트는 `CC_MENUBAR_LIVE_SURFACES=1`일 때만, 트리 밖 사유로 빨간 테스트는 `KNOWN_RED_TESTS`(게이트 비차단, 담당자가 고치면 목록에서 제거). 빌드 뒤 `snapshot_test_teamclaude_table.py`가 후보 바이너리로 픽스처 5종(`empty`·`all-error`·`no-quota`·`weekly-fable-full`·`named-mixed`)을 오프스크린 렌더한 뒤에야 `.build/cc-menubar`로 교체한다(`CC_MENUBAR_SKIP_SNAPSHOT=1`로 생략 가능).
+- **크래시 기록**: `NSSetUncaughtExceptionHandler` → `~/.claude/cache/cc-menubar-crash.log`(시각·사유·draw 브레드크럼·스택 12줄). 메뉴가 갑자기 닫히면 이 파일부터 본다. 재현은 `cc-menubar --teamclaude-table-snapshot <status.json> [out.png]`.
+- **연속 페이지(2026-09-23)**: 대시보드는 한 겹 스크롤(`hostDashboard`), 섹션 배치·현재 섹션 판정은 `DashboardSections.swift` 순수 함수, 고정 헤더는 `addFloatingSubview`. 섹션을 추가하면 `preferredHeight`/`configure`/`updateContent` 세 곳의 bodies 목록을 같이 고친다(헤더 우측 요약 문구는 `sectionSummaries` 한 곳, `updateContent`는 이를 통해 갱신).

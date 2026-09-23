@@ -19,7 +19,21 @@ CC Visualizer는 Claude Code의 에이전트·스킬·훅·룰·파이프라인�
 | 사용량 분석 | 오늘·주간·월간·누적 비용, USD/KRW 환산, 제공자·모델별 집계 |
 | AI 계정 진단 | TeamClaude와 TeamCodex 서버 상태, 계정별 5시간/7일 사용량, 동시 요청 |
 | macOS 메뉴바 | Claude/Codex 사용량, reset 남은 시간, 모델 현황, 계정 추가·전환 상태 |
+| 메뉴바 대시보드 | 한 장으로 이어지는 스크롤 페이지, 현재 섹션을 알려주는 고정 헤더, 계정 측정·복구 버튼 |
+| CLI 쿼터 | Grok 잔량과 Antigravity(Gemini) 주간 잔량을 메뉴바 제목과 카드에 표시 |
+| 외부 크레딧 | Higgsfield 크레딧 잔액과 재구독 D-day |
+| 운영 진단 | 프록시 빌드·가동 시간·워커 재시작 수, 크래시 기록, 갱신 비용 로그 |
 | 직원 배포 | macOS arm64 DMG와 메뉴바 ZIP을 GitHub Release로 자동 생성 |
+
+### 2026-09 업데이트
+
+- 메뉴가 섹션마다 따로 스크롤되던 구조를 없애고 **한 장으로 이어지는 페이지**로 바꿨습니다. 계정이 늘어도 표가 잘리지 않고 페이지째 스크롤됩니다.
+- 스크롤 중에도 지금 보고 있는 섹션의 제목과 요약이 상단에 고정됩니다.
+- TeamCodex 풀에 쓸 수 있는 계정이 하나도 없으면 `소진`으로 표시하고, 메뉴바 제목에 복구 예정 시각을 함께 보여줍니다.
+- 프록시가 보내주면 빌드 식별자·가동 시간·워커 재시작 수를 표와 카드에 표시합니다.
+- 그리기 도중 예외가 나면 시각·사유·직전 구간을 `~/.claude/cache/cc-menubar-crash.log`에 남깁니다.
+- 세션 통계를 날짜별로 쌓아 자정이 지나도 파일을 다시 읽지 않습니다. 갱신 비용은 `DASHBOARD-REFRESH` 로그에 단계별로 남습니다.
+- LaunchAgent를 `Interactive`로 스케줄합니다. 부하가 높은 맥에서 메뉴가 굼뜨던 원인이 여기였습니다.
 
 ### 2026-07 업데이트
 
@@ -72,12 +86,56 @@ npm run dev
 
 ### macOS 메뉴바 앱
 
+설치 스크립트 한 번이면 빌드와 로그인 자동 시작 등록까지 끝납니다.
+
+```bash
+bash menubar/install.sh
+```
+
+스크립트가 하는 일은 네 가지입니다.
+
+1. `menubar/build.sh`로 바이너리를 만듭니다. 이때 Swift·Python 테스트가 먼저 돌고, 실패하면 설치를 멈춥니다.
+2. 바이너리를 `~/Applications/cc-menubar/`에 복사합니다. 경로를 바꾸려면 `--install-dir <경로>`를 줍니다.
+3. LaunchAgent(`~/Library/LaunchAgents/com.qjc.cc-menubar.plist`)를 만들어 로그인 시 자동 시작하도록 등록합니다.
+4. 데몬을 띄웁니다. 비정상 종료 시 자동으로 다시 뜹니다.
+
+빌드 없이 한 번만 띄워 보려면 다음으로 충분합니다.
+
 ```bash
 bash menubar/build.sh
 ./menubar/.build/cc-menubar
 ```
 
-로그인 시 자동 시작 설치와 직원 배포 방법은 [CC Visualizer 설치 가이드](./docs/INSTALL-for-employees.md)를 참고하세요.
+| 항목 | 경로 |
+|---|---|
+| 설치 위치 | `~/Applications/cc-menubar/` |
+| 자동 시작 설정 | `~/Library/LaunchAgents/com.qjc.cc-menubar.plist` |
+| 실행 로그 | 설치 폴더의 `cc-menubar.log`, `cc-menubar.error.log` |
+| 크래시 기록 | `~/.claude/cache/cc-menubar-crash.log` (없으면 정상) |
+| 세션 통계 캐시 | `~/.codex/cache/cc-menubar-session-stats-v4.json` |
+
+업데이트는 같은 스크립트를 다시 실행하면 됩니다. 제거하려면 자동 시작을 내리고 설치 폴더를 지웁니다.
+
+```bash
+launchctl bootout gui/$(id -u)/com.qjc.cc-menubar
+rm -rf ~/Applications/cc-menubar ~/Library/LaunchAgents/com.qjc.cc-menubar.plist
+```
+
+빌드 도구 없이 받아서 쓰려면 [Releases](https://github.com/sangrokjung/cc-visualizer/releases/latest)의 `cc-menubar-<tag>.zip`을 풀고 그 안의 `install.sh`를 실행하세요. 직원 배포 절차는 [설치 가이드](./docs/INSTALL-for-employees.md)에 있습니다.
+
+### 메뉴바 화면 구성
+
+메뉴바 제목은 왼쪽부터 CLI 쿼터(Grok, Antigravity), 그다음 5초마다 바뀌는 정보 슬롯입니다. 클릭하면 한 장으로 이어지는 대시보드가 열리고, 위에서부터 요약 카드와 다섯 섹션이 차례로 놓입니다.
+
+| 섹션 | 내용 |
+|---|---|
+| Claude 풀 | 계정별 상태·5시간/7일 사용률·Fable 주간 한도, 측정과 재인증 버튼 |
+| Codex 풀 | TeamCodex 계정별 사용률과 복구 예정 시각, 사용 가능·제외 집계 |
+| Higgsfield | 크레딧 잔액과 재구독까지 남은 일수 |
+| CLI 쿼터 | Grok, Antigravity 주간·5시간 잔량 |
+| 사용량 | 오늘·주간·월간·누적 비용과 토큰, 일별 추이 |
+
+스크롤하면 지금 보고 있는 섹션의 제목이 상단에 고정됩니다. 화면보다 내용이 짧으면 스크롤 없이 그대로 표시합니다.
 
 ## TeamClaude / TeamCodex 연동
 
@@ -108,7 +166,18 @@ TeamCodex 서버가 꺼져 있거나 quota가 아직 측정되지 않은 계정�
 | 메뉴 재오픈 | 매번 전체 구성 | 약 5ms 사전 구성 메뉴 |
 | 전체 상태 스냅샷 렌더 | 약 142초 | 약 0.26초 |
 
-캐시는 `~/.codex/cache/cc-menubar-session-stats-v1.json`에 `0600` 권한으로 저장하며, 파일 크기·수정 시각이 바뀐 세션만 다시 읽습니다.
+캐시는 `~/.codex/cache/cc-menubar-session-stats-v4.json`에 `0600` 권한으로 저장하며, 파일 크기·수정 시각이 바뀐 세션만 다시 읽습니다. 통계는 날짜별 버킷으로 쌓여서 날짜가 바뀌면 버킷을 다시 접을 뿐 파일을 다시 읽지 않습니다. 실제로 자정을 넘긴 첫 스캔이 744개 세션 중 8개만 다시 읽었습니다.
+
+### 2026-09-23 추가 측정
+
+메뉴가 굼뜬 원인은 코드가 아니라 스케줄링이었습니다. LaunchAgent 기본값인 `Standard`로 돌면 부하가 높은 맥에서 메인 스레드가 CPU를 거의 받지 못합니다.
+
+| 상태 | 갱신 1회 CPU 시간 | 갱신 1회 실제 경과 |
+|---|---:|---:|
+| `ProcessType` 미지정 (기본 Standard) | 170~280ms | 2.6~6.3초 |
+| `ProcessType=Interactive` | 90~124ms | 93~135ms |
+
+두 측정 모두 load 200 안팎에서 잰 값입니다. 판별 근거는 `DASHBOARD-REFRESH` 로그의 `cpu=`와 `elapsed=` 차이입니다. 같이 적용한 것은 세 가지입니다. Codex 세션 스캔을 10초 틱에서 떼어 60초 주기 백그라운드로 옮겼고, 열린 대시보드 다시 그리기를 0.3초 단위로 합쳤고, 메뉴가 닫혀 있을 때는 30초에 한 번만 캐시를 데웁니다.
 
 ## 개발 명령
 

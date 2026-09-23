@@ -2,6 +2,37 @@ import Cocoa
 import Darwin
 import Foundation
 
+// MARK: - 크래시 기록
+
+/// 마지막으로 그리기 시작한 구간. 예외 핸들러가 같이 적어 어느 draw 구간에서 죽었는지 남긴다.
+var lastDrawBreadcrumb = "startup"
+
+func markDraw(_ label: String) {
+    lastDrawBreadcrumb = label
+}
+
+/// KeepAlive가 조용히 되살리는 NSException 크래시를 시각·사유·구간과 함께 파일에 남긴다.
+/// `~/.claude/cache/cc-menubar-err.log`(launchd stderr)에는 시각이 없어 사고 시각을 알 수 없었다.
+func installCrashRecorder() {
+    NSSetUncaughtExceptionHandler { exception in
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        var line = "CRASH \(stamp) \(exception.name.rawValue): \(exception.reason ?? "-") | breadcrumb=\(lastDrawBreadcrumb)\n"
+        for symbol in exception.callStackSymbols.prefix(12) {
+            line += "  \(symbol)\n"
+        }
+        let data = Data(line.utf8)
+        FileHandle.standardError.write(data)
+        let path = "\(NSHomeDirectory())/.claude/cache/cc-menubar-crash.log"
+        if let handle = FileHandle(forWritingAtPath: path) {
+            handle.seekToEndOfFile()
+            handle.write(data)
+            handle.closeFile()
+        } else {
+            FileManager.default.createFile(atPath: path, contents: data, attributes: [.posixPermissions: 0o600])
+        }
+    }
+}
+
 // MARK: - 데이터 모델
 
 struct DailyUsage {
@@ -85,6 +116,8 @@ struct TeamClaudeHealth {
     let accounts: [TeamClaudeAccountHealth]
     let hints: [String]
     let host: TeamClaudeHostMetrics?
+    var runtimeSummary: String? = nil
+    var runtimeSummaryShort: String? = nil
 
     // 호스트 CPU/RAM 한 줄 요약 (표시할 값이 없으면 nil → 라인 생략)
     var hostSummaryText: String? {
@@ -681,7 +714,7 @@ func parseTeamClaudeHealth(config: [String: Any]?, server: [String: Any]?,
         )
     }
 
-    return TeamClaudeHealth(
+    var health = TeamClaudeHealth(
         checkedAt: now,
         overallStatus: overallStatus,
         configPresent: config != nil,
@@ -709,6 +742,9 @@ func parseTeamClaudeHealth(config: [String: Any]?, server: [String: Any]?,
         hints: hints,
         host: hostMetrics
     )
+    health.runtimeSummary = teamRuntimeSummary(status?["runtime"])
+    health.runtimeSummaryShort = teamRuntimeSummary(status?["runtime"], short: true)
+    return health
 }
 
 func teamClaudeRetainingQuota(
@@ -784,7 +820,7 @@ func teamClaudeRetainingQuota(
     )
     let adjusted = teamClaudeHealthMergingQuota(candidate: quotaPending, previous: previous)
 
-    return TeamClaudeHealth(
+    var merged = TeamClaudeHealth(
         checkedAt: candidate.checkedAt,
         overallStatus: "error",
         configPresent: candidate.configPresent,
@@ -812,6 +848,9 @@ func teamClaudeRetainingQuota(
         hints: candidate.hints + ["서버 재연결 중 · 마지막 정상 주간/Fable 표시"],
         host: candidate.host
     )
+    merged.runtimeSummary = candidate.runtimeSummary
+    merged.runtimeSummaryShort = candidate.runtimeSummaryShort
+    return merged
 }
 
 func teamClaudeQuotaPair(for account: TeamClaudeAccountHealth) -> TeamClaudeQuotaPair? {
@@ -959,7 +998,7 @@ func teamClaudeHealthMergingQuota(
             || measurementPending > 0 || candidate.accountConfigDrift > 0
     ))
 
-    return TeamClaudeHealth(
+    var merged = TeamClaudeHealth(
         checkedAt: candidate.checkedAt,
         overallStatus: overallStatus,
         configPresent: candidate.configPresent,
@@ -989,6 +1028,9 @@ func teamClaudeHealthMergingQuota(
             : candidate.hints,
         host: candidate.host
     )
+    merged.runtimeSummary = candidate.runtimeSummary
+    merged.runtimeSummaryShort = candidate.runtimeSummaryShort
+    return merged
 }
 
 // MARK: - ccusage 호출
@@ -1625,6 +1667,7 @@ func dateFromYMD(_ ymd: String) -> Date? {
     _ymdFormatter.date(from: ymd)
 }
 
+// TeamClaudePalette(표·섹션 헤더가 공유하는 색·폰트)은 TeamClaudePalette.swift에 있다.
 final class TeamClaudeTableView: NSView {
     var health: TeamClaudeHealth? {
         didSet {
@@ -1812,21 +1855,13 @@ final class TeamClaudeTableView: NSView {
         measureRowRects.removeAll(keepingCapacity: true)
 
         let card = bounds.insetBy(dx: 8, dy: 4)
-        let bg = NSColor(calibratedRed: 0.06, green: 0.075, blue: 0.10, alpha: 0.97)
-        let panel = NSColor(calibratedRed: 0.095, green: 0.115, blue: 0.15, alpha: 1.0)
-        let panel2 = NSColor(calibratedRed: 0.12, green: 0.14, blue: 0.18, alpha: 1.0)
-        let line = NSColor(calibratedRed: 0.23, green: 0.27, blue: 0.34, alpha: 1.0)
-        let text = NSColor(calibratedRed: 0.92, green: 0.95, blue: 0.98, alpha: 1.0)
-        let muted = NSColor(calibratedRed: 0.55, green: 0.61, blue: 0.70, alpha: 1.0)
-        let green = NSColor(calibratedRed: 0.18, green: 0.82, blue: 0.48, alpha: 1.0)
-        let yellow = NSColor(calibratedRed: 0.93, green: 0.76, blue: 0.22, alpha: 1.0)
-        let red = NSColor(calibratedRed: 0.96, green: 0.26, blue: 0.32, alpha: 1.0)
-        let blue = NSColor(calibratedRed: 0.28, green: 0.55, blue: 0.90, alpha: 1.0)
-        let titleFont = NSFont.systemFont(ofSize: 18, weight: .bold)
-        let subFont = NSFont.systemFont(ofSize: 13, weight: .medium)
-        let headFont = NSFont.systemFont(ofSize: 12, weight: .semibold)
-        let rowFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .medium)
-        let smallFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+        let bg = TeamClaudePalette.bg, panel = TeamClaudePalette.panel, panel2 = TeamClaudePalette.panel2
+        let line = TeamClaudePalette.line, text = TeamClaudePalette.text, muted = TeamClaudePalette.muted
+        let green = TeamClaudePalette.green, yellow = TeamClaudePalette.yellow
+        let red = TeamClaudePalette.red, blue = TeamClaudePalette.blue
+        let titleFont = TeamClaudePalette.titleFont, subFont = TeamClaudePalette.subFont
+        let headFont = TeamClaudePalette.headFont, rowFont = TeamClaudePalette.rowFont
+        let smallFont = TeamClaudePalette.smallFont
 
         func attrs(_ font: NSFont, _ color: NSColor) -> [NSAttributedString.Key: Any] {
             [.font: font, .foregroundColor: color]
@@ -1878,7 +1913,7 @@ final class TeamClaudeTableView: NSView {
             fillRound(rect, prominent ? color.withAlphaComponent(0.10) : panel, 9)
             strokeRound(rect, prominent ? color.withAlphaComponent(0.45) : line.withAlphaComponent(0.8), 9)
             drawText(title, x + 10, y + 7, headFont, prominent ? text : muted)
-            drawText(value, x + 10, y + 23, NSFont.monospacedSystemFont(ofSize: prominent ? 24 : 18, weight: .bold), color)
+            drawText(value, x + 10, y + 23, prominent ? TeamClaudePalette.statValueProminentFont : TeamClaudePalette.statValueFont, color)
             drawText(detail, x + width - detail.size(withAttributes: attrs(smallFont, muted)).width - 10, y + 31, smallFont, muted)
         }
         func bar(_ percent: Double?, x: CGFloat, y: CGFloat, width: CGFloat, color: NSColor) {
@@ -1893,10 +1928,21 @@ final class TeamClaudeTableView: NSView {
 
         let innerX = card.minX + 16
         let topY = card.minY + 14
+        let actionRect = NSRect(x: card.maxX - 330, y: topY - 4, width: 314, height: 48)
+        markDraw("TeamClaudeTableView.header")
         drawText("TeamClaude", innerX, topY, titleFont, text)
         pill(health.serverReachable ? "실행중" : "오프라인", x: innerX + 122, y: topY - 2, color: health.serverReachable ? green : red)
         let integrationLabel = health.accountConfigDrift == 0 ? "연동 정상" : "연동 불일치 \(health.accountConfigDrift)"
-        drawText("port \(health.serverPort ?? 0)  ·  pid \(health.serverPid.map(String.init) ?? "-")  ·  \(integrationLabel)", innerX, topY + 29, subFont, health.accountConfigDrift == 0 ? muted : yellow)
+        let serverBase = "port \(health.serverPort ?? 0)  ·  pid \(health.serverPid.map(String.init) ?? "-")  ·  \(integrationLabel)"
+        let serverColor = health.accountConfigDrift == 0 ? muted : yellow
+        let serverLine = teamServerLine(
+            base: serverBase,
+            full: health.runtimeSummary,
+            short: health.runtimeSummaryShort,
+            maxWidth: actionRect.minX - 8 - innerX,
+            measure: { $0.size(withAttributes: attrs(subFont, serverColor)).width }
+        )
+        drawText(serverLine, innerX, topY + 29, subFont, serverColor)
         let hostLineShown = health.hostSummaryText != nil
         if let hostText = health.hostSummaryText {
             drawText(hostText, innerX, topY + 48, subFont, health.hostIsWarning ? red : muted)
@@ -1909,7 +1955,6 @@ final class TeamClaudeTableView: NSView {
         let excluded = availability.filter { $0.state == .excluded }.count
         let unconfirmed = availability.filter { $0.state == .unconfirmed }.count
         let pendingCount = health.measurementPendingCount
-        let actionRect = NSRect(x: card.maxX - 330, y: topY - 4, width: 314, height: 48)
         let actionColor: NSColor
         let actionTitle: String
         let actionDetail: String
@@ -1950,12 +1995,14 @@ final class TeamClaudeTableView: NSView {
         fillRound(actionRect, actionColor.withAlphaComponent(0.11), 8)
         strokeRound(actionRect, actionColor.withAlphaComponent(0.45), 8)
         let actionIcon = isMeasuring ? "↻" : (pendingCount > 0 || unconfirmed > 0 || excluded > 0 || limited > 0 ? "!" : "✓")
+        markDraw("TeamClaudeTableView.action")
         drawText(actionIcon, actionRect.minX + 12, actionRect.minY + 8, titleFont, actionColor)
         drawText(clipped(actionTitle, 28), actionRect.minX + 40, actionRect.minY + 6, subFont, actionColor)
         drawText(clipped(actionDetail, 38), actionRect.minX + 40, actionRect.minY + 25, smallFont, muted)
 
         let statY = topY + (hostLineShown ? 78 : 58)
         let statW = (card.width - 32 - 27) / 4
+        markDraw("TeamClaudeTableView.stats")
         stat("Fable 사용 가능", "\(ready) / \(totalAccounts)", "계정", x: innerX, y: statY, width: statW, color: ready > 0 ? green : red, prominent: true)
         stat("한도 · 요청 대기", "\(limited)", "계정", x: innerX + statW + 9, y: statY, width: statW, color: limited > 0 ? yellow : muted)
         stat("구독 · 오류 · 비활성", "\(excluded)", "제외", x: innerX + (statW + 9) * 2, y: statY, width: statW, color: excluded > 0 ? red : muted)
@@ -1981,12 +2028,13 @@ final class TeamClaudeTableView: NSView {
         drawText("Fable 주간", innerX + 620, tableY + 8, headFont, muted)
         drawText("측정", innerX + 790, tableY + 8, headFont, muted)
 
+        markDraw("TeamClaudeTableView.rows")
         for (i, row) in health.accounts.enumerated() {
             let y = tableY + 34 + CGFloat(i) * 72
             let rowRect = NSRect(x: innerX, y: y, width: card.width - 32, height: 70)
             let state = availability[i]
             let subscriptionMuted = state.subscriptionAppearance.isMuted
-            let inactive = NSColor(calibratedWhite: 0.62, alpha: 1)
+            let inactive = TeamClaudePalette.inactive
             let showCurrent = row.isCurrent && !subscriptionMuted
             if showCurrent {
                 fillRound(rowRect, green.withAlphaComponent(0.13), 7)
@@ -2069,11 +2117,12 @@ final class TeamClaudeTableView: NSView {
         NSBezierPath.strokeLine(from: NSPoint(x: innerX, y: footerY - 8), to: NSPoint(x: card.maxX - 16, y: footerY - 8))
         let thresholdLabel = health.quotaThresholdPercent.isFinite ? String(format: "%.0f", health.quotaThresholdPercent) : "미확인"
         drawText("Fable 가능 = 세션 + 전체 주간 + Fable 여유 · \(thresholdLabel)%부터 대기 · 미측정 제외", innerX, footerY, smallFont, muted)
+        markDraw("TeamClaudeTableView.done")
     }
 }
 
 final class ServiceAvailabilitySummaryView: NSView {
-    static let preferredHeight: CGFloat = 240
+    static let preferredHeight: CGFloat = 396
 
     var teamClaude: TeamClaudeHealth? { didSet { refreshSummary() } }
     var teamCodex: TeamCodexPoolHealth? { didSet { refreshSummary() } }
@@ -2108,28 +2157,29 @@ final class ServiceAvailabilitySummaryView: NSView {
                 return account.isUsable(switchThresholdPercent: pool.switchThresholdPercent, now: evaluatedAt)
             }
             .map(\.name) ?? []
+        let opusNames = teamClaude?.opusAvailability(now: evaluatedAt) ?? []
         let claudeLabel = claudeNames.isEmpty ? "사용 가능 계정 없음" : claudeNames.joined(separator: " · ")
         let codexLabel = codexNames.isEmpty ? "사용 가능 계정 없음" : codexNames.joined(separator: " · ")
-        setAccessibilityLabel("사용 가능 현황, TeamClaude \(claudeNames.count)개 \(claudeLabel), TeamCodex \(codexNames.count)개 \(codexLabel)")
+        setAccessibilityLabel("사용 가능 현황, TeamClaude Fable \(claudeNames.count)개 \(claudeLabel), Opus \(opusNames.count)개 \(opusNames.joined(separator: " · ")), TeamCodex \(codexNames.count)개 \(codexLabel)")
         needsDisplay = true
     }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         let card = bounds.insetBy(dx: 8, dy: 4)
-        let bg = NSColor(calibratedRed: 0.06, green: 0.075, blue: 0.10, alpha: 0.97)
-        let panel = NSColor(calibratedRed: 0.12, green: 0.14, blue: 0.18, alpha: 1)
-        let line = NSColor(calibratedRed: 0.23, green: 0.27, blue: 0.34, alpha: 1)
-        let text = NSColor(calibratedRed: 0.92, green: 0.95, blue: 0.98, alpha: 1)
-        let muted = NSColor(calibratedRed: 0.55, green: 0.61, blue: 0.70, alpha: 1)
-        let green = NSColor(calibratedRed: 0.18, green: 0.82, blue: 0.48, alpha: 1)
-        let yellow = NSColor(calibratedRed: 0.93, green: 0.76, blue: 0.22, alpha: 1)
-        let red = NSColor(calibratedRed: 0.96, green: 0.26, blue: 0.32, alpha: 1)
-        let gray = NSColor(calibratedWhite: 0.62, alpha: 1)
-        let titleFont = NSFont.systemFont(ofSize: 24, weight: .bold)
-        let bodyFont = NSFont.systemFont(ofSize: 20, weight: .medium)
-        let monoFont = NSFont.monospacedSystemFont(ofSize: 32, weight: .bold)
-        let smallFont = NSFont.monospacedSystemFont(ofSize: 17, weight: .regular)
+        let bg = TeamClaudePalette.bg
+        let panel = TeamClaudePalette.panel2
+        let line = TeamClaudePalette.line
+        let text = TeamClaudePalette.text
+        let muted = TeamClaudePalette.muted
+        let green = TeamClaudePalette.green
+        let yellow = TeamClaudePalette.yellow
+        let red = TeamClaudePalette.red
+        let gray = TeamClaudePalette.inactive
+        let titleFont = TeamClaudePalette.summaryTitleFont
+        let bodyFont = TeamClaudePalette.summaryBodyFont
+        let monoFont = TeamClaudePalette.summaryValueFont
+        let smallFont = TeamClaudePalette.summaryNameFont
 
         func attrs(_ font: NSFont, _ color: NSColor) -> [NSAttributedString.Key: Any] {
             [.font: font, .foregroundColor: color]
@@ -2176,19 +2226,24 @@ final class ServiceAvailabilitySummaryView: NSView {
         let columnWidth = (card.width - 32 - columnGap) / 2
         let namesClaude = namesForClaude()
         let namesCodex = namesForCodex()
+        let namesOpus = teamClaude?.opusAvailability(now: evaluatedAt) ?? []
         let claudeColor = statusColor(namesClaude.count, hasService: teamClaude != nil,
                                       reachable: teamClaude?.serverReachable ?? false)
         let codexColor = statusColor(namesCodex.count, hasService: teamCodex != nil,
                                      reachable: teamCodex?.serverReachable ?? false)
 
         let columns: [(String, [String], NSColor, String)] = [
-            ("TeamClaude", namesClaude, claudeColor,
+            ("TeamClaude · Fable", namesClaude, claudeColor,
              teamClaude == nil ? "연동되지 않음" : (teamClaude?.serverReachable == true ? "Fable 기준" : "서버 오프라인")),
+            ("TeamClaude · Opus", namesOpus, statusColor(namesOpus.count, hasService: teamClaude != nil, reachable: teamClaude?.serverReachable ?? false),
+             "일반 모델 · 세션 + 전체 주간 기준"),
             ("TeamCodex", namesCodex, codexColor,
              teamCodex == nil ? "연동되지 않음" : (teamCodex?.serverReachable == true ? "Codex 풀 기준" : "서버 오프라인"))
         ]
         for (index, column) in columns.enumerated() {
-            let x = card.minX + 16 + CGFloat(index) * (columnWidth + columnGap)
+            if columnWidth <= 0 { continue }
+            let x = card.minX + 16 + CGFloat(index % 2) * (columnWidth + columnGap)
+            let columnY = columnY + CGFloat(index / 2) * 156
             let rect = NSRect(x: x, y: columnY, width: columnWidth, height: 148)
             fillRound(rect, panel, 8)
             strokeRound(rect, column.2.withAlphaComponent(0.42), 8)
@@ -2196,33 +2251,55 @@ final class ServiceAvailabilitySummaryView: NSView {
             drawText(column.0, x + 32, columnY + 10, bodyFont, text)
             let countText = column.1.isEmpty ? "0개 사용 가능" : "\(column.1.count)개 사용 가능"
             drawText(countText, x + 14, columnY + 40, monoFont, column.2)
-            let paragraph = NSMutableParagraphStyle()
-            paragraph.lineBreakMode = .byTruncatingTail
             let names = column.1.isEmpty ? [column.3] : Array(column.1.prefix(2))
+            let nameColor = column.1.isEmpty ? muted : text
             for (row, name) in names.enumerated() {
-                name.draw(in: NSRect(x: x + 14, y: columnY + 84 + CGFloat(row) * 24,
-                                     width: columnWidth - 28, height: 24),
-                          withAttributes: [.font: smallFont, .foregroundColor: column.1.isEmpty ? muted : text,
-                                           .paragraphStyle: paragraph])
+                drawText(name, x + 14, columnY + 84 + CGFloat(row) * 24, smallFont, nameColor)
             }
             if column.1.count > 2 {
                 drawText("추가 계정은 아래 목록에서 확인", x + 14, columnY + 128,
-                         NSFont.systemFont(ofSize: 12), muted)
+                         TeamClaudePalette.summaryFootFont, muted)
             }
         }
     }
 }
 
 
+/// 메뉴 대시보드 한 장. 요약 카드 아래로 섹션(제목 띠 + 본문)이 이어지는 하나의 연속 문서다 — 섹션별 안쪽 스크롤은 없다.
+/// 화면보다 길면 AppDelegate.hostDashboard가 통째로 NSScrollView에 넣고 현재 섹션 이름을 고정 헤더로 띄운다.
+/// 대시보드 갱신 비용을 단계별로 재는 작은 누산기. DASHBOARD-REFRESH 로그의 `phases=` 필드가 된다.
+final class DashboardRefreshPhases {
+    private var marks: [(String, Double)] = []
+    private var last = ProcessInfo.processInfo.systemUptime
+    func mark(_ name: String) {
+        let now = ProcessInfo.processInfo.systemUptime
+        marks.append((name, (now - last) * 1_000))
+        last = now
+    }
+    var summary: String { marks.map { "\($0.0):\(Int($0.1))" }.joined(separator: " ") }
+}
+
+/// 이 스레드의 CPU 시간(ms). 벽시계 elapsed와 비교해 "바빴는지 / 굶었는지"를 가른다.
+func dashboardThreadCPUMs() -> Double {
+    var ts = timespec()
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts)
+    return Double(ts.tv_sec) * 1_000 + Double(ts.tv_nsec) / 1_000_000
+}
+
 final class StatusMenuDashboardView: NSView {
+    var lastRefreshPhases: DashboardRefreshPhases?
     static let preferredWidth: CGFloat = 880
-    static let maxTeamHeight: CGFloat = 596
-    static let maxMenuDashboardHeight: CGFloat = 936
 
     private var summaryView: ServiceAvailabilitySummaryView?
     private var teamClaudeView: TeamClaudeTableView?
     private var codexView: CodexStatusView?
+    private var higgsfieldView: HiggsfieldCreditsView?
+    private var grokView: GrokQuotaCardView?
+    private var agyView: AgyQuotaCardView?
     private var usageView: UsageDashboardView?
+    private(set) var sections: [DashboardSection] = []
+    private var headerViews: [DashboardSectionHeaderView] = []
+    private var renderedHiggsfieldHeight: CGFloat = 0
     private var renderedAccountCount = -1
     private var renderedTeamClaudePresent = false
     private var renderedCodexPresent = false
@@ -2238,20 +2315,61 @@ final class StatusMenuDashboardView: NSView {
         return base + CGFloat(health.accounts.count) * 72
     }
 
-    static func teamHeight(_ health: TeamClaudeHealth?) -> CGFloat {
-        min(teamContentHeight(health), maxTeamHeight)
-    }
-
     static func codexHeight(_ health: CodexHealth?, teamCodex: TeamCodexPoolHealth?) -> CGFloat {
         health == nil && teamCodex == nil ? 0 : CodexStatusView.preferredHeight(for: teamCodex)
     }
 
-    static func preferredHeight(teamClaude: TeamClaudeHealth?, codex: CodexHealth?, teamCodex: TeamCodexPoolHealth?, usage: UsageData?) -> CGFloat {
-        let team = teamHeight(teamClaude)
-        let codex = codexHeight(codex, teamCodex: teamCodex)
-        let usage = UsageDashboardView.preferredHeight(for: usage)
-        let summary = ServiceAvailabilitySummaryView.preferredHeight
-        return 8 + summary + 4 + team + (team > 0 ? 4 : 0) + codex + (codex > 0 ? 4 : 0) + usage + 8
+    /// 첫 섹션 헤더가 놓이는 문서 y — 위 4pt, 요약 카드, 아래 4pt.
+    static let sectionStartY: CGFloat = 4 + ServiceAvailabilitySummaryView.preferredHeight + 4
+
+    /// "CLI 쿼터" 본문 = Grok 카드 + 4pt + Agy 카드. 두 카드 모델은 옵셔널이 아니라 항상 그린다.
+    static let cliHeight: CGFloat = GrokQuotaCardView.fixedHeight + 4 + AgyQuotaCardView.fixedHeight
+
+    static func preferredHeight(teamClaude: TeamClaudeHealth?, codex: CodexHealth?, teamCodex: TeamCodexPoolHealth?, usage: UsageData?, higgsfield: HiggsfieldCreditsData? = nil) -> CGFloat {
+        dashboardSectionLayout(startY: sectionStartY, bodies: [
+            (id: "claude", title: "Claude 풀", summary: "", height: teamContentHeight(teamClaude)),
+            (id: "codex", title: "Codex 풀", summary: "", height: codexHeight(codex, teamCodex: teamCodex)),
+            (id: "higgsfield", title: "Higgsfield", summary: "", height: HiggsfieldCreditsView.preferredHeight(for: higgsfield)),
+            (id: "cli", title: "CLI 쿼터", summary: "", height: cliHeight),
+            (id: "usage", title: "사용량", summary: "", height: UsageDashboardView.preferredHeight(for: usage)),
+        ]).totalHeight
+    }
+
+    /// 섹션 헤더 우측 한 줄 요약. 모델에 이미 있는 값만 쓰고, 모르면 빈 문자열(헤더는 제목만 그린다).
+    static func sectionSummaries(teamClaude: TeamClaudeHealth?, codex: CodexHealth?, teamCodex: TeamCodexPoolHealth?, usage: UsageData?, higgsfield: HiggsfieldCreditsData?) -> [String: String] {
+        var out: [String: String] = [:]
+        if let teamClaude {
+            // 요약 카드와 같은 숫자: 전체 계정 수, Fable 기준 지금 요청을 받을 수 있는 계정 수.
+            let usable = teamClaude.fableAvailability(now: Date()).filter { $0.state == .ready }.count
+            out["claude"] = "계정 \(teamClaude.accounts.count) · 사용 가능 \(usable)"
+        }
+        if let teamCodex {
+            out["codex"] = "\(teamCodex.statusLabel) · 사용 가능 \(teamCodex.usableCount)/\(teamCodex.poolCount)"
+        } else if let codex {
+            out["codex"] = codex.statusLabel
+        }
+        if let higgsfield, higgsfield.error == nil {
+            out["higgsfield"] = higgsfieldFormatCredits(higgsfield.credits)
+        }
+        out["cli"] = "Grok · Agy"
+        if let usage, let today = usage.today {
+            out["usage"] = "오늘 \(formatKRWShort(today.totalCost, rate: usage.usdKrwRate)) · 총 \(formatTokens(usage.allTimeTokens))"
+        }
+        return out
+    }
+
+    /// 구조가 그대로일 때: 헤더의 요약 글만 바꾸고 다시 그린다.
+    private func refreshSectionSummaries(_ summaries: [String: String]) {
+        sections = sections.map { section in
+            var updated = section
+            updated.summary = summaries[section.id] ?? ""
+            return updated
+        }
+        for header in headerViews {
+            guard let id = header.section?.id,
+                  let section = sections.first(where: { $0.id == id }) else { continue }
+            header.section = section
+        }
     }
 
     func configure(
@@ -2259,6 +2377,9 @@ final class StatusMenuDashboardView: NSView {
         codex: CodexHealth?,
         teamCodex: TeamCodexPoolHealth?,
         usage: UsageData?,
+        higgsfield: HiggsfieldCreditsData? = nil,
+        grok: GrokCardModel = GrokCardModel(headline: "Grok 확인 중", detail: nil),
+        agy: AgyCardModel = AgyCardModel(message: "agy 확인 중", groups: []),
         parallelCount: Int,
         active: Bool,
         isMeasuringTeamClaude: Bool,
@@ -2268,69 +2389,87 @@ final class StatusMenuDashboardView: NSView {
         onRecoverTeamCodex: ((String, String?, TeamCodexAccountRecoveryKind) -> Void)? = nil
     ) {
         subviews.removeAll()
+        headerViews = []
+        teamClaudeView = nil
+        codexView = nil
+        higgsfieldView = nil
         renderedAccountCount = teamClaude?.accounts.count ?? 0
         renderedTeamClaudePresent = teamClaude != nil
         renderedCodexPresent = codex != nil
         renderedTeamCodexAccountCount = teamCodex?.accounts.count ?? 0
         renderedTeamCodexPresent = teamCodex != nil
         renderedUsageHeight = UsageDashboardView.preferredHeight(for: usage)
-        var y: CGFloat = 4
+        renderedHiggsfieldHeight = HiggsfieldCreditsView.preferredHeight(for: higgsfield)
 
-        let summary = ServiceAvailabilitySummaryView(frame: NSRect(x: 0, y: y, width: bounds.width, height: ServiceAvailabilitySummaryView.preferredHeight))
+        let summary = ServiceAvailabilitySummaryView(frame: NSRect(x: 0, y: 4, width: bounds.width, height: ServiceAvailabilitySummaryView.preferredHeight))
         summary.teamClaude = teamClaude
         summary.teamCodex = teamCodex
         summary.evaluatedAt = Date()
         addSubview(summary)
         summaryView = summary
-        y += ServiceAvailabilitySummaryView.preferredHeight + 4
 
-        if let teamClaude = teamClaude {
-            let contentHeight = Self.teamContentHeight(teamClaude)
-            let height = Self.teamHeight(teamClaude)
-            let view = TeamClaudeTableView(frame: NSRect(x: 0, y: 0, width: bounds.width, height: contentHeight))
-            view.health = teamClaude
-            view.isMeasuring = isMeasuringTeamClaude
-            view.measurementDetail = teamClaudeMeasureDetail
-            view.onMeasure = onMeasureTeamClaude
-            view.onReauthenticate = onReauthenticateTeamClaude
-            teamClaudeView = view
+        // preferredHeight와 같은 순서·같은 높이. 섹션을 더하면 두 목록과 sectionSummaries를 같이 고친다.
+        let summaries = Self.sectionSummaries(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage, higgsfield: higgsfield)
+        sections = dashboardSectionLayout(startY: Self.sectionStartY, bodies: [
+            (id: "claude", title: "Claude 풀", summary: summaries["claude"] ?? "", height: Self.teamContentHeight(teamClaude)),
+            (id: "codex", title: "Codex 풀", summary: summaries["codex"] ?? "", height: Self.codexHeight(codex, teamCodex: teamCodex)),
+            (id: "higgsfield", title: "Higgsfield", summary: summaries["higgsfield"] ?? "", height: HiggsfieldCreditsView.preferredHeight(for: higgsfield)),
+            (id: "cli", title: "CLI 쿼터", summary: summaries["cli"] ?? "", height: Self.cliHeight),
+            (id: "usage", title: "사용량", summary: summaries["usage"] ?? "", height: UsageDashboardView.preferredHeight(for: usage)),
+        ]).sections
 
-            if contentHeight > height {
-                let scrollView = NSScrollView(frame: NSRect(x: 0, y: y, width: bounds.width, height: height))
-                scrollView.documentView = view
-                scrollView.hasVerticalScroller = true
-                scrollView.autohidesScrollers = true
-                scrollView.scrollerStyle = .overlay
-                scrollView.drawsBackground = false
-                scrollView.borderType = .noBorder
-                scrollView.contentView.scroll(to: .zero)
-                addSubview(scrollView)
-            } else {
-                view.frame.origin.y = y
+        for section in sections {
+            let header = DashboardSectionHeaderView(frame: NSRect(x: 0, y: section.y, width: bounds.width, height: dashboardSectionHeaderHeight))
+            header.section = section
+            addSubview(header)
+            headerViews.append(header)
+            let bodyY = dashboardSectionBodyY(section)
+            let bodyHeight = section.height - dashboardSectionHeaderHeight - dashboardSectionGap
+
+            switch section.id {
+            case "claude":
+                // 표는 전체 높이로 한 장에 그린다 — 안쪽 스크롤 없이 페이지가 통째로 스크롤된다.
+                let view = TeamClaudeTableView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: bodyHeight))
+                view.health = teamClaude
+                view.isMeasuring = isMeasuringTeamClaude
+                view.measurementDetail = teamClaudeMeasureDetail
+                view.onMeasure = onMeasureTeamClaude
+                view.onReauthenticate = onReauthenticateTeamClaude
                 addSubview(view)
+                teamClaudeView = view
+            case "codex":
+                let view = CodexStatusView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: bodyHeight))
+                view.health = codex
+                view.pool = teamCodex
+                view.usage = usage
+                view.onRecover = onRecoverTeamCodex
+                addSubview(view)
+                codexView = view
+            case "higgsfield":
+                let higgsView = HiggsfieldCreditsView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: bodyHeight))
+                higgsView.data = higgsfield
+                addSubview(higgsView)
+                higgsfieldView = higgsView
+            case "cli":
+                let grokCard = GrokQuotaCardView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: GrokQuotaCardView.fixedHeight))
+                grokCard.model = grok
+                addSubview(grokCard)
+                grokView = grokCard
+                let agyCard = AgyQuotaCardView(frame: NSRect(x: 0, y: bodyY + GrokQuotaCardView.fixedHeight + 4, width: bounds.width, height: AgyQuotaCardView.fixedHeight))
+                agyCard.model = agy
+                addSubview(agyCard)
+                agyView = agyCard
+            case "usage":
+                let view = UsageDashboardView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: bodyHeight))
+                view.usage = usage
+                view.parallelCount = parallelCount
+                view.active = active
+                addSubview(view)
+                usageView = view
+            default:
+                break
             }
-            y += height + 4
         }
-
-        if codex != nil || teamCodex != nil {
-            let codexHeight = CodexStatusView.preferredHeight(for: teamCodex)
-            let view = CodexStatusView(frame: NSRect(x: 0, y: y, width: bounds.width, height: codexHeight))
-            view.health = codex
-            view.pool = teamCodex
-            view.usage = usage
-            view.onRecover = onRecoverTeamCodex
-            addSubview(view)
-            codexView = view
-            y += codexHeight + 4
-        }
-
-        let usageHeight = UsageDashboardView.preferredHeight(for: usage)
-        let view = UsageDashboardView(frame: NSRect(x: 0, y: y, width: bounds.width, height: usageHeight))
-        view.usage = usage
-        view.parallelCount = parallelCount
-        view.active = active
-        addSubview(view)
-        usageView = view
     }
 
     func updateContent(
@@ -2338,6 +2477,9 @@ final class StatusMenuDashboardView: NSView {
         codex: CodexHealth?,
         teamCodex: TeamCodexPoolHealth?,
         usage: UsageData?,
+        higgsfield: HiggsfieldCreditsData? = nil,
+        grok: GrokCardModel = GrokCardModel(headline: "Grok 확인 중", detail: nil),
+        agy: AgyCardModel = AgyCardModel(message: "agy 확인 중", groups: []),
         parallelCount: Int,
         active: Bool,
         isMeasuringTeamClaude: Bool,
@@ -2346,7 +2488,6 @@ final class StatusMenuDashboardView: NSView {
         onReauthenticateTeamClaude: ((String, String?) -> Void)? = nil,
         onRecoverTeamCodex: ((String, String?, TeamCodexAccountRecoveryKind) -> Void)? = nil
     ) {
-        let previousTeamScrollOrigin = teamClaudeView?.enclosingScrollView?.contentView.bounds.origin
         let accountCount = teamClaude?.accounts.count ?? 0
         let usageHeight = UsageDashboardView.preferredHeight(for: usage)
         let structureChanged = accountCount != renderedAccountCount
@@ -2355,13 +2496,21 @@ final class StatusMenuDashboardView: NSView {
             || (teamCodex?.accounts.count ?? 0) != renderedTeamCodexAccountCount
             || (teamCodex != nil) != renderedTeamCodexPresent
             || usageHeight != renderedUsageHeight
+            || HiggsfieldCreditsView.preferredHeight(for: higgsfield) != renderedHiggsfieldHeight
         if structureChanged {
-            frame.size.height = Self.preferredHeight(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage)
+            // 가장 비싼 경로다. 여기서도 단계 시간을 남긴다(예전엔 phases=- 로 비어 보였다).
+            let structurePhases = DashboardRefreshPhases()
+            lastRefreshPhases = structurePhases
+            frame.size.height = Self.preferredHeight(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage, higgsfield: higgsfield)
+            structurePhases.mark("height")
             configure(
                 teamClaude: teamClaude,
                 codex: codex,
                 teamCodex: teamCodex,
                 usage: usage,
+                higgsfield: higgsfield,
+                grok: grok,
+                agy: agy,
                 parallelCount: parallelCount,
                 active: active,
                 isMeasuringTeamClaude: isMeasuringTeamClaude,
@@ -2370,32 +2519,37 @@ final class StatusMenuDashboardView: NSView {
                 onReauthenticateTeamClaude: onReauthenticateTeamClaude,
                 onRecoverTeamCodex: onRecoverTeamCodex
             )
-            if let previousTeamScrollOrigin,
-               let teamView = teamClaudeView,
-               let teamScrollView = teamView.enclosingScrollView {
-                let maximumY = max(0, teamView.bounds.height - teamScrollView.contentView.bounds.height)
-                let restoredY = min(max(previousTeamScrollOrigin.y, 0), maximumY)
-                teamScrollView.contentView.scroll(to: NSPoint(x: previousTeamScrollOrigin.x, y: restoredY))
-            }
+            structurePhases.mark("configure")
             return
         }
 
+        let phases = DashboardRefreshPhases()
+        lastRefreshPhases = phases
         summaryView?.teamClaude = teamClaude
         summaryView?.teamCodex = teamCodex
         summaryView?.evaluatedAt = Date()
+        phases.mark("summary")
         teamClaudeView?.health = teamClaude
         teamClaudeView?.isMeasuring = isMeasuringTeamClaude
         teamClaudeView?.measurementDetail = teamClaudeMeasureDetail
         teamClaudeView?.onMeasure = onMeasureTeamClaude
         teamClaudeView?.onReauthenticate = onReauthenticateTeamClaude
+        phases.mark("team")
         codexView?.health = codex
         codexView?.pool = teamCodex
         codexView?.usage = usage
         codexView?.onRecover = onRecoverTeamCodex
+        phases.mark("codex")
+        higgsfieldView?.data = higgsfield
+        grokView?.model = grok
+        agyView?.model = agy
         usageView?.usage = usage
         usageView?.parallelCount = parallelCount
         usageView?.active = active
         usageView?.needsDisplay = true
+        phases.mark("cards")
+        refreshSectionSummaries(Self.sectionSummaries(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage, higgsfield: higgsfield))
+        phases.mark("sections")
     }
 }
 
@@ -3081,7 +3235,8 @@ func teamCodexPoolHealth(
         switchThresholdPercent: pool.switchThresholdPercent,
         accounts: accounts,
         resetCreditsEnabled: pool.resetCreditsEnabled,
-        resetCreditsPolicy: pool.resetCreditsPolicy
+        resetCreditsPolicy: pool.resetCreditsPolicy,
+        runtimeSummary: pool.runtimeSummary
     )
 }
 
@@ -3328,12 +3483,30 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem?
     var dataTimer: Timer?       // ccusage 갱신 (60초)
     var statusTimer: Timer?     // TeamClaude/Codex 상태 갱신 (10초)
+    var codexScanTimer: Timer?  // Codex 세션 코퍼스 스캔 (60초, 디스크 작업)
     var rollTimer: Timer?       // 정보 롤링 + 펄스 (1초)
     var activityTimer: Timer?   // 활동 감지 (5초)
     var currentData: UsageData?
     var currentTeamClaude: TeamClaudeHealth?
     var currentCodex: CodexHealth?
     var currentTeamCodex: TeamCodexPoolHealth?
+    var currentHiggsfield: HiggsfieldCreditsData?
+    private var isFetchingHiggsfield = false
+    private var lastHiggsfieldFetchedAt: Date?
+    var currentGrokSlot: String?
+    var currentGrokCard = GrokCardModel(headline: "Grok 확인 중", detail: nil)
+    private var isFetchingGrok = false
+    private var lastGrokFetchedAt: Date?
+    var grokTimer: Timer?
+    var currentAgyCard = AgyCardModel(message: "agy 확인 중", groups: [])
+    private var isFetchingAgy = false
+    private var lastAgyFetchedAt: Date?
+    private var agyHasValue = false
+    var agyTimer: Timer?
+    var cachedPulseImage: NSImage?
+    var cachedPulseKey: String?
+    var cachedComposedImage: NSImage?
+    var cachedComposedKey: String?
 
     // 롤링 상태
     var rollIndex = 0       // 현재 표시 중인 정보 슬롯
@@ -3363,6 +3536,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     weak var openDashboardView: StatusMenuDashboardView?
     var cachedDashboardView: StatusMenuDashboardView?
     weak var cachedDashboardItem: NSMenuItem?
+    /// 대시보드가 화면보다 길 때 그 스크롤 뷰 위에 떠서 현재 섹션 이름을 말하는 고정 헤더 (스크롤 뷰 하나에 하나).
+    var pinnedSectionHeader: DashboardSectionHeaderView?
+    weak var dashboardScrollView: NSScrollView?
+    var dashboardScrollObserver: NSObjectProtocol?
     weak var refreshMenuView: MenuActionRowView?
     weak var measureMenuView: MenuActionRowView?
     var hasScheduledMenuPrewarm = false
@@ -3411,11 +3588,27 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         if let t = statusTimer { RunLoop.main.add(t, forMode: .common) }
 
+        // 60초마다 Codex 세션 코퍼스 스캔 (10초 틱에서 분리 — 최근 8일 수백 파일·수 GB를 stat/tail 하는 디스크 작업)
+        codexScanTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
+            self?.loadCodexStatusInBackground()
+        }
+        if let t = codexScanTimer { RunLoop.main.add(t, forMode: .common) }
+
         // 5분마다 ccusage 갱신
         dataTimer = Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { [weak self] _ in
             self?.loadUsageInBackground()
         }
         if let t = dataTimer { RunLoop.main.add(t, forMode: .common) }
+
+        grokTimer = Timer.scheduledTimer(withTimeInterval: grokUsageFetchInterval, repeats: true) { [weak self] _ in
+            self?.loadGrokUsageInBackground()
+        }
+        if let t = grokTimer { RunLoop.main.add(t, forMode: .common) }
+
+        agyTimer = Timer.scheduledTimer(withTimeInterval: agyUsageFetchInterval, repeats: true) { [weak self] _ in
+            self?.loadAgyUsageInBackground()
+        }
+        if let t = agyTimer { RunLoop.main.add(t, forMode: .common) }
     }
 
     // MARK: - Tick (1초마다 호출)
@@ -3451,9 +3644,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         let teamClaudeSlot = currentTeamClaude?.titleSlot
         let codexSlot = currentCodex?.titleSlot
+        let teamCodexSlot = currentTeamCodex?.titleSlot
         // 데이터 없으면 최소 정보 — 병렬 세션 수만이라도 의미 있음
         guard let usage = currentData, let today = usage.today else {
-            return [teamClaudeSlot, codexSlot, "병렬 \(parallelCount)"].compactMap { $0 }
+            return [teamClaudeSlot, teamCodexSlot, codexSlot, "병렬 \(parallelCount)"].compactMap { $0 }
         }
         let todayTokens = today.inputTokens + today.cacheCreationTokens
                         + today.cacheReadTokens + today.outputTokens
@@ -3466,6 +3660,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         var slots = [
             teamClaudeSlot,
+            teamCodexSlot,
             codexSlot,
             "오늘 \(formatCost(today.totalCost))",
             "오늘 \(formatKRWShort(today.totalCost, rate: rate))",
@@ -3495,12 +3690,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self = self, let button = self.statusItem?.button else { return }
 
             let slots = self.displaySlots()
-            let info = slots[self.rollIndex % slots.count]
+            let info = slots.isEmpty ? "Claude" : slots[self.rollIndex % slots.count]
             let activeMark = self.isActive ? " ⚡" : ""
-            let text = "\(info)\(activeMark)"
+            // CLI 할당량(Grok·agy)은 회전 슬롯이 아니라 항상 보이는 앞자리에 둔다.
+            let cliSlots = [self.currentGrokSlot, agyTitleSlot(self.currentAgyCard)].compactMap { $0 }
+            let cliPrefix = cliSlots.isEmpty ? "" : cliSlots.joined(separator: " · ") + " · "
+            let text = "\(cliPrefix)\(info)\(activeMark)"
 
             // 좌측: 펄스 도트(활성=초록 숨쉬기, idle=회색 링) + 스파크라인 미니 차트
-            let pulseDot = makePulseDot(active: self.isActive, frame: self.pulseFrame)
+            // idle이거나 같은 프레임이면 이미지를 다시 그리지 않는다. 1초 tick의 lockFocus가 클릭을 밀지 않게.
+            let pulseKey = self.isActive ? "on-\(self.pulseFrame % self.pulseFramesActive.count)" : "idle"
+            if self.cachedPulseKey != pulseKey || self.cachedPulseImage == nil {
+                self.cachedPulseImage = makePulseDot(active: self.isActive, frame: self.pulseFrame)
+                self.cachedPulseKey = pulseKey
+            }
+            let pulseDot = self.cachedPulseImage ?? makePulseDot(active: self.isActive, frame: self.pulseFrame)
 
             // 합성 이미지: [펄스 도트][스파크라인] 가로 배치
             let dotW = pulseDot.size.width
@@ -3512,32 +3716,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
                 sparkline = self.cachedSparklineImage
             } else {
+                if !self.cachedSparklineCosts.isEmpty || self.cachedSparklineImage != nil {
+                    self.cachedSparklineCosts = []
+                    self.cachedSparklineImage = nil
+                }
                 sparkline = nil
             }
-            let sparkW = sparkline?.size.width ?? 0
-            let composedW = dotW + (sparkW > 0 ? 4 + sparkW : 0)
-            let composedH: CGFloat = 16
-
-            let composed = NSImage(size: NSSize(width: composedW, height: composedH))
-            composed.lockFocus()
-            pulseDot.draw(at: NSPoint(x: 0, y: (composedH - pulseDot.size.height) / 2), from: .zero, operation: .sourceOver, fraction: 1.0)
-            if let s = sparkline {
-                s.draw(at: NSPoint(x: dotW + 4, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            let composeKey = "\(pulseKey)|\(sparkline == nil ? "none" : "spark")|\(self.cachedSparklineCosts.map { String($0) }.joined(separator: ","))"
+            if self.cachedComposedKey != composeKey || self.cachedComposedImage == nil {
+                let sparkW = sparkline?.size.width ?? 0
+                let composedW = dotW + (sparkW > 0 ? 4 + sparkW : 0)
+                let composedH: CGFloat = 16
+                let composed = NSImage(size: NSSize(width: composedW, height: composedH))
+                composed.lockFocus()
+                pulseDot.draw(at: NSPoint(x: 0, y: (composedH - pulseDot.size.height) / 2), from: .zero, operation: .sourceOver, fraction: 1.0)
+                if let s = sparkline {
+                    s.draw(at: NSPoint(x: dotW + 4, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+                }
+                composed.unlockFocus()
+                composed.isTemplate = false
+                self.cachedComposedImage = composed
+                self.cachedComposedKey = composeKey
             }
-            composed.unlockFocus()
-            composed.isTemplate = false
 
-            button.image = composed
+            button.image = self.cachedComposedImage
             button.imagePosition = .imageLeading
             button.title = " \(text)"
+            let cliTip = cliSlots.isEmpty ? "" : " · " + cliSlots.joined(separator: " · ")
             if let health = self.currentTeamClaude {
                 let fable = health.fableKnown > 0 ? "Fable \(health.fableOver)/\(health.fableKnown)" : "Fable -"
                 let measurement = " · 측정 필요 \(health.measurementPendingCount) · 상태 확인 \(health.measurementUnavailableCount) · 한도 리셋 \(health.quotaLimitedCount)"
                 let integration = health.accountConfigDrift == 0 ? " · 계정 연동 정상" : " · 계정 연동 불일치 \(health.accountConfigDrift)"
                 let codex = self.currentCodex.map { " · codex \($0.statusLabel) · calls \($0.todayCalls)/\($0.weekCalls)" } ?? ""
-                button.toolTip = "Claude Code 사용량 · teamclaude \(health.statusLabel) · \(fable) · active \(health.accountActive)/\(max(health.accountTotal, health.accountConfigured))\(integration)\(measurement)\(codex)"
+                button.toolTip = "Claude Code 사용량 · teamclaude \(health.statusLabel) · \(fable) · active \(health.accountActive)/\(max(health.accountTotal, health.accountConfigured))\(integration)\(measurement)\(codex)\(cliTip)"
             } else if let codex = self.currentCodex {
-                button.toolTip = "Claude Code 사용량 · codex \(codex.statusLabel) · calls \(codex.todayCalls)/\(codex.weekCalls)"
+                button.toolTip = "Claude Code 사용량 · codex \(codex.statusLabel) · calls \(codex.todayCalls)/\(codex.weekCalls)\(cliTip)"
+            } else if !cliSlots.isEmpty {
+                button.toolTip = "Claude Code 사용량\(cliTip)"
             }
 
         }
@@ -3550,7 +3765,33 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rollIndex = 0
         updateActivity()
         loadFastStatusInBackground()
+        loadCodexStatusInBackground()   // 기동 시 1회 — 이후엔 codexScanTimer(60초)가 돈다
         loadUsageInBackground()
+        loadHiggsfieldInBackground()
+        loadGrokUsageInBackground(force: true)
+        loadAgyUsageInBackground(force: true)
+    }
+
+    /// 힉스필드 크레딧 조회. CLI 왕복이라 느릴 수 있어 단일 실행만 허용하고 10분 간격으로 제한한다.
+    /// 크레딧은 생성할 때만 움직여서 더 촘촘히 볼 이유가 없다.
+    func loadHiggsfieldInBackground(force: Bool = false) {
+        guard !isFetchingHiggsfield else { return }
+        if !force, let last = lastHiggsfieldFetchedAt, Date().timeIntervalSince(last) < 600 { return }
+        isFetchingHiggsfield = true
+
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let data = fetchHiggsfieldCredits()
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.isFetchingHiggsfield = false
+                self.lastHiggsfieldFetchedAt = Date()
+                // 실패해도 기존 데이터를 지우지 않는다(깜빡임 방지). 첫 조회 실패만 그대로 보여 준다.
+                if data.error == nil || self.currentHiggsfield == nil {
+                    self.currentHiggsfield = data
+                }
+                self.scheduleDashboardRefresh(reason: "loadHiggsfieldInBackground")
+            }
+        }
     }
 
     func refreshStatusOnly() {
@@ -3563,6 +3804,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rollIndex = 0
         updateActivity()
         loadFastStatusInBackground()
+        loadCodexStatusInBackground()
         if isFetching {
             loadUsageQuickInBackground(reason: "manual")
         } else {
@@ -3570,21 +3812,68 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    func refreshOpenDashboard() {
-        if cachedDashboardView != nil, cachedDashboardItem != nil {
-            updateCachedMenuPresentation()
-            if openDashboardView != nil {
-                print("DASHBOARD-REFRESH: 열린 메뉴 최신 상태 반영")
-                fflush(stdout)
-            }
+    private var pendingDashboardRefresh: DispatchWorkItem?
+
+    /// 로더 완료마다 곧장 다시 그리지 않고 합쳐서 한 번만 그린다 — 열린 메뉴는 0.3초, 닫힌 메뉴는 `closedMenuRefreshWindow`(30초).
+    /// 대기 중인 항목이 있으면 그 마감을 유지하는 스로틀이고, 메뉴를 여는 순간 `flushPendingDashboardRefresh`가 그 자리에서 반영한다.
+    /// `immediate: true`는 측정 액션(`measureTeamClaudeAction`) 경로만 쓴다.
+    func scheduleDashboardRefresh(reason: String, immediate: Bool = false) {
+        if immediate {
+            pendingDashboardRefresh?.cancel()
+            pendingDashboardRefresh = nil
+            refreshOpenDashboard(reason: reason)
             return
         }
+        // 스로틀: 이미 대기 중이면 그 마감을 유지한다. 새 요청마다 재예약(디바운스)하면 10초마다 오는 로더 완료가
+        // 30초 창을 영원히 밀어내 닫힌 메뉴 캐시가 한 번도 갱신되지 않는다(2026-09-23 실측 0건/120초).
+        if pendingDashboardRefresh != nil { return }
+        let item = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.pendingDashboardRefresh = nil
+            self.refreshOpenDashboard(reason: reason)
+        }
+        pendingDashboardRefresh = item
+        // 열린 메뉴는 0.3초 안에 합쳐 바로 반영, 닫힌 메뉴는 30초 단위로만 캐시를 데운다(열 때 pending이 있으면 그 자리에서 반영).
+        let window: TimeInterval = openDashboardView != nil ? 0.3 : closedMenuRefreshWindow
+        DispatchQueue.main.asyncAfter(deadline: .now() + window, execute: item)
+    }
+
+    /// 닫힌 메뉴의 캐시 프레젠테이션 갱신 주기. 10초마다 로더 3개가 각각 재구성하던 비용(굶는 메인 스레드에서 2~6초)을 1/9로 줄인다.
+    let closedMenuRefreshWindow: TimeInterval = 30
+
+    /// 대기 중인 닫힌 메뉴 갱신을 지금 실행한다(메뉴를 여는 순간 최신 데이터로).
+    func flushPendingDashboardRefresh(reason: String) {
+        guard let pending = pendingDashboardRefresh else { return }
+        pending.cancel()
+        pendingDashboardRefresh = nil
+        refreshOpenDashboard(reason: reason)
+    }
+
+    func refreshOpenDashboard(reason: String = "direct") {
         guard let dashboard = cachedDashboardView ?? openDashboardView else { return }
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        let cpuStart = dashboardThreadCPUMs()
+        dashboard.lastRefreshPhases = nil
+        defer {
+            let elapsedMs = Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000)
+            let cpuMs = Int(dashboardThreadCPUMs() - cpuStart)
+            let phases = dashboard.lastRefreshPhases?.summary ?? "-"
+            print("DASHBOARD-REFRESH: reason=\(reason) open=\(openDashboardView != nil) elapsed=\(elapsedMs)ms cpu=\(cpuMs)ms phases=\(phases)")
+            fflush(stdout)
+        }
+        // 메뉴가 닫혀 있으면 캐시 프레젠테이션 갱신 한 번으로 끝낸다(그 안에서 updateContent 1회). 예전엔 여기서 한 번 더 돌아 비용이 2배였다.
+        if openDashboardView == nil {
+            updateCachedMenuPresentation()
+            return
+        }
         dashboard.updateContent(
             teamClaude: currentTeamClaude,
             codex: currentCodex,
             teamCodex: currentTeamCodex,
             usage: currentData,
+            higgsfield: currentHiggsfield,
+            grok: currentGrokCard,
+            agy: currentAgyCard,
             parallelCount: parallelCount,
             active: isActive,
             isMeasuringTeamClaude: isMeasuringTeamClaude,
@@ -3598,21 +3887,82 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         )
         dashboard.needsDisplay = true
-        if openDashboardView != nil {
-            print("DASHBOARD-REFRESH: 열린 메뉴 최신 상태 반영")
-            fflush(stdout)
-        }
+        updatePinnedSectionHeader()
     }
 
-    func loadInBackground() {
-        loadFastStatusInBackground()
-        loadUsageInBackground()
-    }
-
+    /// 10초 틱: 프록시 상태 2종(HTTP 한 번씩)만. Codex 세션 코퍼스 스캔은 디스크 작업이라 `codexScanTimer`(60초)가 따로 돈다.
     func loadFastStatusInBackground() {
         loadTeamClaudeStatusInBackground()
         loadTeamCodexStatusInBackground()
-        loadCodexStatusInBackground()
+    }
+
+    /// Grok 사용량은 클릭 경로에 붙이지 않는다. 60초에 한 번, 응답이 도착한 뒤에만 제목을 바꾼다.
+    func loadGrokUsageInBackground(force: Bool = false) {
+        guard !isFetchingGrok else { return }
+        if !force, let last = lastGrokFetchedAt, Date().timeIntervalSince(last) < grokUsageFetchInterval { return }
+        isFetchingGrok = true
+        fetchGrokMenuOutcome { [weak self] outcome in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isFetchingGrok = false
+                self.lastGrokFetchedAt = Date()
+                let slot: String
+                switch outcome {
+                case .percent(let outcome):
+                    self.currentGrokSlot = outcome.slot
+                    self.currentGrokCard = GrokCardModel(
+                        headline: outcome.slot,
+                        detail: grokCardDetail(product: outcome.productPercent, credit: outcome.creditPercent)
+                    )
+                    slot = outcome.slot
+                case .login:
+                    self.currentGrokSlot = "Grok 로그인"
+                    self.currentGrokCard = GrokCardModel(headline: "Grok 로그인", detail: nil)
+                    slot = "Grok 로그인"
+                case .unavailable:
+                    if self.currentGrokSlot == nil
+                        || self.currentGrokSlot == "Grok 로그인"
+                        || self.currentGrokSlot == "Grok 확인 중" {
+                        self.currentGrokSlot = "Grok 확인 필요"
+                        self.currentGrokCard = GrokCardModel(headline: "Grok 확인 필요", detail: nil)
+                    }
+                    slot = self.currentGrokSlot ?? "Grok 확인 필요"
+                }
+                print("GROK-SLOT: \(slot)")
+                fflush(stdout)
+                self.updateTitle()
+                self.scheduleDashboardRefresh(reason: "loadGrokUsageInBackground")
+            }
+        }
+    }
+
+    /// agy 할당량도 클릭과 무관하게 60초에 한 번만 읽는다. 실패하면 마지막 정상 값을 유지한다.
+    func loadAgyUsageInBackground(force: Bool = false) {
+        guard !isFetchingAgy else { return }
+        if !force, let last = lastAgyFetchedAt, Date().timeIntervalSince(last) < agyUsageFetchInterval { return }
+        isFetchingAgy = true
+        fetchAgyUsage { [weak self] outcome in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isFetchingAgy = false
+                self.lastAgyFetchedAt = Date()
+                switch outcome {
+                case .missing:
+                    self.agyHasValue = false
+                    self.currentAgyCard = AgyCardModel(message: "agy 없음", groups: [])
+                case .ready(let groups):
+                    self.agyHasValue = true
+                    self.currentAgyCard = AgyCardModel(message: nil, groups: groups)
+                case .failed:
+                    if !self.agyHasValue {
+                        self.currentAgyCard = AgyCardModel(message: "agy 확인 필요", groups: [])
+                    }
+                }
+                print("AGY: \(agyLogLine(self.currentAgyCard))")
+                fflush(stdout)
+                self.scheduleDashboardRefresh(reason: "loadAgyUsageInBackground")
+            }
+        }
     }
 
     func commitTeamClaudeHealth(_ candidate: TeamClaudeHealth, outageDuration: TimeInterval = 0) {
@@ -3736,7 +4086,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self.teamClaudeOutageStartedAt = teamClaude.serverReachable ? nil : outageStartedAt
                 self.commitTeamClaudeHealth(teamClaude, outageDuration: outageDuration)
                 let shouldRefreshAgain = self.teamClaudeRefreshCoordinator.finish()
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "loadTeamClaudeStatusInBackground")
                 self.updateTitle()
                 let displayed = self.currentTeamClaude ?? teamClaude
                 print("TEAMCLAUDE-REFRESH: status=\(displayed.statusLabel) usable=\(displayed.accountUsable)/\(max(displayed.accountTotal, displayed.accountConfigured)) drift=\(displayed.accountConfigDrift) pending=\(displayed.measurementPendingCount) unavailable=\(displayed.measurementUnavailableCount) quotaLimited=\(displayed.quotaLimitedCount)")
@@ -3751,7 +4101,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func loadCodexStatusInBackground() {
         guard !isRefreshingCodex else { return }
         isRefreshingCodex = true
-        DispatchQueue.global(qos: .utility).async { [weak self] in
+        // 디스크 바운드 스캔은 background QoS — 대표의 작업·다른 프로세스와 디스크를 다투지 않는다.
+        DispatchQueue.global(qos: .background).async { [weak self] in
             let startedAt = ProcessInfo.processInfo.systemUptime
             let codex = autoreleasepool { loadCodexHealth() }
             let elapsedMs = Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000)
@@ -3760,9 +4111,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 guard let self = self else { return }
                 self.currentCodex = codex
                 self.isRefreshingCodex = false
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "loadCodexStatusInBackground")
                 self.updateTitle()
-                print("CODEX-REFRESH: status=\(codex.statusLabel) calls=\(codex.todayCalls)/\(codex.weekCalls) duration=\(elapsedMs)ms")
+                let scan = codex.scan.map { " scan=files:\($0.files) changed:\($0.changed) bytes:\($0.bytesRead)" } ?? ""
+                print("CODEX-REFRESH: status=\(codex.statusLabel) calls=\(codex.todayCalls)/\(codex.weekCalls) duration=\(elapsedMs)ms\(scan)")
                 fflush(stdout)
             }
         }
@@ -3807,7 +4159,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             teamCodexPoolHealth(aligning: candidate, to: $0)
         } ?? candidate
         currentTeamCodex = aligned
-        refreshOpenDashboard()
+        scheduleDashboardRefresh(reason: "commitTeamCodexHealth")
         updateTitle()
         print("TEAMCODEX-REFRESH: status=\(aligned.statusLabel) accounts=\(aligned.accounts.count) current=\(aligned.currentAccount ?? "-")")
         fflush(stdout)
@@ -3841,7 +4193,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 fflush(stdout)
                 DispatchQueue.main.async {
                     self?.currentData = quickData
-                    self?.refreshOpenDashboard()
+                    self?.scheduleDashboardRefresh(reason: "loadUsageInBackground")
                     self?.updateTitle()
                 }
             }
@@ -3870,7 +4222,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     }
                     self.currentData = finalData // 실패 시 기존 데이터 유지 (깜빡임 방지)
                 }
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "loadUsageInBackground")
                 self.updateTitle()
             }
         }
@@ -3912,7 +4264,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     self.currentData = quickData
                     self.lastUsageQuickCompletedAt = Date()
                 }
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "loadUsageQuickInBackground")
                 self.updateTitle()
             }
         }
@@ -3959,6 +4311,102 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             : "모든 계정 측정 완료"
     }
 
+    /// 대시보드를 메뉴 항목에 올린다. 화면에 다 들어가면 그대로 항목 뷰가 되고, 넘치면 화면 높이만큼의
+    /// NSScrollView 한 겹에 문서로 넣고 현재 섹션 이름을 말하는 고정 헤더를 띄운다(섹션별 상한은 없다).
+    /// menuWillOpen의 재구성과 updateCachedMenuPresentation의 제자리 갱신이 같이 쓰는 유일한 호스팅 경로다.
+    func hostDashboard(_ dashboard: StatusMenuDashboardView, in item: NSMenuItem, previousScrollOrigin: NSPoint?) {
+        let screenVisibleHeight = statusItem?.button?.window?.screen?.visibleFrame.height
+            ?? NSScreen.main?.visibleFrame.height
+            ?? 900
+        let actionAreaHeight = CGFloat(8) * MenuActionRowView.preferredHeight + 72
+        let available = max(320, screenVisibleHeight - actionAreaHeight - 16)
+        let contentHeight = dashboard.frame.height
+
+        if contentHeight > available {
+            // 이미 같은 대시보드를 같은 높이로 호스팅 중이면 다시 꽂지 않는다(문서 뷰 재할당·스크롤 복원은 매 갱신마다 필요 없다).
+            if let existing = item.view as? NSScrollView,
+               existing === dashboardScrollView,
+               existing.documentView === dashboard,
+               existing.frame.height == available {
+                updatePinnedSectionHeader()
+                return
+            }
+            let scrollView = (item.view as? NSScrollView) ?? NSScrollView(frame: .zero)
+            if dashboardScrollView !== scrollView {
+                installPinnedSectionHeader(in: scrollView)
+            }
+            scrollView.frame = NSRect(
+                x: 0,
+                y: 0,
+                width: StatusMenuDashboardView.preferredWidth,
+                height: available
+            )
+            scrollView.documentView = dashboard
+            scrollView.hasVerticalScroller = true
+            scrollView.autohidesScrollers = true
+            scrollView.scrollerStyle = .overlay
+            scrollView.drawsBackground = false
+            scrollView.borderType = .noBorder
+            scrollView.verticalScrollElasticity = .allowed
+            if let previousScrollOrigin {
+                let maximumY = max(0, contentHeight - scrollView.contentView.bounds.height)
+                let restoredY = min(max(previousScrollOrigin.y, 0), maximumY)
+                scrollView.contentView.scroll(to: NSPoint(x: previousScrollOrigin.x, y: restoredY))
+            }
+            item.view = scrollView
+        } else {
+            if let scrollView = item.view as? NSScrollView {
+                scrollView.documentView = nil
+            }
+            removePinnedSectionHeader()
+            dashboard.frame.origin = .zero
+            item.view = dashboard
+        }
+        updatePinnedSectionHeader()
+    }
+
+    /// 스크롤 뷰 하나당 한 번: 고정 헤더를 floating subview로 얹고 clip view의 bounds 변화를 구독한다.
+    /// 이전 스크롤 뷰의 구독은 여기서 푼다 — 구독 수명은 스크롤 뷰 수명과 같다(menuDidClose는 건드리지 않는다).
+    private func installPinnedSectionHeader(in scrollView: NSScrollView) {
+        removePinnedSectionHeader()
+        let pinned = DashboardSectionHeaderView(frame: NSRect(x: 0, y: 0, width: StatusMenuDashboardView.preferredWidth, height: dashboardSectionHeaderHeight))
+        pinned.isHidden = true
+        scrollView.addFloatingSubview(pinned, for: .vertical)
+        scrollView.contentView.postsBoundsChangedNotifications = true
+        dashboardScrollObserver = NotificationCenter.default.addObserver(
+            forName: NSView.boundsDidChangeNotification,
+            object: scrollView.contentView,
+            queue: nil
+        ) { [weak self] _ in
+            self?.updatePinnedSectionHeader()
+        }
+        pinnedSectionHeader = pinned
+        dashboardScrollView = scrollView
+    }
+
+    private func removePinnedSectionHeader() {
+        if let token = dashboardScrollObserver {
+            NotificationCenter.default.removeObserver(token)
+            dashboardScrollObserver = nil
+        }
+        pinnedSectionHeader?.removeFromSuperview()
+        pinnedSectionHeader = nil
+        dashboardScrollView = nil
+    }
+
+    /// 지금 스크롤 위치에서 고정 헤더가 말할 섹션을 정한다. 요약 카드가 위에 보이는 동안(nil)은 숨긴다.
+    /// 호스팅 직후와 updateContent 뒤에도 불러 갱신이 낡은 제목을 남기지 않게 한다.
+    func updatePinnedSectionHeader() {
+        guard let pinned = pinnedSectionHeader,
+              let scrollView = dashboardScrollView,
+              let dashboard = scrollView.documentView as? StatusMenuDashboardView else {
+            pinnedSectionHeader?.isHidden = true
+            return
+        }
+        pinned.section = dashboardCurrentSection(dashboard.sections, scrollOffset: scrollView.contentView.bounds.origin.y)
+        pinned.isHidden = (pinned.section == nil)
+    }
+
     func updateCachedMenuPresentation() {
         guard let dashboard = cachedDashboardView,
               let dashboardItem = cachedDashboardItem else {
@@ -3971,6 +4419,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             codex: currentCodex,
             teamCodex: currentTeamCodex,
             usage: currentData,
+            higgsfield: currentHiggsfield,
+            grok: currentGrokCard,
+            agy: currentAgyCard,
             parallelCount: parallelCount,
             active: isActive,
             isMeasuringTeamClaude: isMeasuringTeamClaude,
@@ -3988,47 +4439,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             teamClaude: currentTeamClaude,
             codex: currentCodex,
             teamCodex: currentTeamCodex,
-            usage: currentData
+            usage: currentData,
+            higgsfield: currentHiggsfield
         )
+        dashboard.lastRefreshPhases?.mark("height")
         dashboard.frame.size.height = contentHeight
-        let screenHeight = statusItem?.button?.window?.screen?.visibleFrame.height
-            ?? NSScreen.main?.visibleFrame.height
-            ?? 900
-        let actionAreaHeight = CGFloat(8) * MenuActionRowView.preferredHeight + 72
-        let dashboardHeight = min(
-            contentHeight,
-            min(StatusMenuDashboardView.maxMenuDashboardHeight, max(320, screenHeight - actionAreaHeight))
-        )
-
-        if contentHeight > dashboardHeight {
-            let scrollView = (dashboardItem.view as? NSScrollView)
-                ?? NSScrollView(frame: .zero)
-            scrollView.frame = NSRect(
-                x: 0,
-                y: 0,
-                width: StatusMenuDashboardView.preferredWidth,
-                height: dashboardHeight
-            )
-            scrollView.documentView = dashboard
-            scrollView.hasVerticalScroller = true
-            scrollView.autohidesScrollers = true
-            scrollView.scrollerStyle = .overlay
-            scrollView.drawsBackground = false
-            scrollView.borderType = .noBorder
-            scrollView.verticalScrollElasticity = .none
-            if let previousScrollOrigin {
-                let maximumY = max(0, contentHeight - scrollView.contentView.bounds.height)
-                let restoredY = min(max(previousScrollOrigin.y, 0), maximumY)
-                scrollView.contentView.scroll(to: NSPoint(x: previousScrollOrigin.x, y: restoredY))
-            }
-            dashboardItem.view = scrollView
-        } else {
-            if let scrollView = dashboardItem.view as? NSScrollView {
-                scrollView.documentView = nil
-            }
-            dashboard.frame.origin = .zero
-            dashboardItem.view = dashboard
-        }
+        dashboard.lastRefreshPhases?.mark("frame")
+        hostDashboard(dashboard, in: dashboardItem, previousScrollOrigin: previousScrollOrigin)
+        dashboard.lastRefreshPhases?.mark("host")
 
         refreshMenuView?.detail = refreshMenuDetailText()
         measureMenuView?.detail = measureMenuDetailText()
@@ -4046,8 +4464,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let cachedDashboardView,
            cachedDashboardItem != nil,
            !menu.items.isEmpty {
+            flushPendingDashboardRefresh(reason: "menuWillOpen")
             openDashboardView = cachedDashboardView
-            updateCachedMenuPresentation()
+            refreshMenuView?.detail = refreshMenuDetailText()
+            measureMenuView?.detail = measureMenuDetailText()
             loadFastStatusInBackground()
             return
         }
@@ -4055,19 +4475,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // 메뉴 열릴 때마다 최신 데이터로 항목 재구성
         menu.removeAllItems()
 
-        let dashboardContentHeight = StatusMenuDashboardView.preferredHeight(teamClaude: currentTeamClaude, codex: currentCodex, teamCodex: currentTeamCodex, usage: currentData)
-        let screenHeight = statusItem?.button?.window?.screen?.visibleFrame.height
-            ?? NSScreen.main?.visibleFrame.height
-            ?? 900
-        let actionAreaHeight = CGFloat(8) * MenuActionRowView.preferredHeight + 72
-        let screenLimitedHeight = max(320, screenHeight - actionAreaHeight)
-        let dashboardHeight = min(dashboardContentHeight, min(StatusMenuDashboardView.maxMenuDashboardHeight, screenLimitedHeight))
+        let dashboardContentHeight = StatusMenuDashboardView.preferredHeight(teamClaude: currentTeamClaude, codex: currentCodex, teamCodex: currentTeamCodex, usage: currentData, higgsfield: currentHiggsfield)
         let dashboard = StatusMenuDashboardView(frame: NSRect(x: 0, y: 0, width: StatusMenuDashboardView.preferredWidth, height: dashboardContentHeight))
         dashboard.configure(
             teamClaude: currentTeamClaude,
             codex: currentCodex,
             teamCodex: currentTeamCodex,
             usage: currentData,
+            higgsfield: currentHiggsfield,
+            grok: currentGrokCard,
+            agy: currentAgyCard,
             parallelCount: parallelCount,
             active: isActive,
             isMeasuringTeamClaude: isMeasuringTeamClaude,
@@ -4083,20 +4500,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         openDashboardView = dashboard
         cachedDashboardView = dashboard
         let dashboardItem = NSMenuItem()
-        if dashboardContentHeight > dashboardHeight {
-            let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: StatusMenuDashboardView.preferredWidth, height: dashboardHeight))
-            scrollView.documentView = dashboard
-            scrollView.hasVerticalScroller = true
-            scrollView.autohidesScrollers = true
-            scrollView.scrollerStyle = .overlay
-            scrollView.drawsBackground = false
-            scrollView.borderType = .noBorder
-            scrollView.verticalScrollElasticity = .none
-            scrollView.contentView.scroll(to: .zero)
-            dashboardItem.view = scrollView
-        } else {
-            dashboardItem.view = dashboard
-        }
+        hostDashboard(dashboard, in: dashboardItem, previousScrollOrigin: nil)
         menu.addItem(dashboardItem)
         cachedDashboardItem = dashboardItem
 
@@ -4195,6 +4599,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuDidClose(_ menu: NSMenu) {
         openDashboardView = nil
+        // 아래에서 동기로 갱신하므로 열린 동안 잡혀 있던 0.3초 항목은 버린다(닫힌 뒤 한 번 더 도는 낭비 제거).
+        pendingDashboardRefresh?.cancel()
+        pendingDashboardRefresh = nil
+        updateCachedMenuPresentation()
     }
 
     // MARK: - 액션
@@ -4225,7 +4633,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let proxyAuthorizationValue = tcString(tcDict(config?["proxy"])?["apiKey"])
         isMeasuringTeamClaude = true
         teamClaudeMeasureDetail = "OAuth 갱신 중"
-        refreshOpenDashboard()
+        scheduleDashboardRefresh(reason: "measureTeamClaudeAction", immediate: true)
         updateTitle()
 
         DispatchQueue.global(qos: .utility).async { [weak self] in
@@ -4234,7 +4642,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 DispatchQueue.main.async {
                     self?.isMeasuringTeamClaude = false
                     self?.teamClaudeMeasureDetail = "OAuth 갱신 실패"
-                    self?.refreshOpenDashboard()
+                    self?.scheduleDashboardRefresh(reason: "measureTeamClaudeAction", immediate: true)
                     self?.updateTitle()
                 }
                 return
@@ -4242,7 +4650,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
             DispatchQueue.main.async {
                 self?.teamClaudeMeasureDetail = "서버 동기화 중"
-                self?.refreshOpenDashboard()
+                self?.scheduleDashboardRefresh(reason: "measureTeamClaudeAction", immediate: true)
                 self?.updateTitle()
             }
             _ = kickstartTeamClaudeServer()
@@ -4258,7 +4666,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 DispatchQueue.main.async {
                     self?.isMeasuringTeamClaude = false
                     self?.teamClaudeMeasureDetail = "서버 연결 실패"
-                    self?.refreshOpenDashboard()
+                    self?.scheduleDashboardRefresh(reason: "measureTeamClaudeAction", immediate: true)
                     self?.updateTitle()
                 }
                 return
@@ -4266,7 +4674,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
             DispatchQueue.main.async {
                 self?.teamClaudeMeasureDetail = "계정 사용량 측정 중"
-                self?.refreshOpenDashboard()
+                self?.scheduleDashboardRefresh(reason: "measureTeamClaudeAction", immediate: true)
                 self?.updateTitle()
             }
             let exitCode = runTeamClaudeBareClaudeProbe(port: port, apiKey: proxyAuthorizationValue, model: model)
@@ -4297,7 +4705,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 } else {
                     self.teamClaudeMeasureDetail = "\(teamClaude.accounts.count)개 계정 측정 완료"
                 }
-                self.refreshOpenDashboard()
+                self.scheduleDashboardRefresh(reason: "measureTeamClaudeAction", immediate: true)
                 self.updateTitle()
                 print("TEAMCLAUDE-MEASURE: pending=\(pending) unavailable=\(unavailable) quotaLimited=\(quotaLimited) result=\(self.teamClaudeMeasureDetail ?? "-")")
                 fflush(stdout)
@@ -4385,7 +4793,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 aligning: currentTeamCodex,
                 to: snapshot
             )
-            refreshOpenDashboard()
+            scheduleDashboardRefresh(reason: "observeTeamCodexConfigChanges")
             updateTitle()
         }
         print("TEAMCODEX-WATCH: 계정 구성 변경 감지 generation=\(generation)")
@@ -4560,6 +4968,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
 // MARK: - 진입점
 
+// 크래시 기록기는 어떤 CLI 분기보다 먼저, 한 번만 설치한다 (모든 오프스크린 렌더 경로가 브레드크럼을 남긴다).
+installCrashRecorder()
+
 if let summaryIndex = CommandLine.arguments.firstIndex(of: "--availability-summary-snapshot") {
     let outputPath = CommandLine.arguments.indices.contains(summaryIndex + 1)
         ? CommandLine.arguments[summaryIndex + 1]
@@ -4732,11 +5143,13 @@ if CommandLine.arguments.contains("--teamcodex-dashboard-selftest") {
     var creditPool = pool(accounts: [creditAccount], currentAccount: nil, currentAccountUuid: nil)
     creditPool.resetCreditsEnabled = true
     creditPool.resetCreditsPolicy = "account"
+    creditPool.runtimeSummary = "빌드 abcdef012345 · 재시작 1회"
     let creditAligned = teamCodexPoolHealth(aligning: creditPool, to: snapshot(2, signature: 100))
     precondition(creditAligned.accounts[0].codexResetCredits == 3)
     precondition(creditAligned.accounts[0].codexResetCreditsAt == creditAccount.codexResetCreditsAt)
     precondition(creditAligned.accounts[1].codexResetCredits == nil)
     precondition(creditAligned.resetCreditsPolicy == "account" && creditAligned.resetCreditsEnabled == true)
+    precondition(creditAligned.runtimeSummary == "빌드 abcdef012345 · 재시작 1회")
 
     _ = NSApplication.shared
     func verifySubscriptionLayout(_ view: NSView, count: Int) {
@@ -5126,6 +5539,48 @@ if let recoveryLayoutIndex = CommandLine.arguments.firstIndex(of: "--teamcodex-r
     exit(0)
 }
 
+if let snapshotIndex = CommandLine.arguments.firstIndex(of: "--teamclaude-table-snapshot") {
+    guard CommandLine.arguments.indices.contains(snapshotIndex + 1) else {
+        fputs("TEAMCLAUDE-TABLE-SNAPSHOT: usage --teamclaude-table-snapshot <status.json> [out.png]\n", stderr)
+        exit(2)
+    }
+    let fixturePath = CommandLine.arguments[snapshotIndex + 1]
+    let outputPath = CommandLine.arguments.indices.contains(snapshotIndex + 2)
+        ? CommandLine.arguments[snapshotIndex + 2]
+        : "/tmp/cc-menubar-teamclaude-table.png"
+    guard let fixtureData = FileManager.default.contents(atPath: fixturePath),
+          let status = (try? JSONSerialization.jsonObject(with: fixtureData)) as? [String: Any] else {
+        fputs("TEAMCLAUDE-TABLE-SNAPSHOT: fixture 읽기 실패 \(fixturePath)\n", stderr)
+        exit(1)
+    }
+    _ = NSApplication.shared
+    let health = parseTeamClaudeHealth(config: nil, server: nil, status: status, port: 3456)
+    let view = TeamClaudeTableView(frame: NSRect(
+        x: 0, y: 0,
+        width: StatusMenuDashboardView.preferredWidth,
+        height: StatusMenuDashboardView.teamContentHeight(health)
+    ))
+    view.health = health
+    view.layoutSubtreeIfNeeded()
+    guard let representation = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
+        fputs("TEAMCLAUDE-TABLE-SNAPSHOT: bitmap 생성 실패\n", stderr)
+        exit(1)
+    }
+    view.cacheDisplay(in: view.bounds, to: representation)
+    guard let png = representation.representation(using: .png, properties: [:]) else {
+        fputs("TEAMCLAUDE-TABLE-SNAPSHOT: PNG 변환 실패\n", stderr)
+        exit(1)
+    }
+    do {
+        try png.write(to: URL(fileURLWithPath: outputPath), options: .atomic)
+        print("TEAMCLAUDE-TABLE-SNAPSHOT: \(outputPath) accounts=\(health.accountTotal) usable=\(health.accountUsable)")
+        exit(0)
+    } catch {
+        fputs("TEAMCLAUDE-TABLE-SNAPSHOT: \(error)\n", stderr)
+        exit(1)
+    }
+}
+
 if let snapshotIndex = CommandLine.arguments.firstIndex(of: "--teamcodex-snapshot") {
     let outputPath = CommandLine.arguments.indices.contains(snapshotIndex + 1)
         ? CommandLine.arguments[snapshotIndex + 1]
@@ -5204,4 +5659,5 @@ if CommandLine.arguments.contains("--selftest") {
 let delegate = AppDelegate()
 let app = NSApplication.shared
 app.delegate = delegate
+TeamClaudePalette.prewarm()
 app.run()

@@ -156,6 +156,22 @@ export const api = {
     }
   },
 
+  // Codex 계정 되돌리기. 명령 문자열이 아니라 구조화 입력만 보내고 argv는 Rust가 조립한다.
+  // 앱은 프록시를 대신 재시작하지 않는다 — 터미널에 명령을 띄우는 것까지가 전부다.
+  runTeamCodexAccountAction: async (
+    input: { action: 'enable' | 'reauth'; name: string; accountUuid?: string | null },
+  ): Promise<{ ok: boolean; message?: string; needsRestart?: boolean; error?: string }> => {
+    try {
+      const result = await invoke<{ ok: boolean; action: string; needsRestart: boolean; message: string }>(
+        'run_teamcodex_account_action',
+        { action: input.action, name: input.name, accountUuid: input.accountUuid ?? null },
+      )
+      return { ok: result.ok, message: result.message, needsRestart: result.needsRestart }
+    } catch (error) {
+      return { ok: false, error: String(error) }
+    }
+  },
+
   // 힉스필드 잔액·플랜. 브라우저 dev(invoke 미존재)나 CLI 실패는 ok:false로 내려 화면이 사유를 렌더한다.
   fetchHiggsfieldAccount: async (): Promise<HiggsfieldAccount> => {
     try {

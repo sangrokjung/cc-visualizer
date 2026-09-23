@@ -49,6 +49,13 @@ struct CodexCallStats {
     let profiles: [CodexProfileHealth]
 }
 
+/// 한 번의 세션 코퍼스 스캔이 실제로 만진 양. 진단 로그(`CODEX-REFRESH … scan=`)용.
+struct CodexScanReport: Equatable {
+    let files: Int
+    let changed: Int
+    let bytesRead: Int64
+}
+
 struct CodexHealth {
     let checkedAt: Date
     let overallStatus: String
@@ -73,14 +80,11 @@ struct CodexHealth {
     let errorEvents: Int
     let lastCallAt: Date?
     let planType: String?
-    let primaryUsedPercent: Double?
-    let secondaryUsedPercent: Double?
-    let primaryResetAt: Date?
-    let secondaryResetAt: Date?
     let scannedLogFiles: Int
     let scannedLogBytes: Int64
     let profiles: [CodexProfileHealth]
     let hints: [String]
+    var scan: CodexScanReport? = nil
 
     var isWarning: Bool { overallStatus == "warning" }
     var isError: Bool { overallStatus == "error" }
@@ -88,17 +92,9 @@ struct CodexHealth {
     var titleSlot: String {
         if isError { return "Codex 재인증" }
         if !authPresent || (!hasApiKey && !hasTokens) { return "Codex 로그인" }
-        if quotaEvents > 0 { return "Codex 쿼터 \(quotaEvents)" }
         if errorEvents > 0 { return "Codex 주의 \(errorEvents)" }
-        if let limits = formatCodexLimitPair(primaryUsedPercent, secondaryUsedPercent) {
-            if max(primaryUsedPercent ?? 0, secondaryUsedPercent ?? 0) >= 90 {
-                return "Codex 경고 \(limits)"
-            }
-            return "Codex \(limits)"
-        }
-        if todayTokens > 0 { return "Codex \(formatCodexTokens(todayTokens))/d" }
-        if isWarning { return "Codex 주의" }
-        return "Codex 정상 \(todayCalls)/d"
+        if isWarning && todayTokens == 0 { return "Codex 주의" }
+        return "Codex \(formatCodexTokens(todayTokens))/d"
     }
 
     var statusLabel: String {

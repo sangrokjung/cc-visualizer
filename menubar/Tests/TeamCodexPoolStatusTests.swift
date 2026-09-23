@@ -178,6 +178,39 @@ struct TeamCodexPoolStatusTests {
         precondition(health.currentAccount == "codex-main")
         precondition(health.currentAccountUuid == "uuid-main")
         precondition(health.accounts.count == 3)
+        precondition(health.currentQuotaAccount?.name == "codex-main")
+        precondition(health.currentQuotaAccount?.sessionUsagePercent(at: checkedAt) == 42)
+        precondition(health.currentQuotaAccount?.weeklyUsagePercent(at: checkedAt) == 67)
+        precondition(health.accounts[0].sessionUsagePercent(at: Date(timeIntervalSince1970: Double(sessionResetMs) / 1_000)) == nil)
+
+        let missingWindowFixture: [String: Any] = [
+            "currentAccount": "weekly-only",
+            "accounts": [[
+                "name": "weekly-only", "status": "active",
+                "quota": ["unified5h": 0, "unified7d": 0, "unified7dReset": weeklyResetMs],
+            ]],
+        ]
+        let weeklyOnly = try teamCodexPoolHealth(
+            from: JSONSerialization.data(withJSONObject: missingWindowFixture),
+            port: 3457, serverPid: 1234, checkedAt: checkedAt
+        )
+        precondition(weeklyOnly.currentQuotaAccount?.sessionUsagePercent(at: checkedAt) == nil)
+        precondition(weeklyOnly.currentQuotaAccount?.weeklyUsagePercent(at: checkedAt) == 0)
+        var noCurrentFixture = missingWindowFixture
+        noCurrentFixture["currentAccount"] = "not-in-pool"
+        let noCurrent = try teamCodexPoolHealth(
+            from: JSONSerialization.data(withJSONObject: noCurrentFixture),
+            port: 3457, serverPid: 1234, checkedAt: checkedAt
+        )
+        precondition(noCurrent.currentQuotaAccount == nil)
+        let resetWithoutUsage = TeamCodexPoolAccount(
+            name: "partial", accountUuid: nil, isCurrent: true, enabled: true,
+            status: "active", errorReason: nil, usableFromProxy: true,
+            sessionPercent: nil, sessionResetAt: nil, weeklyPercent: nil,
+            weeklyResetAt: checkedAt.addingTimeInterval(3_600),
+            inflight: 0, maxConcurrent: 3, totalRequests: 1, totalTokens: 1
+        )
+        precondition(resetWithoutUsage.weeklyUsagePercent(at: checkedAt) == nil)
         precondition(health.activeCount == 2)
         precondition(health.usableCount == 1)
         precondition(health.accounts[0].isCurrent)
@@ -247,6 +280,7 @@ struct TeamCodexPoolStatusTests {
             port: 3457,
             serverPid: nil
         )
+        precondition(offline.currentQuotaAccount == nil)
         precondition(!offline.serverReachable)
         precondition(offline.statusLabel == "오프라인")
         precondition(offline.accounts.count == 2)
@@ -849,6 +883,6 @@ struct TeamCodexPoolStatusTests {
         precondition(typedHealth.accounts[0].providerName == "codex")
         precondition(teamCodexAccountRecovery(typedHealth.accounts[0], now: recoveryNow)?.kind == .enable)
 
-        print("TeamCodexPoolStatusTests: 168 passed, 0 failed")
+        print("TeamCodexPoolStatusTests: all assertions passed")
     }
 }
