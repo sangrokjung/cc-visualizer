@@ -5,6 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "menubar" / "Sources" / "main.swift"
+PALETTE_SOURCE = ROOT / "menubar" / "Sources" / "TeamClaudePalette.swift"
 
 
 class CrashRecorderWiringTests(unittest.TestCase):
@@ -34,7 +35,11 @@ class CrashRecorderWiringTests(unittest.TestCase):
         self.assertGreaterEqual(len(crumbs), 4, crumbs)
 
     def test_team_claude_table_uses_a_static_palette(self):
-        self.assertIn("enum TeamClaudePalette", self.source)
+        # 팔레트는 자기 파일(TeamClaudePalette.swift)에 산다 — 러너의 라이브러리 소스 집합에 들어가야 하므로 main.swift 밖이다.
+        palette = PALETTE_SOURCE.read_text()
+        self.assertIn("enum TeamClaudePalette", palette)
+        self.assertIn("static func prewarm()", palette)
+        self.assertNotIn("enum TeamClaudePalette", self.source)
         match = re.search(
             r"final class TeamClaudeTableView: NSView \{(?P<body>.*?)\nfinal class ServiceAvailabilitySummaryView",
             self.source,
