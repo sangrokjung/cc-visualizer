@@ -62,7 +62,7 @@ class MenuScrollRegressionTests(unittest.TestCase):
     def test_open_menu_refresh_does_not_replace_document_view(self):
         source = SOURCE.read_text()
         match = re.search(
-            r"    func refreshOpenDashboard\((?:reason: String = \"direct\")?\) \{(?P<body>.*?)\n    \}\n\n    func loadInBackground",
+            r"    func refreshOpenDashboard\((?:reason: String = \"direct\")?\) \{(?P<body>.*?)\n    \}\n\n    (?:func|private|@objc|var|let) ",
             source,
             re.DOTALL,
         )

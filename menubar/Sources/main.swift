@@ -2498,7 +2498,11 @@ final class StatusMenuDashboardView: NSView {
             || usageHeight != renderedUsageHeight
             || HiggsfieldCreditsView.preferredHeight(for: higgsfield) != renderedHiggsfieldHeight
         if structureChanged {
+            // 가장 비싼 경로다. 여기서도 단계 시간을 남긴다(예전엔 phases=- 로 비어 보였다).
+            let structurePhases = DashboardRefreshPhases()
+            lastRefreshPhases = structurePhases
             frame.size.height = Self.preferredHeight(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage, higgsfield: higgsfield)
+            structurePhases.mark("height")
             configure(
                 teamClaude: teamClaude,
                 codex: codex,
@@ -2515,6 +2519,7 @@ final class StatusMenuDashboardView: NSView {
                 onReauthenticateTeamClaude: onReauthenticateTeamClaude,
                 onRecoverTeamCodex: onRecoverTeamCodex
             )
+            structurePhases.mark("configure")
             return
         }
 
@@ -3809,8 +3814,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var pendingDashboardRefresh: DispatchWorkItem?
 
-    /// 로더 완료마다 곧장 다시 그리지 않고 300ms 안의 요청을 한 번으로 합친다(10초마다 로더 3개가 각각 열린 대시보드를 재배치하던 비용 제거).
-    /// 측정·재인증 액션 경로는 `immediate: true`로 바로 반영한다(로더 완료는 +300ms 합류).
+    /// 로더 완료마다 곧장 다시 그리지 않고 합쳐서 한 번만 그린다 — 열린 메뉴는 0.3초, 닫힌 메뉴는 `closedMenuRefreshWindow`(30초).
+    /// 대기 중인 항목이 있으면 그 마감을 유지하는 스로틀이고, 메뉴를 여는 순간 `flushPendingDashboardRefresh`가 그 자리에서 반영한다.
+    /// `immediate: true`는 측정 액션(`measureTeamClaudeAction`) 경로만 쓴다.
     func scheduleDashboardRefresh(reason: String, immediate: Bool = false) {
         if immediate {
             pendingDashboardRefresh?.cancel()
@@ -3882,11 +3888,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         dashboard.needsDisplay = true
         updatePinnedSectionHeader()
-    }
-
-    func loadInBackground() {
-        loadFastStatusInBackground()
-        loadUsageInBackground()
     }
 
     /// 10초 틱: 프록시 상태 2종(HTTP 한 번씩)만. Codex 세션 코퍼스 스캔은 디스크 작업이라 `codexScanTimer`(60초)가 따로 돈다.
@@ -4598,6 +4599,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuDidClose(_ menu: NSMenu) {
         openDashboardView = nil
+        // 아래에서 동기로 갱신하므로 열린 동안 잡혀 있던 0.3초 항목은 버린다(닫힌 뒤 한 번 더 도는 낭비 제거).
+        pendingDashboardRefresh?.cancel()
+        pendingDashboardRefresh = nil
         updateCachedMenuPresentation()
     }
 

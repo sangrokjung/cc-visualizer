@@ -226,8 +226,13 @@ private func loadCodexPersistentFileCacheIfNeeded(timeZone: String) {
     let url = codexPersistentFileCacheURL()
     guard let data = try? Data(contentsOf: url),
           let cache = try? JSONDecoder().decode(CodexPersistentFileCache.self, from: data),
-          cache.version == codexPersistentFileCacheVersion,
-          cache.timeZone == timeZone else {
+          cache.version == codexPersistentFileCacheVersion else {
+        return
+    }
+    guard cache.timeZone == timeZone else {
+        // 버킷 키가 현지 날짜라 표준시가 바뀌면 캐시를 버린다. 다음 스캔의 전량 재파싱에 이유를 붙여 둔다.
+        print("CODEX-CACHE-TZ: 저장 시각대와 달라 캐시를 버린다")
+        fflush(stdout)
         return
     }
 
@@ -266,6 +271,11 @@ private func persistCodexSessionFileStatsCache(timeZone: String) {
         let data = try JSONEncoder().encode(cache)
         try data.write(to: url, options: .atomic)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        // 옛 판본은 아무도 읽지 않는다. 우리 캐시 폴더의 우리 파일만 지운다.
+        for stale in 1..<codexPersistentFileCacheVersion {
+            let old = directory.appendingPathComponent("cc-menubar-session-stats-v\(stale).json")
+            try? FileManager.default.removeItem(at: old)
+        }
     } catch {
         print("CODEX-CACHE-WRITE: \(error.localizedDescription)")
         fflush(stdout)
