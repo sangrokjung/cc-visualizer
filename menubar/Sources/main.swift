@@ -3687,7 +3687,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let slots = self.displaySlots()
             let info = slots.isEmpty ? "Claude" : slots[self.rollIndex % slots.count]
             let activeMark = self.isActive ? " ⚡" : ""
-            let text = self.currentGrokSlot.map { "\($0) · \(info)\(activeMark)" } ?? "\(info)\(activeMark)"
+            // CLI 할당량(Grok·agy)은 회전 슬롯이 아니라 항상 보이는 앞자리에 둔다.
+            let cliSlots = [self.currentGrokSlot, agyTitleSlot(self.currentAgyCard)].compactMap { $0 }
+            let cliPrefix = cliSlots.isEmpty ? "" : cliSlots.joined(separator: " · ") + " · "
+            let text = "\(cliPrefix)\(info)\(activeMark)"
 
             // 좌측: 펄스 도트(활성=초록 숨쉬기, idle=회색 링) + 스파크라인 미니 차트
             // idle이거나 같은 프레임이면 이미지를 다시 그리지 않는다. 1초 tick의 lockFocus가 클릭을 밀지 않게.
@@ -3734,17 +3737,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             button.image = self.cachedComposedImage
             button.imagePosition = .imageLeading
             button.title = " \(text)"
-            let grokTip = self.currentGrokSlot.map { " · \($0)" } ?? ""
+            let cliTip = cliSlots.isEmpty ? "" : " · " + cliSlots.joined(separator: " · ")
             if let health = self.currentTeamClaude {
                 let fable = health.fableKnown > 0 ? "Fable \(health.fableOver)/\(health.fableKnown)" : "Fable -"
                 let measurement = " · 측정 필요 \(health.measurementPendingCount) · 상태 확인 \(health.measurementUnavailableCount) · 한도 리셋 \(health.quotaLimitedCount)"
                 let integration = health.accountConfigDrift == 0 ? " · 계정 연동 정상" : " · 계정 연동 불일치 \(health.accountConfigDrift)"
                 let codex = self.currentCodex.map { " · codex \($0.statusLabel) · calls \($0.todayCalls)/\($0.weekCalls)" } ?? ""
-                button.toolTip = "Claude Code 사용량 · teamclaude \(health.statusLabel) · \(fable) · active \(health.accountActive)/\(max(health.accountTotal, health.accountConfigured))\(integration)\(measurement)\(codex)\(grokTip)"
+                button.toolTip = "Claude Code 사용량 · teamclaude \(health.statusLabel) · \(fable) · active \(health.accountActive)/\(max(health.accountTotal, health.accountConfigured))\(integration)\(measurement)\(codex)\(cliTip)"
             } else if let codex = self.currentCodex {
-                button.toolTip = "Claude Code 사용량 · codex \(codex.statusLabel) · calls \(codex.todayCalls)/\(codex.weekCalls)\(grokTip)"
-            } else if let grok = self.currentGrokSlot {
-                button.toolTip = "Claude Code 사용량 · \(grok)"
+                button.toolTip = "Claude Code 사용량 · codex \(codex.statusLabel) · calls \(codex.todayCalls)/\(codex.weekCalls)\(cliTip)"
+            } else if !cliSlots.isEmpty {
+                button.toolTip = "Claude Code 사용량\(cliTip)"
             }
 
         }

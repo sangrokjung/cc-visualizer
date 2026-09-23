@@ -4,6 +4,9 @@ import Foundation
 // 이 명령은 모델 턴을 시작하지 않는다. 응답 원문과 계정 식별자는 로그에 남기지 않는다.
 
 let agyUsageFetchInterval: TimeInterval = 60
+// 호출은 보통 5~7초. 호스트가 포화되면 더 걸리므로 폴링 주기보다 짧게, 넉넉히 잡는다.
+let agyFetchTimeout: TimeInterval = 40
+let agyKillGrace: TimeInterval = 3
 
 struct AgyQuotaBucket: Equatable {
     var remaining: Double
@@ -149,8 +152,22 @@ func agyQuotaGroups(from data: Data) -> [AgyQuotaGroup]? {
     return groups.isEmpty ? nil : groups
 }
 
+/// agy는 실행 디렉터리를 워크스페이스로 삼는다. 데몬의 cwd는 launchd 기본값인 루트라서 그대로 두면
+/// 루트를 워크스페이스로 열고 응답 없이 멈춘다(2026-09-23 실측: 자식이 6시간 20분 생존, SIGTERM 무시,
+/// 완료 콜백이 오지 않아 폴링이 통째로 정지). 전용 빈 폴더에서만 실행한다 — agy 레인 규칙도 루트·홈 워크스페이스를 금지한다.
+func agyWorkspaceURL() -> URL? {
+    let url = URL(fileURLWithPath: NSHomeDirectory())
+        .appendingPathComponent(".claude/cache/cc-menubar-agy", isDirectory: true)
+    do {
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    } catch {
+        return nil
+    }
+    return url
+}
+
 func fetchAgyUsage(completion: @escaping (AgyFetchOutcome) -> Void) {
-    guard let executable = agyExecutableURL() else {
+    guard let executable = agyExecutableURL(), let workspace = agyWorkspaceURL() else {
         completion(.missing)
         return
     }
@@ -158,33 +175,90 @@ func fetchAgyUsage(completion: @escaping (AgyFetchOutcome) -> Void) {
         let process = Process()
         process.executableURL = executable
         process.arguments = ["-p", "/usage", "--output-format", "json"]
+        process.currentDirectoryURL = workspace
         let output = Pipe()
         let errorPipe = Pipe()
         process.standardOutput = output
         process.standardError = errorPipe
+        process.standardInput = FileHandle.nullDevice
+
+        // 완료는 정확히 한 번 — 타임아웃·정상종료·실행실패가 경쟁해도 호출부의 진행 플래그가 영구히 박히지 않는다.
+        let completionLock = NSLock()
+        var completed = false
+        func finish(_ outcome: AgyFetchOutcome) {
+            completionLock.lock()
+            let isFirst = !completed
+            completed = true
+            completionLock.unlock()
+            guard isFirst else { return }
+            completion(outcome)
+        }
+
+        // 자식이 끝나기 전에 읽는다(파이프가 차서 서로 기다리는 교착 방지).
+        let dataLock = NSLock()
+        var collected = Data()
+        output.fileHandleForReading.readabilityHandler = { handle in
+            let chunk = handle.availableData
+            guard !chunk.isEmpty else { return }
+            dataLock.lock()
+            collected.append(chunk)
+            dataLock.unlock()
+        }
         errorPipe.fileHandleForReading.readabilityHandler = { handle in
             _ = handle.availableData
         }
+        func stopReading() {
+            output.fileHandleForReading.readabilityHandler = nil
+            errorPipe.fileHandleForReading.readabilityHandler = nil
+        }
+
+        process.terminationHandler = { finishedProcess in
+            let tail = (try? output.fileHandleForReading.readToEnd()) ?? nil
+            stopReading()
+            dataLock.lock()
+            if let tail { collected.append(tail) }
+            let data = collected
+            dataLock.unlock()
+            guard finishedProcess.terminationStatus == 0,
+                  let groups = agyQuotaGroups(from: data) else {
+                finish(.failed)
+                return
+            }
+            finish(.ready(groups))
+        }
+
         do {
             try process.run()
         } catch {
-            errorPipe.fileHandleForReading.readabilityHandler = nil
-            completion(.missing)
+            stopReading()
+            finish(.missing)
             return
         }
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 15) {
-            if process.isRunning {
-                process.terminate()
+
+        // 워치독: SIGTERM으로 죽지 않는 상태가 실재하므로 유예 뒤 SIGKILL까지 간다.
+        let pid = process.processIdentifier
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + agyFetchTimeout) {
+            guard process.isRunning else { return }
+            kill(pid, SIGTERM)
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + agyKillGrace) {
+                if process.isRunning { kill(pid, SIGKILL) }
             }
         }
-        process.waitUntilExit()
-        errorPipe.fileHandleForReading.readabilityHandler = nil
-        let data = output.fileHandleForReading.readDataToEndOfFile()
-        guard process.terminationStatus == 0,
-              let groups = agyQuotaGroups(from: data) else {
-            completion(.failed)
-            return
+        // 마지막 안전망: 무슨 일이 있어도 이 시각까지는 완료가 돌아간다.
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + agyFetchTimeout + agyKillGrace + 2) {
+            stopReading()
+            finish(.failed)
         }
-        completion(.ready(groups))
     }
+}
+
+/// 메뉴바 제목용 짧은 표기 — 그룹 순서대로 주간 잔량만 모은다("Agy 99/31%"). 데이터가 없으면 nil이라 아무것도 그리지 않는다.
+func agyTitleSlot(_ card: AgyCardModel) -> String? {
+    let percents: [Int] = card.groups.compactMap { group in
+        guard let weekly = group.weekly,
+              let fraction = agyFiniteFraction(weekly.remaining) else { return nil }
+        return Int((fraction * 100).rounded())
+    }
+    guard !percents.isEmpty else { return nil }
+    return "Agy " + percents.map { String($0) }.joined(separator: "/") + "%"
 }
