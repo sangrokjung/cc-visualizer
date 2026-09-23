@@ -44,7 +44,7 @@ launchctl load ~/Library/LaunchAgents/com.qjc.cc-menubar.plist # 로그인 자�
 - 모델 추적: `parseModelBreakdown`(이번 달 modelBreakdowns) + `providerOf`(claude/gpt·codex/gemini 분류) → Claude/Codex/Gemini 제공자별 + 모델별 비용. codex(gpt-*) 가시 추적. `shortenModelName`은 8자리 날짜 접미사 제거+공백 버전(TS `modelLabel` 정합), `formatCost` 천단위 구분
 - 환율: open.er-api.com 라이브 USD→KRW + UserDefaults 12h 캐시 + 폴백 1450 (`fetchUsdKrwRate`/`formatKRW`)
 - AI 계정: TeamClaude + TeamCodex(`127.0.0.1:3457`) 다계정 상태, 5시간/7일 quota와 reset 남은 시간, OAuth 계정 추가 액션
-- Codex 캐시: `~/.codex/cache/cc-menubar-session-stats-v1.json` 증분 파싱 캐시(0600) + 메뉴 prewarm
+- Codex 캐시: `~/.codex/cache/cc-menubar-session-stats-v4.json` 증분 파싱 캐시(0600, 날짜별 버킷이라 자정에 재파싱 없음) + 메뉴 prewarm
 - 병렬 감지: Claude/Codex/Hermes 관련 프로세스 수
 
 ## 직원 배포 (docs/INSTALL-for-employees.md)

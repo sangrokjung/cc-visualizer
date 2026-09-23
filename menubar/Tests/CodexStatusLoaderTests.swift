@@ -25,7 +25,7 @@ struct CodexStatusLoaderTests {
             exit(2)
         }
         let childMode = CommandLine.arguments.count == 3 && ["--legacy-cache-check", "--cumulative-cache-check", "--last-only-cache-check"].contains(CommandLine.arguments[1])
-        let protectedPaths = ["last-only-fixture", "last-only-fixture/fixture.jsonl", "long-line-fixture", "long-line-fixture/fixture.jsonl", "cumulative-fixture", "cumulative-fixture/fixture.jsonl", "component-fixture", "component-fixture/fixture.jsonl", "session-fixture", "session-fixture/fixture.jsonl", ".codex", ".codex/auth.json", ".codex/config.toml", ".codex/cache", ".codex/cache/cc-menubar-session-stats-v3.json", "calls.jsonl"]
+        let protectedPaths = ["last-only-fixture", "last-only-fixture/fixture.jsonl", "long-line-fixture", "long-line-fixture/fixture.jsonl", "cumulative-fixture", "cumulative-fixture/fixture.jsonl", "component-fixture", "component-fixture/fixture.jsonl", "session-fixture", "session-fixture/fixture.jsonl", ".codex", ".codex/auth.json", ".codex/config.toml", ".codex/cache", ".codex/cache/cc-menubar-session-stats-v4.json", "calls.jsonl"]
         guard protectedPaths.allSatisfy({ relative in
             let url = isolatedHome.appendingPathComponent(relative)
             return url.resolvingSymlinksInPath().path == url.path
@@ -159,7 +159,7 @@ struct CodexStatusLoaderTests {
         precondition(unknown.secondaryUsedPercent == 7, "Unknown/unlabeled limits must not be treated as general Codex")
         precondition(unknown.todayTokens == 1_400)
         precondition(unknown.todayCalls == 4)
-        let cacheURL = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".codex/cache/cc-menubar-session-stats-v3.json")
+        let cacheURL = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".codex/cache/cc-menubar-session-stats-v4.json")
         var poisoned = try JSONSerialization.jsonObject(with: Data(contentsOf: cacheURL)) as! [String: Any]
         var entries = poisoned["entries"] as! [String: [String: Any]]
         for path in Array(entries.keys) {
