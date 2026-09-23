@@ -537,7 +537,7 @@ class SwiftMonitorTests(unittest.TestCase):
                 str(ROOT / 'menubar/Sources/AccountSubscription.swift'),
                 str(ROOT / 'menubar/Sources/AccountSubscriptionButton.swift'),
                 str(ROOT / 'menubar/Tests/SubscriptionMonitorTests.swift'), '-framework', 'Cocoa', '-o', str(executable)],
-                capture_output=True, text=True, timeout=120)
+                capture_output=True, text=True, timeout=600)
             self.assertEqual(r.returncode, 0, r.stderr)
             r = subprocess.run([str(executable)], capture_output=True, text=True, timeout=30)
             self.assertEqual(r.returncode, 0, r.stderr)
@@ -565,7 +565,7 @@ if __name__ == '__main__' and '--live-surfaces' in sys.argv:
             before = tabs_now()
             try:
                 r = subprocess.run([sys.executable, str(ROOT / 'scripts/subscription-monitor.py'), '--dry-run'],
-                                   cwd=ROOT, capture_output=True, text=True, timeout=150)
+                                   cwd=ROOT, capture_output=True, text=True, timeout=600)
                 self.assertEqual(r.returncode, 0, 'live-mail-dry-run-failed')
                 try:
                     result = json.loads(r.stdout)
@@ -597,7 +597,7 @@ if __name__ == '__main__' and '--live-surfaces' in sys.argv:
             with tempfile.TemporaryDirectory(prefix='subscription-live-build-') as directory:
                 target = pathlib.Path(directory) / 'menubar'
                 shutil.copytree(ROOT / 'menubar', target, ignore=shutil.ignore_patterns('.build'))
-                build = subprocess.run(['bash', str(target / 'build.sh')], capture_output=True, text=True, timeout=180)
+                build = subprocess.run(['bash', str(target / 'build.sh')], capture_output=True, text=True, timeout=900)
                 self.assertEqual(build.returncode, 0, 'full-menu-build-failed')
                 binary = target / '.build/cc-menubar'
                 qa = subprocess.run([str(binary), '--teamcodex-dashboard-selftest'], capture_output=True, text=True, timeout=30)

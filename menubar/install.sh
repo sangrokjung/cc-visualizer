@@ -58,6 +58,15 @@ if [[ "$(uname)" != "Darwin" ]]; then
     exit 1
 fi
 
+# 릴리스 zip은 바이너리를 스크립트 옆에 둔다. 소스 체크아웃에는 없으므로 여기서 빌드한다.
+if [[ ! -f "${BINARY_SRC}" ]]; then
+    if [[ -x "${SCRIPT_DIR}/build.sh" || -f "${SCRIPT_DIR}/build.sh" ]]; then
+        info "바이너리가 없어 먼저 빌드합니다 (테스트가 실패하면 설치를 멈춥니다)..."
+        bash "${SCRIPT_DIR}/build.sh"
+        BINARY_SRC="${SCRIPT_DIR}/.build/cc-menubar"
+    fi
+fi
+
 if [[ ! -f "${BINARY_SRC}" ]]; then
     error "바이너리를 찾을 수 없습니다: ${BINARY_SRC}"
     error "압축 해제 후 설치 스크립트와 같은 폴더에서 실행하세요."

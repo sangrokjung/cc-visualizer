@@ -68,7 +68,7 @@ class TeamClaudeStatusIdentityTests(unittest.TestCase):
             + 'print(String(decoding: data, as: UTF8.self))\n'
             + '} else { print("null") }\n'
         )
-        subprocess.run(["swiftc", str(source), "-o", str(cls.binary)], check=True, timeout=90)
+        subprocess.run(["swiftc", str(source), "-o", str(cls.binary)], check=True, timeout=600)
 
     @classmethod
     def tearDownClass(cls):

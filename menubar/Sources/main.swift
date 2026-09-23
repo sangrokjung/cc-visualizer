@@ -3901,11 +3901,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard !isFetchingGrok else { return }
         if !force, let last = lastGrokFetchedAt, Date().timeIntervalSince(last) < grokUsageFetchInterval { return }
         isFetchingGrok = true
+        lastGrokFetchedAt = Date()
         fetchGrokMenuOutcome { [weak self] outcome in
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.isFetchingGrok = false
-                self.lastGrokFetchedAt = Date()
                 let slot: String
                 switch outcome {
                 case .percent(let outcome):
@@ -3941,11 +3941,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard !isFetchingAgy else { return }
         if !force, let last = lastAgyFetchedAt, Date().timeIntervalSince(last) < agyUsageFetchInterval { return }
         isFetchingAgy = true
+        // 호출이 끝난 시각에 찍으면 소요 시간만큼 다음 주기가 밀려 실효 간격이 두 배가 된다.
+        lastAgyFetchedAt = Date()
         fetchAgyUsage { [weak self] outcome in
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.isFetchingAgy = false
-                self.lastAgyFetchedAt = Date()
                 switch outcome {
                 case .missing:
                     self.agyHasValue = false

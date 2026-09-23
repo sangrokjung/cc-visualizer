@@ -167,8 +167,15 @@ func agyWorkspaceURL() -> URL? {
 }
 
 func fetchAgyUsage(completion: @escaping (AgyFetchOutcome) -> Void) {
-    guard let executable = agyExecutableURL(), let workspace = agyWorkspaceURL() else {
+    guard let executable = agyExecutableURL() else {
         completion(.missing)
+        return
+    }
+    guard let workspace = agyWorkspaceURL() else {
+        // 실행 파일은 있는데 전용 작업 폴더를 못 만든 경우다. "설치 안 됨"과 구분해 알린다.
+        print("AGY-WORKSPACE: 전용 작업 폴더를 만들지 못해 호출을 건너뛴다")
+        fflush(stdout)
+        completion(.failed)
         return
     }
     DispatchQueue.global(qos: .utility).async {
@@ -195,36 +202,54 @@ func fetchAgyUsage(completion: @escaping (AgyFetchOutcome) -> Void) {
         }
 
         // 자식이 끝나기 전에 읽는다(파이프가 차서 서로 기다리는 교착 방지).
-        let dataLock = NSLock()
+        // stdout 읽기는 이 핸들러 하나뿐이다 — 한 파일 핸들에 reader가 둘이면 마지막 청크가
+        // 어느 쪽에 떨어질지 정해져 있지 않아 모아 둔 바이트가 뒤섞인다.
+        let stateLock = NSLock()
         var collected = Data()
-        output.fileHandleForReading.readabilityHandler = { handle in
-            let chunk = handle.availableData
-            guard !chunk.isEmpty else { return }
-            dataLock.lock()
-            collected.append(chunk)
-            dataLock.unlock()
-        }
-        errorPipe.fileHandleForReading.readabilityHandler = { handle in
-            _ = handle.availableData
-        }
+        var sawEOF = false
+        var exitStatus: Int32?
         func stopReading() {
             output.fileHandleForReading.readabilityHandler = nil
             errorPipe.fileHandleForReading.readabilityHandler = nil
         }
-
-        process.terminationHandler = { finishedProcess in
-            let tail = (try? output.fileHandleForReading.readToEnd()) ?? nil
-            stopReading()
-            dataLock.lock()
-            if let tail { collected.append(tail) }
+        // EOF와 프로세스 종료가 둘 다 와야 판정한다(둘의 순서는 보장되지 않는다).
+        func completeIfReady() {
+            stateLock.lock()
+            let ready = sawEOF && exitStatus != nil
+            let status = exitStatus ?? -1
             let data = collected
-            dataLock.unlock()
-            guard finishedProcess.terminationStatus == 0,
-                  let groups = agyQuotaGroups(from: data) else {
+            stateLock.unlock()
+            guard ready else { return }
+            guard status == 0, let groups = agyQuotaGroups(from: data) else {
                 finish(.failed)
                 return
             }
             finish(.ready(groups))
+        }
+
+        output.fileHandleForReading.readabilityHandler = { handle in
+            let chunk = handle.availableData
+            if chunk.isEmpty {
+                handle.readabilityHandler = nil
+                stateLock.lock()
+                sawEOF = true
+                stateLock.unlock()
+                completeIfReady()
+                return
+            }
+            stateLock.lock()
+            collected.append(chunk)
+            stateLock.unlock()
+        }
+        errorPipe.fileHandleForReading.readabilityHandler = { handle in
+            if handle.availableData.isEmpty { handle.readabilityHandler = nil }
+        }
+
+        process.terminationHandler = { finishedProcess in
+            stateLock.lock()
+            exitStatus = finishedProcess.terminationStatus
+            stateLock.unlock()
+            completeIfReady()
         }
 
         do {
@@ -259,5 +284,7 @@ func agyTitleSlot(_ card: AgyCardModel) -> String? {
     guard let gemini = card.groups.first(where: { $0.name.lowercased().contains("gemini") }),
           let weekly = gemini.weekly,
           let fraction = agyFiniteFraction(weekly.remaining) else { return nil }
-    return "Agy \(Int((fraction * 100).rounded()))%"
+    // 반올림하면 99.5%가 100%로 보인다. 남은 양은 낮춰 말하는 쪽이 안전하다.
+    // 범위(0~1)는 agyFiniteFraction이 이미 보장한다.
+    return "Agy \(Int(fraction * 100))%"
 }

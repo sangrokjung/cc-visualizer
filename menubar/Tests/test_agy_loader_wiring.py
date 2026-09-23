@@ -43,6 +43,11 @@ class AgyLoaderWiringTests(unittest.TestCase):
     def test_reads_stdout_while_the_child_runs(self):
         self.assertIn("output.fileHandleForReading.readabilityHandler", self.fetch)
         self.assertNotIn("readDataToEndOfFile", self.fetch)
+        # stdout reader 는 하나뿐이어야 한다. 종료 핸들러에서 한 번 더 읽으면 마지막 청크가
+        # 어느 쪽에 떨어질지 정해져 있지 않고, 블로킹 read 가 스레드를 붙잡는다.
+        self.assertNotIn("readToEnd", self.fetch)
+        self.assertIn("sawEOF", self.fetch)
+        self.assertIn("exitStatus", self.fetch)
 
     def test_title_carries_only_the_gemini_lane(self):
         # 제목에 Claude·GPT 한도를 올리지 않는다 — 우리는 그 모델을 쓰지 않는다(agy 레인 규칙).

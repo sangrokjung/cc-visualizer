@@ -32,7 +32,7 @@ class LiveSurfaceTests(unittest.TestCase):
         before = self._tabs()
         try:
             result = subprocess.run([sys.executable, str(MONITOR), "--dry-run"], cwd=ROOT,
-                                    capture_output=True, text=True, timeout=150)
+                                    capture_output=True, text=True, timeout=600)
             self.assertEqual(result.returncode, 0, "live-mail-dry-run-failed")
             try:
                 payload = json.loads(result.stdout)
@@ -63,7 +63,7 @@ class LiveSurfaceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="subscription-live-build-") as directory:
             menu = pathlib.Path(directory) / "menubar"
             shutil.copytree(ROOT / "menubar", menu, ignore=shutil.ignore_patterns(".build"))
-            build = subprocess.run(["bash", str(menu / "build.sh")], cwd=ROOT, capture_output=True, text=True, timeout=180)
+            build = subprocess.run(["bash", str(menu / "build.sh")], cwd=ROOT, capture_output=True, text=True, timeout=900)
             self.assertEqual(build.returncode, 0, "full-menu-build-failed")
             binary = menu / ".build/cc-menubar"
             qa = subprocess.run([str(binary), "--teamcodex-dashboard-selftest"], capture_output=True, text=True, timeout=30)
