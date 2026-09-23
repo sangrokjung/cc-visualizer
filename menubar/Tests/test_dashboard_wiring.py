@@ -87,6 +87,10 @@ class DashboardRefreshCostTests(unittest.TestCase):
         end = self.main.index("\n    }\n", start)
         self.assertNotIn("loadCodexStatusInBackground", self.main[start:end])
         self.assertIn("codexScanTimer = Timer.scheduledTimer(withTimeInterval: 60.0", self.main)
+        # 기동 킥(refresh)은 스캔을 한 번 돌려야 한다 — 죽은 loadInBackground()에 넣으면 런치 후 60초 동안 Codex 상태가 빈다.
+        start = self.main.index("    func refresh() {")
+        end = self.main.index("\n    }\n", start)
+        self.assertIn("loadCodexStatusInBackground()", self.main[start:end])
 
     def test_codex_scan_runs_at_background_qos(self):
         start = self.main.index("func loadCodexStatusInBackground()")

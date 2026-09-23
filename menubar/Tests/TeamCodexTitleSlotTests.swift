@@ -53,6 +53,12 @@ struct TeamCodexTitleSlotTests {
         precondition(limited.soonestQuotaRecoveryAt == limitedUntil, "rate-limit window is the recovery time when quota windows already reset")
         precondition(limited.titleSlot(timeZone: seoul) == "Codex 소진 · \(teamCodexShortClock(limitedUntil, timeZone: seoul)) 복구", limited.titleSlot(timeZone: seoul))
 
+        // 라이브 프록시는 rateLimitedUntil을 ISO8601 문자열로 보낸다 — 숫자(ms)와 문자열 둘 다 같은 결과여야 한다.
+        var limitedIsoRow = row("r1", usable: false, weekly: 0.2, weeklyResetIn: -60)
+        limitedIsoRow["rateLimitedUntil"] = ISO8601DateFormatter().string(from: limitedUntil)
+        let limitedIso = try pool([limitedIsoRow])
+        precondition(limitedIso.soonestQuotaRecoveryAt == limitedUntil, "ISO8601 rateLimitedUntil must decode like the epoch-ms form")
+
         var mixedLimited = row("m0", usable: false, weekly: 1, weeklyResetIn: 1800)
         mixedLimited["rateLimitedUntil"] = (now.timeIntervalSince1970 + 3600) * 1000
         let mixed = try pool([mixedLimited, errorRow, row("m2", usable: false, weekly: 1, weeklyResetIn: 7200)])

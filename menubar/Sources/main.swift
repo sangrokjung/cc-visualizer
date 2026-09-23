@@ -3730,6 +3730,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rollIndex = 0
         updateActivity()
         loadFastStatusInBackground()
+        loadCodexStatusInBackground()   // 기동 시 1회 — 이후엔 codexScanTimer(60초)가 돈다
         loadUsageInBackground()
         loadHiggsfieldInBackground()
         loadGrokUsageInBackground(force: true)
@@ -3779,7 +3780,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var pendingDashboardRefresh: DispatchWorkItem?
 
     /// 로더 완료마다 곧장 다시 그리지 않고 300ms 안의 요청을 한 번으로 합친다(10초마다 로더 3개가 각각 열린 대시보드를 재배치하던 비용 제거).
-    /// 사용자 동작(새로고침·측정·복구)은 `immediate: true`로 바로 반영한다.
+    /// 측정·재인증 액션 경로는 `immediate: true`로 바로 반영한다(로더 완료는 +300ms 합류).
     func scheduleDashboardRefresh(reason: String, immediate: Bool = false) {
         pendingDashboardRefresh?.cancel()
         if immediate {
@@ -3832,7 +3833,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func loadInBackground() {
         loadFastStatusInBackground()
-        loadCodexStatusInBackground()
         loadUsageInBackground()
     }
 

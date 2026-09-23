@@ -37,7 +37,7 @@ func dashboardSectionBodyY(_ section: DashboardSection) -> CGFloat { section.y +
 
 /// 섹션 제목 띠. 문서 안에서는 섹션마다 하나, 스크롤 뷰 위에는 현재 섹션을 말하는 고정본 하나가 더 뜬다.
 final class DashboardSectionHeaderView: NSView {
-    var section: DashboardSection? { didSet { needsDisplay = true } }
+    var section: DashboardSection? { didSet { if oldValue != section { needsDisplay = true } } }
     override var isFlipped: Bool { true }
     override func draw(_ dirtyRect: NSRect) {
         guard let section else { return }
