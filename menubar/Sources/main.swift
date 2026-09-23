@@ -2167,19 +2167,19 @@ final class ServiceAvailabilitySummaryView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         let card = bounds.insetBy(dx: 8, dy: 4)
-        let bg = NSColor(calibratedRed: 0.06, green: 0.075, blue: 0.10, alpha: 0.97)
-        let panel = NSColor(calibratedRed: 0.12, green: 0.14, blue: 0.18, alpha: 1)
-        let line = NSColor(calibratedRed: 0.23, green: 0.27, blue: 0.34, alpha: 1)
-        let text = NSColor(calibratedRed: 0.92, green: 0.95, blue: 0.98, alpha: 1)
-        let muted = NSColor(calibratedRed: 0.55, green: 0.61, blue: 0.70, alpha: 1)
-        let green = NSColor(calibratedRed: 0.18, green: 0.82, blue: 0.48, alpha: 1)
-        let yellow = NSColor(calibratedRed: 0.93, green: 0.76, blue: 0.22, alpha: 1)
-        let red = NSColor(calibratedRed: 0.96, green: 0.26, blue: 0.32, alpha: 1)
-        let gray = NSColor(calibratedWhite: 0.62, alpha: 1)
-        let titleFont = NSFont.systemFont(ofSize: 24, weight: .bold)
-        let bodyFont = NSFont.systemFont(ofSize: 20, weight: .medium)
-        let monoFont = NSFont.monospacedSystemFont(ofSize: 32, weight: .bold)
-        let smallFont = NSFont.monospacedSystemFont(ofSize: 17, weight: .regular)
+        let bg = TeamClaudePalette.bg
+        let panel = TeamClaudePalette.panel2
+        let line = TeamClaudePalette.line
+        let text = TeamClaudePalette.text
+        let muted = TeamClaudePalette.muted
+        let green = TeamClaudePalette.green
+        let yellow = TeamClaudePalette.yellow
+        let red = TeamClaudePalette.red
+        let gray = TeamClaudePalette.inactive
+        let titleFont = TeamClaudePalette.summaryTitleFont
+        let bodyFont = TeamClaudePalette.summaryBodyFont
+        let monoFont = TeamClaudePalette.summaryValueFont
+        let smallFont = TeamClaudePalette.summaryNameFont
 
         func attrs(_ font: NSFont, _ color: NSColor) -> [NSAttributedString.Key: Any] {
             [.font: font, .foregroundColor: color]
@@ -2258,7 +2258,7 @@ final class ServiceAvailabilitySummaryView: NSView {
             }
             if column.1.count > 2 {
                 drawText("추가 계정은 아래 목록에서 확인", x + 14, columnY + 128,
-                         NSFont.systemFont(ofSize: 12), muted)
+                         TeamClaudePalette.summaryFootFont, muted)
             }
         }
     }
@@ -4866,6 +4866,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
 // MARK: - 진입점
 
+// 크래시 기록기는 어떤 CLI 분기보다 먼저, 한 번만 설치한다 (모든 오프스크린 렌더 경로가 브레드크럼을 남긴다).
+installCrashRecorder()
+
 if let summaryIndex = CommandLine.arguments.firstIndex(of: "--availability-summary-snapshot") {
     let outputPath = CommandLine.arguments.indices.contains(summaryIndex + 1)
         ? CommandLine.arguments[summaryIndex + 1]
@@ -5448,7 +5451,6 @@ if let snapshotIndex = CommandLine.arguments.firstIndex(of: "--teamclaude-table-
         fputs("TEAMCLAUDE-TABLE-SNAPSHOT: fixture 읽기 실패 \(fixturePath)\n", stderr)
         exit(1)
     }
-    installCrashRecorder()
     _ = NSApplication.shared
     let health = parseTeamClaudeHealth(config: nil, server: nil, status: status, port: 3456)
     let view = TeamClaudeTableView(frame: NSRect(
@@ -5555,6 +5557,5 @@ if CommandLine.arguments.contains("--selftest") {
 let delegate = AppDelegate()
 let app = NSApplication.shared
 app.delegate = delegate
-installCrashRecorder()
 TeamClaudePalette.prewarm()
 app.run()

@@ -20,9 +20,15 @@ enum TeamClaudePalette {
     static let smallFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
     static let statValueFont = NSFont.monospacedSystemFont(ofSize: 18, weight: .bold)
     static let statValueProminentFont = NSFont.monospacedSystemFont(ofSize: 24, weight: .bold)
+    // 서비스 비교 카드(ServiceAvailabilitySummaryView) 전용 크기 — 값은 카드가 쓰던 per-draw 팩토리와 동일하다.
+    static let summaryTitleFont = NSFont.systemFont(ofSize: 24, weight: .bold)
+    static let summaryBodyFont = NSFont.systemFont(ofSize: 20, weight: .medium)
+    static let summaryValueFont = NSFont.monospacedSystemFont(ofSize: 32, weight: .bold)
+    static let summaryNameFont = NSFont.monospacedSystemFont(ofSize: 17, weight: .regular)
+    static let summaryFootFont = NSFont.systemFont(ofSize: 12)
 
     /// 정적 멤버 전부를 한 번 건드려 첫 draw 안이 아니라 기동 시점에 팔레트를 만든다.
     static func prewarm() {
-        _ = (bg, panel, panel2, line, text, muted, green, yellow, red, blue, inactive, titleFont, subFont, headFont, rowFont, smallFont, statValueFont, statValueProminentFont)
+        _ = (bg, panel, panel2, line, text, muted, green, yellow, red, blue, inactive, titleFont, subFont, headFont, rowFont, smallFont, statValueFont, statValueProminentFont, summaryTitleFont, summaryBodyFont, summaryValueFont, summaryNameFont, summaryFootFont)
     }
 }

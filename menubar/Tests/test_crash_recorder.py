@@ -18,11 +18,14 @@ class CrashRecorderWiringTests(unittest.TestCase):
         # main.swift에는 app.run()이 2곳이다(4821행 벤치마크 분기, 5399행 최상위 일반 실행).
         # 데몬이 실제로 도는 곳은 마지막(최상위) 호출이므로 rfind로 잡는다.
         run_at = self.source.rfind("app.run()")
-        install_at = self.source.rfind("installCrashRecorder()")
         self.assertNotEqual(-1, run_at, "app.run() must remain discoverable")
-        self.assertNotEqual(-1, install_at, "installCrashRecorder() must be called")
-        self.assertLess(install_at, run_at, "the recorder must be installed before the daemon run loop starts")
-        self.assertLess(run_at - install_at, 400, "installCrashRecorder() must sit right before the top-level app.run()")
+        # 기록기는 진입점의 첫 CLI 분기보다 앞에서 정확히 한 번 호출된다 — 모든 오프스크린 렌더 경로가 브레드크럼을 남긴다.
+        calls = [m.start() for m in re.finditer(r"(?<!func )installCrashRecorder\(\)", self.source)]
+        self.assertEqual(1, len(calls), f"installCrashRecorder() must be called exactly once at the entry point, found {len(calls)}")
+        first_branch = self.source.find("CommandLine.arguments")
+        self.assertNotEqual(-1, first_branch)
+        self.assertLess(calls[0], first_branch, "the recorder must be installed before the first CLI branch")
+        self.assertLess(calls[0], run_at)
 
     def test_team_claude_table_draw_leaves_breadcrumbs(self):
         match = re.search(
@@ -33,6 +36,23 @@ class CrashRecorderWiringTests(unittest.TestCase):
         self.assertIsNotNone(match)
         crumbs = re.findall(r'markDraw\("TeamClaudeTableView\.[a-z]+"\)', match.group("body"))
         self.assertGreaterEqual(len(crumbs), 4, crumbs)
+
+    def test_availability_summary_uses_the_static_palette(self):
+        match = re.search(
+            r"final class ServiceAvailabilitySummaryView.*?(?=\nfinal class )",
+            self.source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        body = match.group(0)
+        self.assertNotIn("NSColor(calibrated", body)
+        self.assertNotIn("NSFont.", body)
+        self.assertIn("TeamClaudePalette.summaryTitleFont", body)
+        self.assertIn("TeamClaudePalette.inactive", body)
+        palette = PALETTE_SOURCE.read_text()
+        for member in ("summaryTitleFont", "summaryBodyFont", "summaryValueFont", "summaryNameFont", "summaryFootFont"):
+            self.assertIn(f"static let {member}", palette)
+            self.assertRegex(palette, r"_ = \([^)]*\b" + member + r"\b")
 
     def test_team_claude_table_uses_a_static_palette(self):
         # 팔레트는 자기 파일(TeamClaudePalette.swift)에 산다 — 러너의 라이브러리 소스 집합에 들어가야 하므로 main.swift 밖이다.
