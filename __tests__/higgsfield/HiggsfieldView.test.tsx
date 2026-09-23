@@ -32,7 +32,7 @@ const ACCOUNT: HiggsfieldAccount = {
   checkedAt: '2026-09-17T13:00:00.000Z',
   account: {
     credits: 2955,
-    email: 'sangrok@quantumjumpclub.com',
+    email: 'user@example.com',
     subscription_plan_type: 'ultra',
   },
 }

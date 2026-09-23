@@ -94,12 +94,12 @@ bash menubar/install.sh
 
 스크립트가 하는 일은 네 가지입니다.
 
-1. `menubar/build.sh`로 바이너리를 만듭니다. 이때 Swift·Python 테스트가 먼저 돌고, 실패하면 설치를 멈춥니다.
+1. 옆에 바이너리가 없으면 `menubar/build.sh`를 먼저 돌립니다. 이때 Swift·Python 테스트가 함께 돌고, 하나라도 실패하면 바이너리를 만들지 않으므로 설치도 멈춥니다. 릴리스 zip에는 바이너리가 들어 있어 이 단계를 건너뜁니다.
 2. 바이너리를 `~/Applications/cc-menubar/`에 복사합니다. 경로를 바꾸려면 `--install-dir <경로>`를 줍니다.
 3. LaunchAgent(`~/Library/LaunchAgents/com.qjc.cc-menubar.plist`)를 만들어 로그인 시 자동 시작하도록 등록합니다.
 4. 데몬을 띄웁니다. 비정상 종료 시 자동으로 다시 뜹니다.
 
-빌드 없이 한 번만 띄워 보려면 다음으로 충분합니다.
+설치하지 않고 한 번만 띄워 보려면 다음으로 충분합니다.
 
 ```bash
 bash menubar/build.sh

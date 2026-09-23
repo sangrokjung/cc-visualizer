@@ -13,7 +13,8 @@ struct AgyTitleSlotTests {
             AgyQuotaGroup(name: "Gemini Models", weekly: bucket(0.988), fiveHour: bucket(1.0)),
             AgyQuotaGroup(name: "Claude and GPT models", weekly: bucket(0.306), fiveHour: bucket(1.0)),
         ])
-        precondition(agyTitleSlot(twoGroups) == "Agy 99%", agyTitleSlot(twoGroups) ?? "nil")
+        // 98.8%는 올리지 않고 98%로 쓴다.
+        precondition(agyTitleSlot(twoGroups) == "Agy 98%", agyTitleSlot(twoGroups) ?? "nil")
 
         // 순서가 바뀌어도 Gemini를 찾아 쓴다.
         let reversed = AgyCardModel(message: nil, groups: [
@@ -27,6 +28,33 @@ struct AgyTitleSlotTests {
             AgyQuotaGroup(name: "Claude and GPT models", weekly: bucket(0.07), fiveHour: bucket(1.0)),
         ])
         precondition(agyTitleSlot(noGemini) == nil, agyTitleSlot(noGemini) ?? "nil")
+
+        // 남은 양을 올려 말하지 않는다 — 99.5%는 99%, 0.4%는 0%.
+        let almostFull = AgyCardModel(message: nil, groups: [
+            AgyQuotaGroup(name: "Gemini Models", weekly: bucket(0.995), fiveHour: nil),
+        ])
+        precondition(agyTitleSlot(almostFull) == "Agy 99%", agyTitleSlot(almostFull) ?? "nil")
+        let almostEmpty = AgyCardModel(message: nil, groups: [
+            AgyQuotaGroup(name: "Gemini Models", weekly: bucket(0.004), fiveHour: nil),
+        ])
+        precondition(agyTitleSlot(almostEmpty) == "Agy 0%", agyTitleSlot(almostEmpty) ?? "nil")
+
+        // 0~1 밖 값은 읽을 수 없는 값으로 보고 제목을 비운다(0%로 단정하지 않는다).
+        let negative = AgyCardModel(message: nil, groups: [
+            AgyQuotaGroup(name: "Gemini Models", weekly: bucket(-0.2), fiveHour: nil),
+        ])
+        precondition(agyTitleSlot(negative) == nil, agyTitleSlot(negative) ?? "nil")
+        let overOne = AgyCardModel(message: nil, groups: [
+            AgyQuotaGroup(name: "Gemini Models", weekly: bucket(1.5), fiveHour: nil),
+        ])
+        precondition(agyTitleSlot(overOne) == nil, agyTitleSlot(overOne) ?? "nil")
+
+        // Gemini를 포함하는 그룹이 둘이면 앞의 것을 쓴다(카드가 둘 다 보여 준다).
+        let duplicate = AgyCardModel(message: nil, groups: [
+            AgyQuotaGroup(name: "Gemini Models", weekly: bucket(0.8), fiveHour: nil),
+            AgyQuotaGroup(name: "Gemini Experimental", weekly: bucket(0.1), fiveHour: nil),
+        ])
+        precondition(agyTitleSlot(duplicate) == "Agy 80%", agyTitleSlot(duplicate) ?? "nil")
 
         // Gemini가 있어도 주간 버킷이 없으면 비워 둔다(5시간 값으로 대신하지 않는다).
         let fiveHourOnly = AgyCardModel(message: nil, groups: [
