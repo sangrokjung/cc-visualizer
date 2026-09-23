@@ -8,8 +8,10 @@
 #  - SKIP_TESTS        : main.swift 없이는 컴파일이 안 되는 Swift 테스트. 러너가 직접 컴파일하지 않는다(짝 test_*.py가 돌린다).
 #  - LIVE_SURFACE_TESTS: 외부 표면(브라우저·메일함)이 필요한 Python 테스트. CC_MENUBAR_LIVE_SURFACES=1일 때만 돌리고
 #                        아니면 env-skip으로 표시한다.
-#  - KNOWN_RED_TESTS   : 이 트리의 게이트 밖 사유로 실패 중인 Python 테스트. 돌리되 실패해도 게이트를 막지 않고
-#                        known-red로 표시한다. 담당자가 원인을 고치면 목록에서 지워야 한다.
+#  - KNOWN_RED_TESTS   : 이 트리의 게이트 밖 사유로 실패 중인 Python 테스트. 항목은 두 형태다.
+#                        `file.py`            — 파일 전체를 known-red로 넘긴다(예전 동작).
+#                        `file.py::test_name` — 그 메서드만 허용. 허용 밖 메서드가 하나라도 실패하면 진짜 실패로 게이트를 막는다.
+#                        known-red로 넘길 때도 실패한 메서드 이름을 출력한다. 담당자가 원인을 고치면 목록에서 지워야 한다.
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC="$ROOT/menubar/Sources"
@@ -35,7 +37,11 @@ LIVE_SURFACE_TESTS=(test_live_subscription_surface.py)
 #        Sources/TeamClaudeAvailability.swift는 startOfDay(일 단위)로 판정한다(워커에서 시간대 무관 확인).
 #    (b) test_manual_cua_matches_current_production_sources는 2026-09-09 소스 SHA-256과 머신 로컬 수동 QA 디렉토리를
 #        고정해 대조하므로 소스가 바뀌면 항상 실패한다.
-KNOWN_RED_TESTS=(test_teamclaude_availability.py)
+# 다른 세션의 진행 중 availability 작업(초 단위 vs startOfDay 계약, manual-CUA SHA 핀)이 원인. 담당 세션이 고치면 두 항목을 지운다.
+KNOWN_RED_TESTS=(
+  test_teamclaude_availability.py::test_manual_cua_matches_current_production_sources
+  test_teamclaude_availability.py::test_production_availability_and_layout
+)
 
 LIB_SOURCES=()
 for f in "$SRC"/*.swift; do
@@ -64,17 +70,34 @@ done
 # 기본 게이트에서 build.sh를 띄우는 테스트는 없다(라이브 표면 테스트는 opt-in). BuildGateTests는 게이트 자체를
 # 검사하려고 임시 복사본의 run-tests.sh를 스텁으로 바꾼 뒤 이 변수를 일부러 지우고 build.sh를 띄운다.
 export CC_MENUBAR_SKIP_TESTS=1
+# 같은 이유로 스냅샷 스모크도 안쪽 build.sh에서 다시 돌지 않게 한다(opt-in 라이브 테스트의 임시 복사본 빌드).
+export CC_MENUBAR_SKIP_SNAPSHOT=1
+# shellcheck source=menubar/known-red.sh
+source "$ROOT/menubar/known-red.sh"
 for p in "$TESTS"/test_*.py; do
-  b="$(basename "$p")"; live=0; known=0
+  b="$(basename "$p")"; live=0; known=0; known_methods=()
   for l in "${LIVE_SURFACE_TESTS[@]}"; do [ "$b" = "$l" ] && live=1; done
-  for k in "${KNOWN_RED_TESTS[@]}"; do [ "$b" = "$k" ] && known=1; done
+  for k in "${KNOWN_RED_TESTS[@]}"; do
+    case "$k" in
+      "$b") known=1 ;;
+      "$b::"*) known_methods+=("${k#*::}") ;;
+    esac
+  done
   if [ "$live" = 1 ] && [ "${CC_MENUBAR_LIVE_SURFACES:-0}" != "1" ]; then
     echo "env-skip $b"; envskipped+=("$b"); continue
   fi
   if python3 "$p" >"$OUT/$b.log" 2>&1; then
     echo "✓ $b"; ran=$((ran + 1))
   elif [ "$known" = 1 ]; then
-    echo "known-red $b"; sed -n '1,40p' "$OUT/$b.log"; knownred=$((knownred + 1))
+    echo "known-red $b (file-level) failing: $(grep -oE '^(FAIL|ERROR): [A-Za-z0-9_]+' "$OUT/$b.log" | awk '{print $2}' | sort -u | tr '\n' ' ')"
+    sed -n '1,40p' "$OUT/$b.log"; knownred=$((knownred + 1))
+  elif [ "${#known_methods[@]}" -gt 0 ]; then
+    verdict="$(classify_known_red "$OUT/$b.log" "${known_methods[@]}")"
+    if [ "$verdict" = "known-red" ]; then
+      echo "known-red $b (${known_methods[*]})"; knownred=$((knownred + 1))
+    else
+      echo "✗ $b ($verdict)"; sed -n '1,40p' "$OUT/$b.log"; fail=1; failed=$((failed + 1))
+    fi
   else
     echo "✗ $b"; sed -n '1,40p' "$OUT/$b.log"; fail=1; failed=$((failed + 1))
   fi
