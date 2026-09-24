@@ -3506,6 +3506,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// 힉스필드는 기동 시 1회만 부르면 그 한 번의 실패가 영구 공백이 된다(2026-09-24 실측:
     /// 로그 347분 동안 조회 1회). 10분 주기로 다시 부른다 — 함수 자체가 중복 실행을 막는다.
     var higgsfieldTimer: Timer?
+    /// 레인별 마지막 성공 시각. 조회 시도 시각(last*FetchedAt)과 달리 실패는 갱신하지 않는다.
+    var grokLastSuccessAt: Date?
+    var agyLastSuccessAt: Date?
+    var higgsfieldLastSuccessAt: Date?
+    let laneWatchStartedAt = Date()
+    var lastLaneStaleLogAt: Date?
     var cachedPulseImage: NSImage?
     var cachedPulseKey: String?
     var cachedComposedImage: NSImage?
@@ -3632,7 +3638,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if tickCount % 5 == 0 {
             rollIndex = (rollIndex + 1) % displaySlots().count
         }
+        if tickCount % 60 == 0 { reportStaleLanes() }
         updateTitle()
+    }
+
+    /// 갱신이 끊긴 CLI 레인을 로그로 드러낸다. 값이 낡았는데 화면은 멀쩡해 보이는 상태가
+    /// 세 번 반복됐다(agy·힉스필드·grok) — 조용히 죽지 않게 하는 것이 목적이다.
+    func reportStaleLanes(now: Date = Date()) {
+        if let last = lastLaneStaleLogAt, now.timeIntervalSince(last) < laneStaleLogCooldown { return }
+        let messages = laneStaleMessages([
+            LaneHealth(name: "grok", interval: grokUsageFetchInterval,
+                       lastSuccessAt: grokLastSuccessAt, startedAt: laneWatchStartedAt),
+            LaneHealth(name: "agy", interval: agyUsageFetchInterval,
+                       lastSuccessAt: agyLastSuccessAt, startedAt: laneWatchStartedAt),
+            LaneHealth(name: "higgsfield", interval: higgsfieldFetchInterval,
+                       lastSuccessAt: higgsfieldLastSuccessAt, startedAt: laneWatchStartedAt),
+        ], now: now)
+        guard !messages.isEmpty else { return }
+        lastLaneStaleLogAt = now
+        for message in messages {
+            print(message)
+        }
+        fflush(stdout)
     }
 
     func updateActivity() {
@@ -3797,6 +3824,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self.isFetchingHiggsfield = false
                 self.lastHiggsfieldFetchedAt = Date()
                 // 실패해도 기존 데이터를 지우지 않는다(깜빡임 방지). 첫 조회 실패만 그대로 보여 준다.
+                if data.error == nil { self.higgsfieldLastSuccessAt = Date() }
                 if data.error == nil || self.currentHiggsfield == nil {
                     self.currentHiggsfield = data
                 }
@@ -3920,12 +3948,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let slot: String
                 switch outcome {
                 case .percent(let outcome):
+                    self.grokLastSuccessAt = Date()
                     self.currentGrokSlot = outcome.slot
                     self.currentGrokCard = GrokCardModel(
                         headline: outcome.slot,
                         detail: grokCardDetail(product: outcome.productPercent, credit: outcome.creditPercent)
                     )
                     slot = outcome.slot
+                case .expired:
+                    self.currentGrokSlot = "Grok 갱신 필요"
+                    self.currentGrokCard = GrokCardModel(
+                        headline: "Grok 갱신 필요",
+                        detail: "토큰 기한이 지났습니다. grok을 한 번 실행하면 갱신됩니다."
+                    )
+                    slot = "Grok 갱신 필요"
                 case .login:
                     self.currentGrokSlot = "Grok 로그인"
                     self.currentGrokCard = GrokCardModel(headline: "Grok 로그인", detail: nil)
@@ -3933,6 +3969,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 case .unavailable:
                     if self.currentGrokSlot == nil
                         || self.currentGrokSlot == "Grok 로그인"
+                        || self.currentGrokSlot == "Grok 갱신 필요"
                         || self.currentGrokSlot == "Grok 확인 중" {
                         self.currentGrokSlot = "Grok 확인 필요"
                         self.currentGrokCard = GrokCardModel(headline: "Grok 확인 필요", detail: nil)
@@ -3964,6 +4001,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     self.currentAgyCard = AgyCardModel(message: "agy 없음", groups: [])
                 case .ready(let groups):
                     let lanes = agyVisibleGroups(groups)
+                    if !lanes.isEmpty { self.agyLastSuccessAt = Date() }
                     self.agyHasValue = !lanes.isEmpty
                     self.currentAgyCard = lanes.isEmpty
                         ? AgyCardModel(message: "agy Gemini 레인 없음", groups: [])

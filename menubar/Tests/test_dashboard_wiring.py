@@ -155,5 +155,53 @@ class AgyLaneWiringTests(unittest.TestCase):
         self.assertIn("agyVisibleGroups(groups)", MAIN.read_text())
         self.assertIn("func agyVisibleGroups", (SOURCES / "AgyUsage.swift").read_text())
 
+
+class CliLaneHealthWiringTests(unittest.TestCase):
+    """CLI 쿼터 레인(grok·agy·힉스필드)이 조용히 죽지 않게 하는 불변식.
+
+    같은 계열 사고가 세 번 났다 — agy는 데몬 수명 내내 실패했고(작업 폴더), 힉스필드는 주기
+    조회가 없었고(기동 1회), grok은 만료를 '로그인'으로만 보여줬다. 공통 원인은 '값 없음'과
+    '죽었음'을 구분하지 못한 것이다. 레인을 새로 붙일 때 이 세 가지를 빠뜨리면 여기서 걸린다.
+    """
+
+    LANES = (
+        ("grok", "grokTimer", "loadGrokUsageInBackground", "grokUsageFetchInterval"),
+        ("agy", "agyTimer", "loadAgyUsageInBackground", "agyUsageFetchInterval"),
+        ("higgsfield", "higgsfieldTimer", "loadHiggsfieldInBackground", "higgsfieldFetchInterval"),
+    )
+
+    def setUp(self):
+        self.main = MAIN.read_text()
+
+    def test_every_lane_has_a_periodic_timer(self):
+        for name, timer, loader, interval in self.LANES:
+            with self.subTest(lane=name):
+                self.assertIn(f"{timer} = Timer.scheduledTimer", self.main)
+                self.assertIn(f"withTimeInterval: {interval}", self.main)
+                self.assertIn(f"self?.{loader}(", self.main)
+
+    def test_every_lane_records_its_own_success_time(self):
+        # 시도 시각(last*FetchedAt)만으로는 '계속 실패 중'을 알 수 없다.
+        # 선언만 남고 대입이 사라지면 영원히 nil이 되므로 대입 자체를 본다.
+        for name, _, _, _ in self.LANES:
+            with self.subTest(lane=name):
+                self.assertRegex(self.main, rf"\b{name}LastSuccessAt\s*=\s*Date\(\)")
+
+    def test_stale_lanes_are_reported(self):
+        self.assertIn("func reportStaleLanes", self.main)
+        self.assertIn("reportStaleLanes()", self.main)
+        self.assertIn("laneStaleMessages(", self.main)
+        for name, _, _, _ in self.LANES:
+            with self.subTest(lane=name):
+                self.assertIn(f'LaneHealth(name: "{name}"', self.main)
+
+    def test_grok_separates_expiry_from_logged_out(self):
+        grok = (SOURCES / "GrokUsage.swift").read_text()
+        self.assertIn("case expired", grok)
+        self.assertIn("candidates.isEmpty ? .login : .expired", grok)
+        self.assertIn("Grok 갱신 필요", self.main)
+
+
+
 if __name__ == "__main__":
     unittest.main()
