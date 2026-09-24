@@ -404,7 +404,8 @@ private func runHiggsfieldRaw(_ args: [String]) -> HiggsfieldRunResult {
             // 여기서 반환하면 호출부는 풀리지만 자식과 파이프를 읽던 스레드 둘이 그대로 남으므로 유예 뒤 SIGKILL까지 간다.
             let pid = process.processIdentifier
             kill(pid, SIGTERM)
-            if group.wait(timeout: .now() + 3) == .timedOut {
+            if group.wait(timeout: .now() + 3) == .timedOut, process.isRunning {
+                // 이미 회수된 pid에 보내면 재사용된 남의 프로세스를 죽일 수 있다.
                 kill(pid, SIGKILL)
                 _ = group.wait(timeout: .now() + 2)
             }

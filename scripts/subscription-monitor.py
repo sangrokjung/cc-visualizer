@@ -8,10 +8,11 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import re
 import shutil
 import signal
-import re
 import subprocess
+import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -138,7 +139,14 @@ def atomic_json(path, value):
 
 def collector_diagnostic(stderr, limit=400):
     """수집기 stderr를 진단용으로 줄인다 — 메일 주소는 가린다."""
-    text = re.sub(r'[\w.+-]+@[\w.-]+', '<email>', (stderr or '').strip())
+    text = (stderr or '').strip()
+    # 메일 주소 형태는 인용 local-part·IP 도메인·%40 인코딩까지 넓게 잡고,
+    # 홈 경로의 사용자명과 토큰류도 함께 가린다(적대 리뷰 2026-09-24: 좁은 패턴은 전부 우회됐다).
+    for pattern, mask in ((r'\S*@\S+', '<email>'),
+                          (r'\S*%40\S+', '<email>'),
+                          (r'/Users/[^/\s]+', '/Users/<user>'),
+                          (r'(?i)\b(bearer|token|session|cookie)[=:\s]+\S+', r'\1=<redacted>')):
+        text = re.sub(pattern, mask, text)
     lines = [line for line in text.splitlines() if line.strip()]
     return (' | '.join(lines[-4:]) or '(stderr 없음)')[:limit]
 
@@ -206,7 +214,9 @@ def run(dry_run=False):
             previous = {}
         try:
             collected = collect(accounts, lock_fd=lock.fileno())
-        except (RuntimeError, ValueError, OSError):
+        except (RuntimeError, ValueError, OSError) as error:
+            # 원인을 삼키면 'error' 한 글자만 남아 다음 조사가 처음부터 다시 시작된다.
+            print('subscription-monitor: %s' % error, file=sys.stderr)
             collected = [{'email': a['email'], 'status': 'error'} for a in accounts]
         merged = reconcile(config, collected, previous, dt.datetime.now(dt.timezone.utc))
         if not dry_run:
