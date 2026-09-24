@@ -33,6 +33,17 @@ def merge(events=None, status='ok', previous=None):
     return m.reconcile(CONFIG, [{'email': 'test@example.com', 'status': status, 'events': events or []}], previous or {}, NOW)
 
 
+
+def write_stub(path, body):
+    """임시 실행 스크립트를 UTF-8로 쓰고 인코딩을 선언한다.
+
+    본문에 한국어 메일 제목이 실리는데, 선언이 없으면 구버전 python3(Xcode 도구의 3.9)가
+    '\\xeb' Non-UTF-8 SyntaxError로 죽는다 (2026-09-24 실측: 네 군데 중 세 군데만 고쳐
+    한 건이 남았다 — 그래서 작성 지점을 하나로 모은다).
+    """
+    path.write_text('#!' + sys.executable + '\n# -*- coding: utf-8 -*-\n' + body, encoding='utf-8')
+
+
 class MonitorTests(unittest.TestCase):
     def test_identity_is_provider_bound_and_output_has_no_email(self):
         result = merge([CANCEL])
@@ -152,7 +163,7 @@ class MonitorTests(unittest.TestCase):
             support += "let searchCalls=0;const originalSearch=gmail.search;gmail.search=async(...args)=>{const original=await originalSearch(...args);const n=searchCalls++;if(n===0)return {results:[...original.results,{threadId:'receipt',subject:'Your receipt from Anthropic PBC #123',timestamp:'2026-09-07T00:00:00Z'}],hasMore:true,nextOffset:2};if(n===1)return {results:[],hasMore:false};return {results:[...original.results,{threadId:'new-join',subject:'Welcome to Max',timestamp:'2026-09-09T00:00:00Z'}],hasMore:false};};"
         with tempfile.TemporaryDirectory() as directory:
             fake = pathlib.Path(directory) / 'aside'
-            fake.write_text('#!' + sys.executable + '\nimport os,sys\ncode=sys.stdin.read()\nos.execv(' + repr(node) + ',[' + repr(node) + ',"--input-type=module","-e",' + repr(support) + '+code])\n')
+            write_stub(fake, 'import os,sys\ncode=sys.stdin.read()\nos.execv(' + repr(node) + ',[' + repr(node) + ',"--input-type=module","-e",' + repr(support) + '+code])\n')
             fake.chmod(0o700)
             with mock.patch.object(m.shutil, 'which', return_value=str(fake)):
                 return m.collect(m.configured_accounts(CONFIG))
@@ -191,7 +202,7 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(current['event'], previous['accounts'][KEY]['event'])
 
     def test_authenticated_raw_timestamp_preserves_seconds(self):
-        node = shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.local/bin/node')
+        node = shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / '.local/bin/node')
         source = (ROOT/'scripts/subscription-monitor-browser.js').read_text()
         raw = 'Received: by receiver\nDate: Wed, 9 Sep 2026 04:40:50 +0000\n\nbody'
         code = source + '\nconst raw=' + json.dumps(raw) + ';console.log(JSON.stringify([subscriptionMailTimestamp(raw,"naver"),subscriptionMailTimestamp(raw,"outlook")]));'
@@ -210,7 +221,7 @@ class MonitorTests(unittest.TestCase):
             self.assertEqual(row['lastSuccessAt'],previous['accounts'][KEY]['lastSuccessAt'])
 
     def test_receiver_authentication_header_boundary(self):
-        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.local/bin/node')
+        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / '.local/bin/node')
         source=(ROOT/'scripts/subscription-monitor-browser.js').read_text()
         prefix='Received: from sender by mx.naver.com; Wed, 9 Sep 2026 12:00:00 +0900\r\n'
         auth='Authentication-Results: mx.naver.com; dmarc=pass header.from=mail.anthropic.com; dkim=pass\r\n'
@@ -231,7 +242,7 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(result[0]['reason'],'sender-unverified')
 
     def outlook_changed_list_preserves_previous(self, date_only=False, stale_pane=False, grouped=False):
-        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.local/bin/node')
+        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / '.local/bin/node')
         support=r"""
 const sleep=()=>new Promise(()=>{}),googleAccounts={list:async()=>[]},listBrowserTabs=async()=>[],closeTab=async()=>{};
 let searched=false,active=null,rows=[{id:'old-cancel',subject:'Claude Max 구독이 취소되었습니다',date:'화 2026-09-08 오후 1:40'},{id:'old-join',subject:'Max에 오신 것을 환영합니다',date:'월 2026-09-07 오후 1:40'}];
@@ -256,7 +267,7 @@ const snapshot=async()=>({tree:'- treeitem "test@outlook.com" [ref=root]\n- comb
         config={'accounts':[{**CONFIG['accounts'][0],'name':'test@outlook.com'}]}
         with tempfile.TemporaryDirectory() as directory:
             fake=pathlib.Path(directory)/'aside'
-            fake.write_text('#!'+sys.executable+'\nimport os,sys\ncode=sys.stdin.read()\nos.execv('+repr(node)+',['+repr(node)+',"--input-type=module","-e",'+repr(support)+'+code])\n');fake.chmod(0o700)
+            write_stub(fake, 'import os,sys\ncode=sys.stdin.read()\nos.execv('+repr(node)+',['+repr(node)+',"--input-type=module","-e",'+repr(support)+'+code])\n');fake.chmod(0o700)
             with mock.patch.object(m.shutil,'which',return_value=str(fake)):
                 result=m.collect(m.configured_accounts(config))
         self.assertEqual(result[-1]['status'],'error')
@@ -277,7 +288,7 @@ const snapshot=async()=>({tree:'- treeitem "test@outlook.com" [ref=root]\n- comb
         self.outlook_changed_list_preserves_previous(grouped=True)
 
     def test_raw_calendar_date_cannot_be_normalized_into_another_day(self):
-        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.local/bin/node')
+        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / '.local/bin/node')
         source=(ROOT/'scripts/subscription-monitor-browser.js').read_text()
         values=['Tue, 31 Feb 2026 04:40:50 +0000','Tue, 30 Feb 2026 04:40:50 +0000','Tue, 8 Sep 2026 24:40:50 +0000','Tue, 8 Sep 2026 04:40:50 +2460']
         code=source+'\nconst values='+json.dumps(values)+';console.log(JSON.stringify(values.map(v=>subscriptionMailTimestamp("Date: "+v+"\\n\\nbody","naver"))));'
@@ -291,7 +302,7 @@ const snapshot=async()=>({tree:'- treeitem "test@outlook.com" [ref=root]\n- comb
         self.assertEqual(row['lastSuccessAt'],NOW.isoformat())
 
     def test_authenticated_mime_body_date_cannot_use_stale_visible_body(self):
-        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.local/bin/node')
+        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / '.local/bin/node')
         source=(ROOT/'scripts/subscription-monitor-browser.js').read_text()
         code=source+"""
 const plain='Your access ends on Sep 23, 2026.';
@@ -323,7 +334,7 @@ console.log(JSON.stringify([
             self.assertEqual(row['event']['endsOn'],'2026-09-23')
 
     def test_naver_total_cannot_hide_newer_or_unrecognized_rows(self):
-        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.local/bin/node')
+        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / '.local/bin/node')
         source=(ROOT/'scripts/subscription-monitor-browser.js').read_text()
         one='검색결과 2 개\n- link "[읽음]메일 제목Claude Max 구독이 취소되었습니다" [ref=e1]'
         malformed=one+'\n- link "새로운 형식의 재가입" [ref=e2]'
@@ -348,7 +359,7 @@ console.log(JSON.stringify([
             self.assertEqual(result[0]['status'],'error')
 
     def test_authentication_quoted_comments_and_conflicts_cannot_supply_pass(self):
-        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.local/bin/node')
+        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / '.local/bin/node')
         source=(ROOT/'scripts/subscription-monitor-browser.js').read_text()
         cases=[]
         for provider,server in [('naver','mx.naver.com'),('outlook','mx.microsoft.com 1')]:
@@ -362,7 +373,7 @@ console.log(JSON.stringify([
         self.assertEqual(json.loads(r.stdout),[False]*len(cases))
 
     def test_message_subject_recipient_and_header_bind_to_visible_mail(self):
-        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.local/bin/node')
+        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / '.local/bin/node')
         source=(ROOT/'scripts/subscription-monitor-browser.js').read_text()
         code=source+"""
 const subject='Claude Max 구독이 취소되었습니다';
@@ -386,7 +397,7 @@ console.log(JSON.stringify([
             folder = pathlib.Path(directory)
             pidfile = folder/'descendant.pid'
             fake = folder/'aside'
-            fake.write_text('#!' + sys.executable + '\nimport os,sys,time,signal\nsys.stdin.read()\npid=os.fork()\nif pid==0:\n signal.signal(signal.SIGTERM,signal.SIG_IGN)\n for fd in [0,1,2]:os.close(fd)\n time.sleep(60)\nelse:\n open(' + repr(str(pidfile)) + ',"w").write(str(pid))\n print("SUBSCRIPTION_RESULT=[]",flush=True)\n')
+            write_stub(fake, 'import os,sys,time,signal\nsys.stdin.read()\npid=os.fork()\nif pid==0:\n signal.signal(signal.SIGTERM,signal.SIG_IGN)\n for fd in [0,1,2]:os.close(fd)\n time.sleep(60)\nelse:\n open(' + repr(str(pidfile)) + ',"w").write(str(pid))\n print("SUBSCRIPTION_RESULT=[]",flush=True)\n')
             fake.chmod(0o700)
             child = None
             try:
@@ -415,7 +426,7 @@ console.log(JSON.stringify([
         for sig in (signal.SIGTERM, signal.SIGKILL):
             with tempfile.TemporaryDirectory() as directory:
                 folder=pathlib.Path(directory);pidfile=folder/'pid';lockfile=folder/'lock';fake=folder/'aside'
-                fake.write_text('#!'+sys.executable+'\nimport os,time,pathlib\npathlib.Path('+repr(str(pidfile))+').write_text(str(os.getpid()))\ntime.sleep(60)\n')
+                write_stub(fake, 'import os,time,pathlib\npathlib.Path('+repr(str(pidfile))+').write_text(str(os.getpid()))\ntime.sleep(60)\n')
                 fake.chmod(0o700)
                 code="import importlib.util,fcntl; s=importlib.util.spec_from_file_location('monitor',"+repr(str(ROOT/'scripts/subscription-monitor.py'))+");m=importlib.util.module_from_spec(s);s.loader.exec_module(m);m.shutil.which=lambda _:"+repr(str(fake))+";f=open("+repr(str(lockfile))+",'w');fcntl.flock(f,fcntl.LOCK_EX);m.collect([],lock_fd=f.fileno())"
                 parent=subprocess.Popen([sys.executable,'-c',code],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -444,7 +455,7 @@ console.log(JSON.stringify([
                     parent.communicate(timeout=5)
 
     def test_mailbox_identity_and_stale_reading_pane_fail_closed(self):
-        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.local/bin/node')
+        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / '.local/bin/node')
         source=(ROOT/'scripts/subscription-monitor-browser.js').read_text()
         code=source+"""
 const raw='메시지 원본\\nReceived: by receiver\\nDate: Tue, 8 Sep 2026 04:44:00 +0000\\n\\nbody';
@@ -489,7 +500,7 @@ console.log(JSON.stringify([
         self.assertEqual(row['lastSuccessAt'],previous['accounts'][KEY]['lastSuccessAt'])
 
     def test_body_cannot_become_header_when_received_header_missing(self):
-        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.local/bin/node')
+        node=shutil.which('node') or str(pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / '.local/bin/node')
         source=(ROOT/'scripts/subscription-monitor-browser.js').read_text()
         cases=[]
         for provider,server,extra in [('naver','mx.naver.com',''),('outlook','mx.microsoft.com 1','; compauth=pass')]:

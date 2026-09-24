@@ -400,8 +400,15 @@ private func runHiggsfieldRaw(_ args: [String]) -> HiggsfieldRunResult {
             usleep(50_000)
         }
         if process.isRunning {
-            process.terminate()
-            _ = group.wait(timeout: .now() + 3)
+            // SIGTERM을 무시하는 상태가 실재한다(2026-09-23 다른 CLI에서 자식이 6시간 20분 생존).
+            // 여기서 반환하면 호출부는 풀리지만 자식과 파이프를 읽던 스레드 둘이 그대로 남으므로 유예 뒤 SIGKILL까지 간다.
+            let pid = process.processIdentifier
+            kill(pid, SIGTERM)
+            if group.wait(timeout: .now() + 3) == .timedOut, process.isRunning {
+                // 이미 회수된 pid에 보내면 재사용된 남의 프로세스를 죽일 수 있다.
+                kill(pid, SIGKILL)
+                _ = group.wait(timeout: .now() + 2)
+            }
             return .failure("힉스필드 CLI가 \(Int(higgsfieldTimeout))초 안에 응답하지 않아 중단했습니다")
         }
         process.waitUntilExit()

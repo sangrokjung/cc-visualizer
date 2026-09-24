@@ -8,10 +8,11 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import re
 import shutil
 import signal
-import re
 import subprocess
+import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -135,6 +136,20 @@ def atomic_json(path, value):
             os.unlink(name)
 
 
+
+def collector_diagnostic(stderr, limit=400):
+    """수집기 stderr를 진단용으로 줄인다 — 메일 주소는 가린다."""
+    text = (stderr or '').strip()
+    # 메일 주소 형태는 인용 local-part·IP 도메인·%40 인코딩까지 넓게 잡고,
+    # 홈 경로의 사용자명과 토큰류도 함께 가린다(적대 리뷰 2026-09-24: 좁은 패턴은 전부 우회됐다).
+    for pattern, mask in ((r'\S*@\S+', '<email>'),
+                          (r'\S*%40\S+', '<email>'),
+                          (r'/Users/[^/\s]+', '/Users/<user>'),
+                          (r'(?i)\b(bearer|token|session|cookie)[=:\s]+\S+', r'\1=<redacted>')):
+        text = re.sub(pattern, mask, text)
+    lines = [line for line in text.splitlines() if line.strip()]
+    return (' | '.join(lines[-4:]) or '(stderr 없음)')[:limit]
+
 def collect(accounts, lock_fd=None):
     aside = shutil.which('aside')
     if not aside:
@@ -146,7 +161,7 @@ def collect(accounts, lock_fd=None):
         raise SystemExit(128 + signum)
     previous_sigterm = signal.signal(signal.SIGTERM, interrupted)
     try:
-        stdout, _ = process.communicate(input='await eval(' + json.dumps('(async()=>{' + code + '})()', ensure_ascii=False) + ');\n', timeout=130)
+        stdout, stderr = process.communicate(input='await eval(' + json.dumps('(async()=>{' + code + '})()', ensure_ascii=False) + ');\n', timeout=130)
     except subprocess.TimeoutExpired:
         raise RuntimeError('collector-timeout') from None
     finally:
@@ -173,7 +188,9 @@ def collect(accounts, lock_fd=None):
     marker = 'SUBSCRIPTION_RESULT='
     lines = [line.split(marker, 1)[1] for line in stdout.splitlines() if marker in line and line.split(marker, 1)[1].startswith('[')]
     if process.returncode != 0 or len(lines) != 1:
-        raise RuntimeError('collector-failed')
+        # 수집기 stderr를 버리면 실패 원인이 사라진다(2026-09-24: node 버전 차이로 난 실패를
+        # 셸·호스트·타이밍 탓으로 세 번 오진했다). 메일 주소만 가리고 마지막 몇 줄을 남긴다.
+        raise RuntimeError('collector-failed: rc=%s %s' % (process.returncode, collector_diagnostic(stderr)))
     value = json.loads(lines[0])
     if not isinstance(value, list) or len(value) > 64 or any(not isinstance(x, dict) for x in value):
         raise RuntimeError('collector-shape')
@@ -197,7 +214,9 @@ def run(dry_run=False):
             previous = {}
         try:
             collected = collect(accounts, lock_fd=lock.fileno())
-        except (RuntimeError, ValueError, OSError):
+        except (RuntimeError, ValueError, OSError) as error:
+            # 원인을 삼키면 'error' 한 글자만 남아 다음 조사가 처음부터 다시 시작된다.
+            print('subscription-monitor: %s' % error, file=sys.stderr)
             collected = [{'email': a['email'], 'status': 'error'} for a in accounts]
         merged = reconcile(config, collected, previous, dt.datetime.now(dt.timezone.utc))
         if not dry_run:
