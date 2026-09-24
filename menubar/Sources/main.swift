@@ -3614,7 +3614,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let t = agyTimer { RunLoop.main.add(t, forMode: .common) }
 
         higgsfieldTimer = Timer.scheduledTimer(withTimeInterval: higgsfieldFetchInterval, repeats: true) { [weak self] _ in
-            self?.loadHiggsfieldInBackground()
+            // 타이머 자체가 주기다. force 없이 부르면 발화 시 경과가 (간격 − CLI 왕복)이라
+            // 같은 값의 스로틀에 걸려 한 틱씩 걸러지고 실효 주기가 두 배가 된다.
+            // 중복 실행은 isFetchingHiggsfield가 막는다.
+            self?.loadHiggsfieldInBackground(force: true)
         }
         if let t = higgsfieldTimer { RunLoop.main.add(t, forMode: .common) }
     }
