@@ -39,6 +39,20 @@ struct AgyTitleSlotTests {
         ])
         precondition(agyTitleSlot(almostEmpty) == "Agy 0%", agyTitleSlot(almostEmpty) ?? "nil")
 
+        // 카드에도 Gemini 레인만 올린다 — 안 쓰는 Claude·GPT 쿼터가 섞이면 남은 양을 오독한다.
+        let mixed = [
+            AgyQuotaGroup(name: "Gemini Models", weekly: bucket(0.9), fiveHour: nil),
+            AgyQuotaGroup(name: "Claude and GPT models", weekly: bucket(0.3), fiveHour: nil),
+        ]
+        let visible = agyVisibleGroups(mixed)
+        precondition(visible.count == 1, "Gemini 레인만 남아야 한다: \(visible.count)")
+        precondition(visible[0].name == "Gemini Models", visible[0].name)
+
+        // Gemini가 없으면 비운다. Claude·GPT로 대체하지 않는다.
+        precondition(agyVisibleGroups([
+            AgyQuotaGroup(name: "Claude and GPT models", weekly: bucket(0.3), fiveHour: nil),
+        ]).isEmpty, "Gemini가 없으면 비어야 한다")
+
         // 0~1 밖 값은 읽을 수 없는 값으로 보고 제목을 비운다(0%로 단정하지 않는다).
         let negative = AgyCardModel(message: nil, groups: [
             AgyQuotaGroup(name: "Gemini Models", weekly: bucket(-0.2), fiveHour: nil),

@@ -89,6 +89,14 @@ func agyResetHint(_ date: Date?, now: Date) -> String? {
     return "\(hours / 24)일 뒤"
 }
 
+/// 화면에 올릴 레인만 남긴다.
+///
+/// agy는 Antigravity를 거치므로 응답에 Claude·GPT 버킷도 실려 오지만, 우리 레인은 Gemini 하나다
+/// (memory-policy: 타 벤더 모델 선택 금지). 쓰지 않는 쿼터를 띄우면 남은 양을 오독하게 된다.
+func agyVisibleGroups(_ groups: [AgyQuotaGroup]) -> [AgyQuotaGroup] {
+    return groups.filter { $0.name.lowercased().contains("gemini") }
+}
+
 func agyLogLine(_ card: AgyCardModel) -> String {
     if card.groups.isEmpty {
         return card.message ?? "agy 확인 중"

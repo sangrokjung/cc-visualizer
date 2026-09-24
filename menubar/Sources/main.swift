@@ -3503,6 +3503,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var lastAgyFetchedAt: Date?
     private var agyHasValue = false
     var agyTimer: Timer?
+    /// 힉스필드는 기동 시 1회만 부르면 그 한 번의 실패가 영구 공백이 된다(2026-09-24 실측:
+    /// 로그 347분 동안 조회 1회). 10분 주기로 다시 부른다 — 함수 자체가 중복 실행을 막는다.
+    var higgsfieldTimer: Timer?
     var cachedPulseImage: NSImage?
     var cachedPulseKey: String?
     var cachedComposedImage: NSImage?
@@ -3609,6 +3612,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.loadAgyUsageInBackground()
         }
         if let t = agyTimer { RunLoop.main.add(t, forMode: .common) }
+
+        higgsfieldTimer = Timer.scheduledTimer(withTimeInterval: higgsfieldFetchInterval, repeats: true) { [weak self] _ in
+            self?.loadHiggsfieldInBackground()
+        }
+        if let t = higgsfieldTimer { RunLoop.main.add(t, forMode: .common) }
     }
 
     // MARK: - Tick (1초마다 호출)
@@ -3776,7 +3784,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// 크레딧은 생성할 때만 움직여서 더 촘촘히 볼 이유가 없다.
     func loadHiggsfieldInBackground(force: Bool = false) {
         guard !isFetchingHiggsfield else { return }
-        if !force, let last = lastHiggsfieldFetchedAt, Date().timeIntervalSince(last) < 600 { return }
+        if !force, let last = lastHiggsfieldFetchedAt, Date().timeIntervalSince(last) < higgsfieldFetchInterval { return }
         isFetchingHiggsfield = true
 
         DispatchQueue.global(qos: .utility).async { [weak self] in
@@ -3952,8 +3960,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     self.agyHasValue = false
                     self.currentAgyCard = AgyCardModel(message: "agy 없음", groups: [])
                 case .ready(let groups):
-                    self.agyHasValue = true
-                    self.currentAgyCard = AgyCardModel(message: nil, groups: groups)
+                    let lanes = agyVisibleGroups(groups)
+                    self.agyHasValue = !lanes.isEmpty
+                    self.currentAgyCard = lanes.isEmpty
+                        ? AgyCardModel(message: "agy Gemini 레인 없음", groups: [])
+                        : AgyCardModel(message: nil, groups: lanes)
                 case .failed:
                     if !self.agyHasValue {
                         self.currentAgyCard = AgyCardModel(message: "agy 확인 필요", groups: [])
