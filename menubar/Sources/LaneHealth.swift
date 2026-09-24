@@ -25,9 +25,14 @@ let laneStaleFactor: Double = 3
 /// 같은 경보를 반복하지 않을 간격. 레인이 오래 죽어 있어도 로그를 채우지 않는다.
 let laneStaleLogCooldown: TimeInterval = 600
 
+struct LaneStaleNotice: Equatable {
+    let name: String
+    let message: String
+}
+
 /// 갱신이 끊긴 레인의 설명을 만든다. 정상인 레인은 아무것도 만들지 않는다.
-func laneStaleMessages(_ lanes: [LaneHealth], now: Date, factor: Double = laneStaleFactor) -> [String] {
-    var out: [String] = []
+func laneStaleMessages(_ lanes: [LaneHealth], now: Date, factor: Double = laneStaleFactor) -> [LaneStaleNotice] {
+    var out: [LaneStaleNotice] = []
     for lane in lanes {
         guard lane.interval > 0 else { continue }
         let since = lane.lastSuccessAt ?? lane.startedAt
@@ -35,7 +40,10 @@ func laneStaleMessages(_ lanes: [LaneHealth], now: Date, factor: Double = laneSt
         guard elapsed > lane.interval * factor else { continue }
         let minutes = max(Int(elapsed / 60), 1)
         let what = lane.lastSuccessAt == nil ? "기동 후 한 번도 성공 못 함" : "마지막 성공 이후"
-        out.append("LANE-STALE: \(lane.name) \(minutes)분째 갱신 없음 (\(what))")
+        out.append(LaneStaleNotice(
+            name: lane.name,
+            message: "LANE-STALE: \(lane.name) \(minutes)분째 갱신 없음 (\(what))"
+        ))
     }
     return out
 }

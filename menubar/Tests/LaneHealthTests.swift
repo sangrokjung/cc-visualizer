@@ -22,15 +22,16 @@ struct LaneHealthTests {
                                lastSuccessAt: now.addingTimeInterval(-600), startedAt: started)
         let messages = laneStaleMessages([stale], now: now)
         precondition(messages.count == 1, "\(messages.count)")
-        precondition(messages[0].contains("cli-a"), messages[0])
-        precondition(messages[0].contains("10분째"), messages[0])
-        precondition(messages[0].contains("마지막 성공 이후"), messages[0])
+        precondition(messages[0].name == "cli-a", messages[0].name)
+        precondition(messages[0].message.contains("cli-a"), messages[0].message)
+        precondition(messages[0].message.contains("10분째"), messages[0].message)
+        precondition(messages[0].message.contains("마지막 성공 이후"), messages[0].message)
 
         // 한 번도 성공하지 못한 레인은 기동 시각으로 잰다 — 데몬 수명 내내 죽어 있던 경우.
         let neverOK = LaneHealth(name: "cli-b", interval: 60, lastSuccessAt: nil, startedAt: started)
         let neverMessages = laneStaleMessages([neverOK], now: now)
         precondition(neverMessages.count == 1, "\(neverMessages.count)")
-        precondition(neverMessages[0].contains("한 번도 성공 못 함"), neverMessages[0])
+        precondition(neverMessages[0].message.contains("한 번도 성공 못 함"), neverMessages[0].message)
 
         // 주기가 0이거나 음수인 레인은 판정하지 않는다(0으로 나누는 대신 건너뛴다).
         precondition(laneStaleMessages([
@@ -42,9 +43,11 @@ struct LaneHealthTests {
                               lastSuccessAt: now.addingTimeInterval(-600), startedAt: started)
         precondition(laneStaleMessages([slow], now: now).isEmpty, "긴 주기 레인을 성급히 판정하면 안 된다")
 
-        // 여러 레인이 동시에 끊기면 전부 보고한다.
+        // 여러 레인이 동시에 끊기면 전부 보고한다 — 이름이 함께 나와야 레인별로 쿨다운할 수 있다.
+        // (한 레인이 떠들면 다른 레인이 묻히던 문제, astra 지적 2026-09-24)
         let both = laneStaleMessages([stale, neverOK], now: now)
         precondition(both.count == 2, "\(both.count)")
+        precondition(Set(both.map { $0.name }) == ["cli-a", "cli-b"], "\(both.map { $0.name })")
 
         print("LaneHealthTests: 통과")
     }
