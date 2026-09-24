@@ -126,6 +126,34 @@ class DashboardRefreshCostTests(unittest.TestCase):
         host_end = self.main.index("\n    }\n", host_start)
         self.assertIn("existing.documentView === dashboard", self.main[host_start:host_end])
 
+class HiggsfieldTimerWiringTests(unittest.TestCase):
+    """힉스필드 조회는 주기 타이머가 있어야 한다.
+
+    기동 시 1회만 부르면 그 한 번의 실패가 영구 공백이 된다(2026-09-24 실측: 데몬 로그 347분
+    동안 조회 1회, 크레딧 칸이 계속 비어 있었다).
+    """
+
+    def setUp(self):
+        self.main = MAIN.read_text()
+
+    def test_periodic_timer_is_scheduled(self):
+        self.assertIn("higgsfieldTimer = Timer.scheduledTimer", self.main)
+        self.assertIn("self?.loadHiggsfieldInBackground(force: true)", self.main)
+        self.assertIn("RunLoop.main.add(t, forMode: .common)", self.main)
+
+    def test_interval_is_a_named_constant(self):
+        # 타이머는 force로 부른다 — 간격과 스로틀이 같은 값이라 force가 없으면 한 틱씩 걸러진다.
+        self.assertIn("withTimeInterval: higgsfieldFetchInterval", self.main)
+        self.assertIn("< higgsfieldFetchInterval", self.main)
+        self.assertNotIn("timeIntervalSince(last) < 600", self.main)
+
+
+class AgyLaneWiringTests(unittest.TestCase):
+    """agy 카드는 Gemini 레인만 올린다(memory-policy: 타 벤더 모델 선택 금지)."""
+
+    def test_card_filters_to_the_gemini_lane(self):
+        self.assertIn("agyVisibleGroups(groups)", MAIN.read_text())
+        self.assertIn("func agyVisibleGroups", (SOURCES / "AgyUsage.swift").read_text())
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,6 +9,10 @@ import Foundation
 
 let higgsfieldDayInterval: TimeInterval = 24 * 60 * 60
 
+/// 조회 주기. 크레딧은 생성할 때만 움직여서 촘촘히 볼 이유가 없지만,
+/// 한 번도 다시 부르지 않으면 기동 시 실패가 영구 공백이 된다.
+let higgsfieldFetchInterval: TimeInterval = 600
+
 /// 지급 이력이 1건뿐이라 간격을 잴 수 없을 때 쓰는 가정치. 실측(8/18 → 9/17)은 30일 고정이었다.
 let higgsfieldDefaultCycleDays = 30
 
