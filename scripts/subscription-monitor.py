@@ -135,6 +135,13 @@ def atomic_json(path, value):
             os.unlink(name)
 
 
+
+def collector_diagnostic(stderr, limit=400):
+    """수집기 stderr를 진단용으로 줄인다 — 메일 주소는 가린다."""
+    text = re.sub(r'[\w.+-]+@[\w.-]+', '<email>', (stderr or '').strip())
+    lines = [line for line in text.splitlines() if line.strip()]
+    return (' | '.join(lines[-4:]) or '(stderr 없음)')[:limit]
+
 def collect(accounts, lock_fd=None):
     aside = shutil.which('aside')
     if not aside:
@@ -146,7 +153,7 @@ def collect(accounts, lock_fd=None):
         raise SystemExit(128 + signum)
     previous_sigterm = signal.signal(signal.SIGTERM, interrupted)
     try:
-        stdout, _ = process.communicate(input='await eval(' + json.dumps('(async()=>{' + code + '})()', ensure_ascii=False) + ');\n', timeout=130)
+        stdout, stderr = process.communicate(input='await eval(' + json.dumps('(async()=>{' + code + '})()', ensure_ascii=False) + ');\n', timeout=130)
     except subprocess.TimeoutExpired:
         raise RuntimeError('collector-timeout') from None
     finally:
@@ -173,7 +180,9 @@ def collect(accounts, lock_fd=None):
     marker = 'SUBSCRIPTION_RESULT='
     lines = [line.split(marker, 1)[1] for line in stdout.splitlines() if marker in line and line.split(marker, 1)[1].startswith('[')]
     if process.returncode != 0 or len(lines) != 1:
-        raise RuntimeError('collector-failed')
+        # 수집기 stderr를 버리면 실패 원인이 사라진다(2026-09-24: node 버전 차이로 난 실패를
+        # 셸·호스트·타이밍 탓으로 세 번 오진했다). 메일 주소만 가리고 마지막 몇 줄을 남긴다.
+        raise RuntimeError('collector-failed: rc=%s %s' % (process.returncode, collector_diagnostic(stderr)))
     value = json.loads(lines[0])
     if not isinstance(value, list) or len(value) > 64 or any(not isinstance(x, dict) for x in value):
         raise RuntimeError('collector-shape')
