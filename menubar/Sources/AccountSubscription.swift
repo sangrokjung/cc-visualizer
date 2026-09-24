@@ -162,13 +162,48 @@ func accountSubscriptionConfiguredAccount(provider: String, uuid: String?, name:
     return matches.count == 1 ? matches[0] : nil
 }
 
+/// JSON 파일을 mtime·크기가 그대로면 다시 읽지 않는다.
+///
+/// 구독 판정은 계정마다 불리고, 표는 메뉴가 열려 있는 동안 1초마다 갱신된다. 캐시가 없으면
+/// 계정 17개 화면에서 파일 읽기·JSON 파싱·SHA256이 초당 열일곱 번씩 메인 스레드에서 돈다
+/// (2026-09-24 적대 리뷰 지적). 두 파일 모두 외부 프로세스가 가끔 쓰므로 mtime 확인으로 충분하다.
+private final class AccountSubscriptionFileCache {
+    static let shared = AccountSubscriptionFileCache()
+    private let lock = NSLock()
+    private var entries: [String: (stamp: Date, size: Int, json: [String: Any])] = [:]
+
+    func json(at url: URL, maxBytes: Int = 4_194_304) -> [String: Any]? {
+        let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
+        guard let stamp = attributes?[.modificationDate] as? Date,
+              let size = (attributes?[.size] as? NSNumber)?.intValue,
+              size <= maxBytes else {
+            return nil
+        }
+
+        lock.lock()
+        if let cached = entries[url.path], cached.stamp == stamp, cached.size == size {
+            lock.unlock()
+            return cached.json
+        }
+        lock.unlock()
+
+        guard let data = try? Data(contentsOf: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        lock.lock()
+        entries[url.path] = (stamp, size, json)
+        lock.unlock()
+        return json
+    }
+}
+
 func accountSubscriptionLocalAccount(provider: String, uuid: String?, name: String) -> (uuid: String?, plan: String?) {
     guard ["anthropic", "codex"].contains(provider) else { return (nil, nil) }
     let filename = provider == "codex" ? "teamcodex.json" : "teamclaude.json"
     let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/\(filename)")
-    guard let data = try? Data(contentsOf: url),
-          let config = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-          let rows = config["accounts"] as? [[String: Any]],
+    let rows = AccountSubscriptionFileCache.shared.json(at: url)?["accounts"] as? [[String: Any]] ?? []
+    guard !rows.isEmpty,
           let row = accountSubscriptionConfiguredAccount(provider: provider, uuid: uuid, name: name, rows: rows) else {
         return (uuid, nil)
     }
@@ -321,9 +356,7 @@ final class AccountSubscriptionRedirectDelegate: NSObject, URLSessionTaskDelegat
 // 메일 수집기는 별도 캐시만 쓴다. UI의 수동 기록은 변경하지 않는다.
 func accountSubscriptionMonitored(_ saved: AccountSubscriptionDetails, uuid: String, url: URL, now: Date) -> AccountSubscriptionDetails {
     var result = saved
-    guard let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 1_048_576,
-          let data = try? Data(contentsOf: url), data.count <= 1_048_576,
-          let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+    guard let root = AccountSubscriptionFileCache.shared.json(at: url, maxBytes: 1_048_576),
           root["version"] as? Int == 1,
           let rows = root["accounts"] as? [String: Any] else { return result }
     let key = SHA256.hash(data: Data(("anthropic:" + uuid).utf8)).map { String(format: "%02x", $0) }.joined()

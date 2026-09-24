@@ -187,6 +187,21 @@ class CliLaneHealthWiringTests(unittest.TestCase):
             with self.subTest(lane=name):
                 self.assertRegex(self.main, rf"\b{name}LastSuccessAt\s*=\s*Date\(\)")
 
+    def test_config_reads_are_cached(self):
+        # 계정마다 설정 파일을 읽고 파싱하면 1초 타이머가 도는 동안 메인 스레드에서
+        # 그 일이 초당 계정 수만큼 반복된다(적대 리뷰 2026-09-24).
+        source = (SOURCES / "AccountSubscription.swift").read_text()
+        self.assertIn("AccountSubscriptionFileCache", source)
+        self.assertIn("modificationDate", source)
+        self.assertEqual(source.count("Data(contentsOf: url)"), 1,
+                         "파일 읽기는 캐시 한 곳을 거쳐야 한다")
+        # 구독 모니터 캐시도 같은 경로를 타야 한다 — 이쪽은 계정마다 SHA256까지 돈다.
+        self.assertIn("AccountSubscriptionFileCache.shared.json(at: url, maxBytes: 1_048_576)", source)
+
+    def test_extra_agy_lanes_are_counted_not_dropped(self):
+        card = (SOURCES / "CliQuotaCards.swift").read_text()
+        self.assertIn("agy.groups.count > 1", card)
+
     def test_every_lane_logs_each_cycle(self):
         # 한 레인만 조용하면 "조회가 도는가"를 로그로 답할 수 없다.
         for marker in ('print("GROK-SLOT:', 'print("AGY:', 'print("HIGGSFIELD:'):

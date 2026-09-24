@@ -71,7 +71,12 @@ final class CliQuotaLanesView: NSView {
             drawText(agy.message ?? "agy 확인 중", valueX, agyY - 1, valueFont, text)
             return
         }
-        drawText(agyDisplayName(group.name), valueX, agyY + 1, NSFont.systemFont(ofSize: 12, weight: .semibold), text)
+        // 레인이 여럿이면 첫 줄만 그리고 나머지는 세어서 알린다. 조용히 버리면 화면과
+        // 접근성 레이블이 어긋나고, 남은 쿼터를 실제보다 적게 읽게 된다(적대 리뷰 2026-09-24).
+        let name = agy.groups.count > 1
+            ? "\(agyDisplayName(group.name)) 외 \(agy.groups.count - 1)"
+            : agyDisplayName(group.name)
+        drawText(name, valueX, agyY + 1, NSFont.systemFont(ofSize: 12, weight: .semibold), text)
         // 두 버킷을 같은 줄에 나란히. 막대 폭은 카드 폭에서 글자 자리를 뺀 나머지를 반씩 나눈다.
         let bucketX = valueX + 110
         let bucketWidth = (bounds.width - 20 - bucketX - 16) / 2
