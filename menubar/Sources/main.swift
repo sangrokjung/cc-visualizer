@@ -2136,7 +2136,7 @@ final class TeamClaudeTableView: NSView {
             bar(sessionPercent, x: innerX + 314, y: y + 10, width: 74, color: sesColor)
             let sessionDetail = session.isStale
                 ? (row.measurementIssue == .quotaBlocked ? "한도리셋" : "재측정")
-                : (sessionPercent != nil ? teamClaudeResetLabel(row.sessionResetSeconds, checkedAt: health.checkedAt, now: evaluatedAt, resetAt: row.sessionResetAt) : (attempted ? "확인필요" : "측정전"))
+                : (sessionPercent != nil ? teamClaudeResetLabel(row.sessionResetSeconds, checkedAt: health.checkedAt, now: evaluatedAt, resetAt: row.sessionResetAt) : (attempted ? StatusVocabulary.needsCheck : StatusVocabulary.notMeasured))
             drawRight(sessionDetail, innerX + 442, y + 5, smallFont, muted)
 
             // 주간·Fable 독립 표시 — 프록시는 재시작 후 Fable(7d_oi) 창을 의도적으로
@@ -2145,13 +2145,13 @@ final class TeamClaudeTableView: NSView {
             // 두 열 모두 "동기화중"으로 떨어뜨렸다 (2026-07-22 사고).
             let wkPercent = row.weeklyPercent
             let wkColor = subscriptionMuted ? inactive : tone(wkPercent)
-            drawRight(wkPercent != nil ? percentText(wkPercent) : "동기화중", innerX + 486, y + 5, rowFont, subscriptionMuted ? inactive : wkPercent != nil ? wkColor : yellow)
+            drawRight(wkPercent != nil ? percentText(wkPercent) : StatusVocabulary.syncing, innerX + 486, y + 5, rowFont, subscriptionMuted ? inactive : wkPercent != nil ? wkColor : yellow)
             bar(wkPercent, x: innerX + 494, y: y + 10, width: 74, color: wkColor)
             drawRight(teamClaudeResetLabel(row.weeklyResetSeconds, checkedAt: health.checkedAt, now: evaluatedAt, resetAt: row.weeklyResetAt), innerX + 612, y + 5, smallFont, muted)
 
             let fbPercent = row.fablePercent
             let fbColor = subscriptionMuted ? inactive : tone(fbPercent)
-            drawRight(fbPercent != nil ? percentText(fbPercent) : "측정전", innerX + 674, y + 5, rowFont, fbPercent != nil ? fbColor : muted)
+            drawRight(fbPercent != nil ? percentText(fbPercent) : StatusVocabulary.notMeasured, innerX + 674, y + 5, rowFont, fbPercent != nil ? fbColor : muted)
             bar(fbPercent, x: innerX + 682, y: y + 10, width: 48, color: fbColor)
             if !teamClaudeCanReauthenticate(enabled: row.enabled, status: row.status,
                 source: row.source, provider: row.provider, errorReason: row.errorReason) {
@@ -2474,6 +2474,7 @@ final class StatusMenuDashboardView: NSView {
         higgsfield: HiggsfieldCreditsData? = nil,
         grok: GrokCardModel = GrokCardModel(headline: "Grok 확인 중", detail: nil),
         agy: AgyCardModel = AgyCardModel(message: "agy 확인 중", groups: []),
+        laneStaleNotes: [String: String] = [:],
         parallelCount: Int,
         active: Bool,
         isMeasuringTeamClaude: Bool,
@@ -2550,6 +2551,7 @@ final class StatusMenuDashboardView: NSView {
                 let lanes = CliQuotaLanesView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: CliQuotaLanesView.fixedHeight))
                 lanes.grok = grok
                 lanes.agy = agy
+                lanes.staleNotes = laneStaleNotes
                 addSubview(lanes)
                 cliLanesView = lanes
             case "usage":
@@ -2573,6 +2575,7 @@ final class StatusMenuDashboardView: NSView {
         higgsfield: HiggsfieldCreditsData? = nil,
         grok: GrokCardModel = GrokCardModel(headline: "Grok 확인 중", detail: nil),
         agy: AgyCardModel = AgyCardModel(message: "agy 확인 중", groups: []),
+        laneStaleNotes: [String: String] = [:],
         parallelCount: Int,
         active: Bool,
         isMeasuringTeamClaude: Bool,
@@ -2636,6 +2639,7 @@ final class StatusMenuDashboardView: NSView {
         phases.mark("codex")
         higgsfieldView?.data = higgsfield
         cliLanesView?.grok = grok
+        cliLanesView?.staleNotes = laneStaleNotes
         cliLanesView?.agy = agy
         usageView?.usage = usage
         usageView?.parallelCount = parallelCount
@@ -3606,6 +3610,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var higgsfieldLastSuccessAt: Date?
     let laneWatchStartedAt = Date()
     var lastLaneStaleLogAt: [String: Date] = [:]
+    /// 화면에 넘길 최신 지연 꼬리말. 로그 쿨다운과 무관하게 매번 갱신한다 —
+    /// 쿨다운은 로그가 도배되지 않게 하는 장치이지 화면을 감추는 장치가 아니다.
+    var laneStaleNotes: [String: String] = [:]
     var cachedPulseImage: NSImage?
     var cachedPulseKey: String?
     var cachedComposedImage: NSImage?
@@ -3748,6 +3755,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             LaneHealth(name: "higgsfield", interval: higgsfieldFetchInterval,
                        lastSuccessAt: higgsfieldLastSuccessAt, startedAt: laneWatchStartedAt),
         ], now: now)
+        let notes = Dictionary(uniqueKeysWithValues: messages.map { ($0.name, $0.note) })
+        if notes != laneStaleNotes {
+            laneStaleNotes = notes
+            scheduleDashboardRefresh(reason: "lane-stale")
+        }
         var printed = false
         for notice in messages {
             if let last = lastLaneStaleLogAt[notice.name],
@@ -4024,6 +4036,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             higgsfield: currentHiggsfield,
             grok: currentGrokCard,
             agy: currentAgyCard,
+            laneStaleNotes: laneStaleNotes,
             parallelCount: parallelCount,
             active: isActive,
             isMeasuringTeamClaude: isMeasuringTeamClaude,
@@ -4586,6 +4599,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             higgsfield: currentHiggsfield,
             grok: currentGrokCard,
             agy: currentAgyCard,
+            laneStaleNotes: laneStaleNotes,
             parallelCount: parallelCount,
             active: isActive,
             isMeasuringTeamClaude: isMeasuringTeamClaude,
@@ -4650,6 +4664,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             higgsfield: currentHiggsfield,
             grok: currentGrokCard,
             agy: currentAgyCard,
+            laneStaleNotes: laneStaleNotes,
             parallelCount: parallelCount,
             active: isActive,
             isMeasuringTeamClaude: isMeasuringTeamClaude,

@@ -187,6 +187,21 @@ class CliLaneHealthWiringTests(unittest.TestCase):
             with self.subTest(lane=name):
                 self.assertRegex(self.main, rf"\b{name}LastSuccessAt\s*=\s*Date\(\)")
 
+    def test_stale_state_reaches_the_screen(self):
+        # 지연이 로그에만 남으면 화면은 멀쩡해 보인다. 그게 이번 사고들의 공통 모양이었다.
+        self.assertIn("staleNotes", (SOURCES / "CliQuotaCards.swift").read_text())
+        self.assertIn("laneStaleNotes", self.main)
+        self.assertIn('scheduleDashboardRefresh(reason: "lane-stale")', self.main)
+
+    def test_empty_state_words_are_unified(self):
+        vocab = (SOURCES / "StatusVocabulary.swift").read_text()
+        for word in ("확인 중", "확인 필요", "측정 전"):
+            self.assertIn(word, vocab)
+        # 띄어쓰기가 갈린 옛 표기가 되살아나면 잡는다.
+        # 화면에 그리는 자리에서 옛 붙여쓰기 표기가 되살아나면 잡는다(진단 출력 문자열은 대상이 아니다).
+        for old in ('percentText(sessionPercent) : "확인필요"', ': "측정전",', ': "동기화중",'):
+            self.assertNotIn(old, self.main)
+
     def test_quiet_entry_is_invisible_until_hover(self):
         # 기록 없는 계정이 대다수라 옅게 남겨도 행마다 같은 문구가 반복된다.
         rows = (SOURCES / "TeamClaudeRowLines.swift").read_text()
@@ -369,8 +384,8 @@ class Stage2StructureTests(unittest.TestCase):
     def test_numbers_are_right_aligned(self):
         draw = self.table[self.table.index("override func draw("):]
         for call in ("drawRight(percentText(sessionPercent), innerX + 306",
-                     'drawRight(wkPercent != nil ? percentText(wkPercent) : "동기화중", innerX + 486',
-                     'drawRight(fbPercent != nil ? percentText(fbPercent) : "측정전", innerX + 674',
+                     "drawRight(wkPercent != nil ? percentText(wkPercent) : StatusVocabulary.syncing, innerX + 486",
+                     "drawRight(fbPercent != nil ? percentText(fbPercent) : StatusVocabulary.notMeasured, innerX + 674",
                      "drawRight(sessionDetail, innerX + 442",
                      "resetAt: row.weeklyResetAt), innerX + 612",
                      "resetAt: row.fableResetAt), innerX + 780"):

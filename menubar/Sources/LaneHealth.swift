@@ -28,6 +28,8 @@ let laneStaleLogCooldown: TimeInterval = 600
 struct LaneStaleNotice: Equatable {
     let name: String
     let message: String
+    /// 화면에 붙일 짧은 꼬리말. 로그 문장과 같은 수치를 쓴다 — 둘이 갈리면 어느 쪽이 맞는지 알 수 없다.
+    let note: String
 }
 
 /// 갱신이 끊긴 레인의 설명을 만든다. 정상인 레인은 아무것도 만들지 않는다.
@@ -42,7 +44,8 @@ func laneStaleMessages(_ lanes: [LaneHealth], now: Date, factor: Double = laneSt
         let what = lane.lastSuccessAt == nil ? "기동 후 한 번도 성공 못 함" : "마지막 성공 이후"
         out.append(LaneStaleNotice(
             name: lane.name,
-            message: "LANE-STALE: \(lane.name) \(minutes)분째 갱신 없음 (\(what))"
+            message: "LANE-STALE: \(lane.name) \(minutes)분째 갱신 없음 (\(what))",
+            note: StatusVocabulary.staleSuffix(minutes: minutes)
         ))
     }
     return out

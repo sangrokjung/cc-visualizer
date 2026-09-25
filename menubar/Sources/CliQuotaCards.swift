@@ -23,6 +23,16 @@ final class CliQuotaLanesView: NSView {
         }
     }
 
+    /// 레인 이름 → 지연 꼬리말. 값은 그대로 두고 낡았다는 사실만 덧붙인다.
+    /// 지연이 로그에만 남으면 화면은 멀쩡해 보이고, 그게 이번 사고들의 공통 모양이었다.
+    var staleNotes: [String: String] = [:] {
+        didSet {
+            guard staleNotes != oldValue else { return }
+            setAccessibilityLabel(accessibilityText)
+            needsDisplay = true
+        }
+    }
+
     override var isFlipped: Bool { true }
 
     override init(frame frameRect: NSRect) {
@@ -39,7 +49,10 @@ final class CliQuotaLanesView: NSView {
     private var accessibilityText: String {
         var grokText = "Grok \(grok.headline)"
         if let detail = grok.detail, !detail.isEmpty { grokText += ", \(detail)" }
-        return "\(grokText); agy \(agyLogLine(agy))"
+        if let note = staleNotes["grok"] { grokText += ", \(note)" }
+        var agyText = "agy \(agyLogLine(agy))"
+        if let note = staleNotes["agy"] { agyText += ", \(note)" }
+        return "\(grokText); \(agyText)"
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -60,9 +73,13 @@ final class CliQuotaLanesView: NSView {
         let grokY = Self.topInset
         drawText("Grok", 20, grokY, laneFont, muted)
         drawText(grok.headline, valueX, grokY - 1, valueFont, text)
-        if let detail = grok.detail, !detail.isEmpty {
+        var grokTail = grok.detail ?? ""
+        if let note = staleNotes["grok"] {
+            grokTail = grokTail.isEmpty ? note : "\(grokTail) · \(note)"
+        }
+        if !grokTail.isEmpty {
             let used = grok.headline.size(withAttributes: [.font: valueFont]).width
-            drawText(detail, valueX + used + 12, grokY + 1, detailFont, muted)
+            drawText(grokTail, valueX + used + 12, grokY + 1, detailFont, muted)
         }
 
         let agyY = Self.topInset + Self.laneHeight
@@ -82,6 +99,9 @@ final class CliQuotaLanesView: NSView {
         let bucketWidth = (bounds.width - 20 - bucketX - 16) / 2
         drawBucket("주간", group.weekly, bucketX, agyY + 1, bucketWidth)
         drawBucket("5시간", group.fiveHour, bucketX + bucketWidth + 16, agyY + 1, bucketWidth)
+        if let note = staleNotes["agy"] {
+            drawText(note, valueX, agyY + 14, NSFont.systemFont(ofSize: 11, weight: .medium), muted)
+        }
     }
 
     private func drawBucket(_ title: String, _ bucket: AgyQuotaBucket?, _ x: CGFloat, _ y: CGFloat, _ width: CGFloat) {
