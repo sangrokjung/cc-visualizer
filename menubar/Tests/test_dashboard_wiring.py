@@ -187,6 +187,15 @@ class CliLaneHealthWiringTests(unittest.TestCase):
             with self.subTest(lane=name):
                 self.assertRegex(self.main, rf"\b{name}LastSuccessAt\s*=\s*Date\(\)")
 
+    def test_quiet_entry_is_invisible_until_hover(self):
+        # 기록 없는 계정이 대다수라 옅게 남겨도 행마다 같은 문구가 반복된다.
+        rows = (SOURCES / "TeamClaudeRowLines.swift").read_text()
+        self.assertIn("static let restingAlpha: CGFloat = 0", rows)
+        self.assertIn("hoveredRow", self.main)
+        self.assertIn("NSTrackingArea(", self.main)
+        # 감춘 진입점은 발견 경로가 한 줄 있어야 한다.
+        self.assertIn("행에 마우스를 올리면 구독 기록", self.main)
+
     def test_config_reads_are_cached(self):
         # 계정마다 설정 파일을 읽고 파싱하면 1초 타이머가 도는 동안 메인 스레드에서
         # 그 일이 초당 계정 수만큼 반복된다(적대 리뷰 2026-09-24).
@@ -258,7 +267,9 @@ class AccountRowLinesWiringTests(unittest.TestCase):
         self.assertIn("health.rowLines(now: evaluatedAt)", layout)
         self.assertIn("teamClaudeRowOrigins(lines)", layout)
         self.assertIn("teamClaudeSubscriptionLineY(lines[index])", layout)
-        self.assertIn("button.isHidden = lineY == nil", layout, "the button stays alive but hidden so profile refresh keeps running")
+        self.assertNotIn("isHidden", layout, "stage 2: an empty subscription record is an entry point, never hidden")
+        self.assertIn("button.setQuietEntry(true)", layout)
+        self.assertIn("button.setQuietEntry(false)", layout)
         draw = self.table[self.table.index("override func draw("):]
         self.assertIn("health.rowLines(now: evaluatedAt, availability: availability)", draw)
         self.assertIn("teamClaudeRowOrigins(lines)", draw)
@@ -295,6 +306,92 @@ class AccountRowLinesWiringTests(unittest.TestCase):
             self.assertNotIn(legacy, self.main)
             self.assertNotIn(legacy, cli)
 
+
+
+class Stage2StructureTests(unittest.TestCase):
+    """2단계: 맨 위 요약은 한 줄 밴드, 표 마지막 열은 내용에 맞는 제목, 구독 진입점은 조용히 남고, 숫자는 우측 정렬.
+    카드 상단 기하는 TeamClaudeCardMetrics 하나에서 나와 높이·배치·그리기가 같은 값을 쓴다."""
+
+    def setUp(self):
+        self.main = MAIN.read_text()
+        self.table = class_body(self.main, "TeamClaudeTableView")
+        self.summary = class_body(self.main, "ServiceAvailabilitySummaryView")
+        self.dashboard = class_body(self.main, "StatusMenuDashboardView")
+        self.rows = (SOURCES / "TeamClaudeRowLines.swift").read_text()
+        self.palette = PALETTE.read_text()
+
+    def test_summary_is_a_single_band_not_three_cards(self):
+        height = re.search(r"static let preferredHeight: CGFloat = (\d+)", self.summary)
+        self.assertIsNotNone(height)
+        self.assertLessEqual(int(height.group(1)), 64, "the band must stay a single line, not a quarter of the screen")
+        self.assertNotIn('"사용 가능 현황"', self.summary.split("override func draw(")[1], "no big title in the band")
+        self.assertNotIn('"0개 사용 가능"', self.summary, "the 32pt count text is gone")
+        for name in ("Claude Fable", "Claude Opus", "Codex"):
+            self.assertIn(f'"{name}"', self.summary)
+        self.assertIn("ofSize: 15", self.palette.split("summaryValueFont")[1].split("\n")[0])
+        self.assertNotIn("ofSize: 32", self.palette)
+        self.assertNotIn("ofSize: 24", self.palette)
+
+    def test_card_does_not_repeat_the_available_count(self):
+        draw = self.table[self.table.index("override func draw("):]
+        self.assertNotIn('stat("Fable 사용 가능"', draw)
+        self.assertNotIn("func stat(", self.table, "the four stat tiles are gone")
+        self.assertNotIn("statValueProminentFont", self.main)
+        # 대기·제외·확인 필요 분류 수는 밴드에 없으므로 카드가 계속 말한다.
+        for label in ('"한도·요청 대기"', '"구독·오류·비활성"', '"확인 필요"'):
+            self.assertIn(label, draw)
+        self.assertIn('"사용 가능 계정 없음"', draw)
+
+    def test_last_column_title_matches_its_content(self):
+        draw = self.table[self.table.index("override func draw("):]
+        self.assertIn('drawText("상태", innerX + 790', draw)
+        self.assertNotIn('"측정", innerX + 790, tableY', draw)
+        self.assertNotIn("row.source.map", draw, "the credential type (oauth) is neither a measurement nor a status")
+        self.assertIn("formatTeamClaudeProbe(row.probedAt)", draw)
+        # 계정별 문제 사유는 어떤 경우에도 그린다.
+        self.assertIn("teamAccountErrorReasonLabel(row.errorReason)", draw)
+        self.assertIn("issue.compactText", draw)
+
+    def test_subscription_entry_survives_without_a_record(self):
+        availability = (SOURCES / "TeamClaudeAvailability.swift").read_text()
+        self.assertIn("!teamClaudeSubscriptionEntryFitsInline(name: row.name)", availability,
+                      "rowLines alone decides between the third line and the inline entry")
+        for symbol in ("func teamClaudeSubscriptionEntryFitsInline(", "enum TeamClaudeSubscriptionEntry", "static let restingAlpha"):
+            self.assertIn(symbol, self.rows)
+        button = (SOURCES / "AccountSubscriptionButton.swift").read_text()
+        self.assertIn("func setQuietEntry(", button)
+        self.assertIn('setAccessibilityLabel("\\(accountName): \\(title)")', button, "assistive tech still hears the full record")
+        self.assertIn("TeamClaudeSubscriptionEntry.inlineX", self.table)
+        self.assertIn("override func mouseMoved(", self.table)
+        self.assertIn("override func mouseExited(", self.table)
+        self.assertIn("TeamClaudeSubscriptionEntry.restingAlpha : 1", self.table)
+
+    def test_numbers_are_right_aligned(self):
+        draw = self.table[self.table.index("override func draw("):]
+        for call in ("drawRight(percentText(sessionPercent), innerX + 306",
+                     'drawRight(wkPercent != nil ? percentText(wkPercent) : "동기화중", innerX + 486',
+                     'drawRight(fbPercent != nil ? percentText(fbPercent) : "측정전", innerX + 674',
+                     "drawRight(sessionDetail, innerX + 442",
+                     "resetAt: row.weeklyResetAt), innerX + 612",
+                     "resetAt: row.fableResetAt), innerX + 780"):
+            self.assertIn(call, draw)
+        self.assertNotIn("drawText(percentText(", draw)
+
+    def test_card_metrics_are_shared_by_height_layout_and_draw(self):
+        height = self.dashboard[self.dashboard.index("static func teamContentHeight("):]
+        height = height[:height.index("\n    }\n")]
+        self.assertIn("teamClaudeCardBaseHeight(hostLine:", height)
+        self.assertNotIn("276", height)
+        self.assertNotIn("256", height)
+        layout = self.table[self.table.index("override func layout()"):]
+        layout = layout[:layout.index("\n    }\n")]
+        self.assertIn("TeamClaudeCardMetrics.rowsTop(hostLine:", layout)
+        draw = self.table[self.table.index("override func draw("):]
+        self.assertIn("TeamClaudeCardMetrics.rowsTop(hostLine:", draw)
+        self.assertIn("TeamClaudeCardMetrics.stripY(hostLine:", draw)
+        self.assertIn("TeamClaudeCardMetrics.tableHeadY(hostLine:", draw)
+        for literal in ("tableY + 34", "statY + 88", "topY + 14"):
+            self.assertNotIn(literal, self.table, f"a hard-coded offset would diverge from the shared metrics: {literal}")
 
 
 if __name__ == "__main__":

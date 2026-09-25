@@ -1812,11 +1812,9 @@ final class TeamClaudeTableView: NSView {
         ensureSubscriptionButtons()
         refreshTime(now: evaluatedAt)
         guard let health else { return }
-        let card = bounds.insetBy(dx: 8, dy: 4)
+        let card = bounds.insetBy(dx: 8, dy: TeamClaudeCardMetrics.cardInset)
         let innerX = card.minX + 16
-        let topY = card.minY + 14
-        let statY = topY + (health.hostSummaryText != nil ? 78 : 58)
-        let tableY = statY + 88
+        let rowsTop = TeamClaudeCardMetrics.rowsTop(hostLine: health.hostSummaryText != nil)
         let buttonX = innerX + 750
         let buttonWidth = card.maxX - buttonX - 2
         let lines = health.rowLines(now: evaluatedAt)
@@ -1826,19 +1824,60 @@ final class TeamClaudeTableView: NSView {
         for (button, row) in zip(reauthButtons, rows) {
             button.frame = NSRect(
                 x: buttonX,
-                y: tableY + 34 + origins[row.index] + 1,
+                y: rowsTop + origins[row.index] + 1,
                 width: buttonWidth,
                 height: 24
             )
         }
         for (index, button) in subscriptionButtons.enumerated() {
-            // 정보 없는 구독 줄은 숨긴다. 버튼 자체는 남겨 둔다 — 프로필 자동 조회가 이 버튼의 refreshTitle에 매달려 있어
-            // 플랜이 확인되는 순간 줄이 다시 나타나야 한다. 숨긴 버튼은 높이 0으로 행 안에 두어 겹침 검사에 걸리지 않게 한다.
-            let lineY = teamClaudeSubscriptionLineY(lines[index])
-            button.isHidden = lineY == nil
-            button.frame = NSRect(x: innerX + 24, y: tableY + 34 + origins[index] + (lineY ?? TeamClaudeRowMetrics.firstLineY),
-                                  width: card.width - 70, height: lineY == nil ? 0 : TeamClaudeRowMetrics.subscriptionHeight)
+            let rowY = rowsTop + origins[index]
+            if let lineY = teamClaudeSubscriptionLineY(lines[index]) {
+                button.setQuietEntry(false)
+                button.frame = NSRect(x: innerX + 24, y: rowY + lineY,
+                                      width: card.width - 70, height: TeamClaudeRowMetrics.subscriptionHeight)
+            } else {
+                // 기록이 없는 행: 줄을 세우지 않고 이름 줄 오른쪽에 조용히 둔다. 숨기면 입력 진입점이 사라지고,
+                // 프로필 자동 조회도 이 버튼의 refreshTitle에 매달려 있어 버튼은 항상 살아 있어야 한다.
+                button.setQuietEntry(true)
+                button.frame = NSRect(x: innerX + TeamClaudeSubscriptionEntry.inlineX, y: rowY + 3,
+                                      width: TeamClaudeSubscriptionEntry.inlineWidth, height: TeamClaudeSubscriptionEntry.inlineHeight)
+            }
         }
+        applyHoverAlpha()
+    }
+
+    /// 마우스가 올라간 행. 조용한 구독 진입점은 이 행에서만 또렷해진다.
+    private var hoveredRow: Int? {
+        didSet { if hoveredRow != oldValue { applyHoverAlpha() } }
+    }
+    private var hoverTrackingArea: NSTrackingArea?
+
+    private func applyHoverAlpha() {
+        for (index, button) in subscriptionButtons.enumerated() {
+            button.alphaValue = button.isQuietEntry && index != hoveredRow ? TeamClaudeSubscriptionEntry.restingAlpha : 1
+        }
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let hoverTrackingArea { removeTrackingArea(hoverTrackingArea) }
+        let area = NSTrackingArea(rect: bounds, options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+                                  owner: self, userInfo: nil)
+        addTrackingArea(area)
+        hoverTrackingArea = area
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event)
+        guard let health, let lines = laidOutLines else { hoveredRow = nil; return }
+        let y = convert(event.locationInWindow, from: nil).y - TeamClaudeCardMetrics.rowsTop(hostLine: health.hostSummaryText != nil)
+        let origins = teamClaudeRowOrigins(lines)
+        hoveredRow = zip(origins, origins.dropFirst()).enumerated().first { y >= $0.element.0 && y < $0.element.1 }?.offset
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event)
+        hoveredRow = nil
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -1870,8 +1909,8 @@ final class TeamClaudeTableView: NSView {
         measureActionRect = .zero
         measureRowRects.removeAll(keepingCapacity: true)
 
-        let card = bounds.insetBy(dx: 8, dy: 4)
-        let bg = TeamClaudePalette.bg, panel = TeamClaudePalette.panel, panel2 = TeamClaudePalette.panel2
+        let card = bounds.insetBy(dx: 8, dy: TeamClaudeCardMetrics.cardInset)
+        let bg = TeamClaudePalette.bg, panel2 = TeamClaudePalette.panel2
         let line = TeamClaudePalette.line, text = TeamClaudePalette.text, muted = TeamClaudePalette.muted
         let green = TeamClaudePalette.green, yellow = TeamClaudePalette.yellow
         let red = TeamClaudePalette.red, blue = TeamClaudePalette.blue
@@ -1924,14 +1963,6 @@ final class TeamClaudeTableView: NSView {
             strokeRound(rect, color.withAlphaComponent(0.38), 11)
             drawText(value, x + 8, y + 3.5, subFont, color)
         }
-        func stat(_ title: String, _ value: String, _ detail: String, x: CGFloat, y: CGFloat, width: CGFloat, color: NSColor, prominent: Bool = false) {
-            let rect = NSRect(x: x, y: y, width: width, height: 54)
-            fillRound(rect, prominent ? color.withAlphaComponent(0.10) : panel, 9)
-            strokeRound(rect, prominent ? color.withAlphaComponent(0.45) : line.withAlphaComponent(0.8), 9)
-            drawText(title, x + 10, y + 7, headFont, prominent ? text : muted)
-            drawText(value, x + 10, y + 23, prominent ? TeamClaudePalette.statValueProminentFont : TeamClaudePalette.statValueFont, color)
-            drawText(detail, x + width - detail.size(withAttributes: attrs(smallFont, muted)).width - 10, y + 31, smallFont, muted)
-        }
         func bar(_ percent: Double?, x: CGFloat, y: CGFloat, width: CGFloat, color: NSColor) {
             fillRound(NSRect(x: x, y: y, width: width, height: 7), NSColor.white.withAlphaComponent(0.10), 3.5)
             guard let percent = percent else { return }
@@ -1943,11 +1974,13 @@ final class TeamClaudeTableView: NSView {
         strokeRound(card, line, 14)
 
         let innerX = card.minX + 16
-        let topY = card.minY + 14
+        let hostLineShown = health.hostSummaryText != nil
+        let topY = TeamClaudeCardMetrics.titleY(hostLine: hostLineShown)
         let actionRect = NSRect(x: card.maxX - 330, y: topY - 4, width: 314, height: 48)
         markDraw("TeamClaudeTableView.header")
         drawText("TeamClaude", innerX, topY, titleFont, text)
-        pill(health.serverReachable ? "실행중" : "오프라인", x: innerX + 122, y: topY - 2, color: health.serverReachable ? green : red)
+        let titleWidth = "TeamClaude".size(withAttributes: attrs(titleFont, text)).width
+        pill(health.serverReachable ? "실행중" : "오프라인", x: innerX + titleWidth + 12, y: topY - 2, color: health.serverReachable ? green : red)
         let integrationLabel = health.accountConfigDrift == 0 ? "연동 정상" : "연동 불일치 \(health.accountConfigDrift)"
         let serverBase = "port \(health.serverPort ?? 0)  ·  pid \(health.serverPid.map(String.init) ?? "-")  ·  \(integrationLabel)"
         let serverColor = health.accountConfigDrift == 0 ? muted : yellow
@@ -1958,12 +1991,10 @@ final class TeamClaudeTableView: NSView {
             maxWidth: actionRect.minX - 8 - innerX,
             measure: { $0.size(withAttributes: attrs(subFont, serverColor)).width }
         )
-        drawText(serverLine, innerX, topY + 29, subFont, serverColor)
-        let hostLineShown = health.hostSummaryText != nil
+        drawText(serverLine, innerX, topY + 28, subFont, serverColor)
         if let hostText = health.hostSummaryText {
             drawText(hostText, innerX, topY + 48, subFont, health.hostIsWarning ? red : muted)
         }
-        let totalAccounts = max(health.accountTotal, health.accountConfigured)
         let availability = health.fableAvailability(now: evaluatedAt)
         subscriptionButtons.forEach { $0.refreshTitle(now: evaluatedAt) }
         let ready = availability.filter { $0.state == .ready }.count
@@ -2016,40 +2047,61 @@ final class TeamClaudeTableView: NSView {
         drawText(clipped(actionTitle, 28), actionRect.minX + 40, actionRect.minY + 6, subFont, actionColor)
         drawText(clipped(actionDetail, 38), actionRect.minX + 40, actionRect.minY + 25, smallFont, muted)
 
-        let statY = topY + (hostLineShown ? 78 : 58)
-        let statW = (card.width - 32 - 27) / 4
+        // 요약 띠 한 줄: 왼쪽은 지금 쓸 수 있는 계정 이름, 오른쪽은 못 쓰는 계정의 분류별 수.
+        // "Fable 사용 가능 N/총계"는 맨 위 요약 밴드와 섹션 헤더가 이미 말하므로 여기서 다시 세지 않는다(같은 숫자 두 번 금지).
+        let stripY = TeamClaudeCardMetrics.stripY(hostLine: hostLineShown)
+        let strip = NSRect(x: innerX, y: stripY, width: card.width - 32, height: TeamClaudeCardMetrics.stripHeight)
         markDraw("TeamClaudeTableView.stats")
-        stat("Fable 사용 가능", "\(ready) / \(totalAccounts)", "계정", x: innerX, y: statY, width: statW, color: ready > 0 ? green : red, prominent: true)
-        stat("한도 · 요청 대기", "\(limited)", "계정", x: innerX + statW + 9, y: statY, width: statW, color: limited > 0 ? yellow : muted)
-        stat("구독 · 오류 · 비활성", "\(excluded)", "제외", x: innerX + (statW + 9) * 2, y: statY, width: statW, color: excluded > 0 ? red : muted)
-        stat("확인 필요", "\(unconfirmed)", "미확인", x: innerX + (statW + 9) * 3, y: statY, width: statW, color: unconfirmed > 0 ? yellow : muted)
-
+        fillRound(strip, (ready > 0 ? green : muted).withAlphaComponent(0.10), 6)
+        let stripTextY = strip.minY + 5
+        var cursorX = strip.maxX - 10
+        // 오른쪽부터 채운다: "확인 필요 14 · 구독·오류·비활성 3 · 한도·요청 대기 0" 순으로 뒤에서 앞으로.
+        let breakdown: [(String, Int, NSColor)] = [
+            ("확인 필요", unconfirmed, yellow), ("구독·오류·비활성", excluded, red), ("한도·요청 대기", limited, yellow),
+        ]
+        for (index, item) in breakdown.enumerated() {
+            let color = item.1 > 0 ? item.2 : muted
+            drawRight(String(item.1), cursorX, stripTextY, rowFont, color)
+            cursorX -= String(item.1).size(withAttributes: attrs(rowFont, color)).width + 6
+            drawRight(item.0, cursorX, stripTextY + 1, smallFont, muted)
+            cursorX -= item.0.size(withAttributes: attrs(smallFont, muted)).width
+            if index < breakdown.count - 1 {
+                cursorX -= 10
+                drawRight("·", cursorX, stripTextY + 1, smallFont, muted)
+                cursorX -= 10
+            }
+        }
         let readyNames = availability
             .enumerated()
             .filter { $0.element.state == .ready }
             .map { $0.offset < health.accounts.count ? health.accounts[$0.offset].name : "" }
             .filter { !$0.isEmpty }
+        let namesWidth = cursorX - 16 - (strip.minX + 10)
+        let namesCapacity = max(8, Int(namesWidth / "가".size(withAttributes: attrs(smallFont, muted)).width * 1.6))
         let readySummary = readyNames.isEmpty
             ? "사용 가능 계정 없음"
-            : "사용 가능 계정: " + clipped(readyNames.joined(separator: " · "), 72)
-        let availableStrip = NSRect(x: innerX, y: statY + 60, width: card.width - 32, height: 22)
-        fillRound(availableStrip, (ready > 0 ? green : muted).withAlphaComponent(0.10), 6)
-        drawText(readySummary, availableStrip.minX + 10, availableStrip.minY + 4, smallFont, ready > 0 ? green : muted)
+            // TeamCodex 카드와 같은 문구를 쓴다. 폭을 아끼려고 한쪽만 줄이면 두 풀의 표기가 갈린다.
+            : "사용 가능 계정: " + clipped(readyNames.joined(separator: " · "), namesCapacity)
+        drawText(readySummary, strip.minX + 10, stripTextY + 1, smallFont, ready > 0 ? green : muted)
 
-        let tableY = statY + 88
-        fillRound(NSRect(x: innerX, y: tableY, width: card.width - 32, height: 30), panel2, 8)
-        drawText("계정", innerX + 12, tableY + 8, headFont, muted)
-        drawText("세션 5h", innerX + 270, tableY + 8, headFont, muted)
-        drawText("전체 주간", innerX + 450, tableY + 8, headFont, muted)
-        drawText("Fable 주간", innerX + 620, tableY + 8, headFont, muted)
-        drawText("측정", innerX + 790, tableY + 8, headFont, muted)
+        let tableY = TeamClaudeCardMetrics.tableHeadY(hostLine: hostLineShown)
+        fillRound(NSRect(x: innerX, y: tableY, width: card.width - 32, height: TeamClaudeCardMetrics.tableHeadHeight), panel2, 8)
+        let headY = tableY + 9
+        drawText("계정", innerX + 12, headY, headFont, muted)
+        // 숫자 열은 값이 우측 정렬이므로 머리글도 값의 오른쪽 끝(퍼센트 끝 x)에 맞춘다.
+        drawRight("세션 5h", innerX + 306, headY, headFont, muted)
+        drawRight("전체 주간", innerX + 486, headY, headFont, muted)
+        drawRight("Fable 주간", innerX + 674, headY, headFont, muted)
+        // 이 열은 측정 시각뿐 아니라 오류 사유·측정 버튼·종료·재인증 버튼이 들어온다. 내용에 맞춰 "상태"다.
+        drawText("상태", innerX + 790, headY, headFont, muted)
 
         markDraw("TeamClaudeTableView.rows")
         // layout()·teamContentHeight와 같은 판정으로 행 원점을 잡는다. 여기서 다른 기준을 쓰면 버튼과 글자가 어긋난다.
         let lines = health.rowLines(now: evaluatedAt, availability: availability)
         let origins = teamClaudeRowOrigins(lines)
+        let rowsTop = TeamClaudeCardMetrics.rowsTop(hostLine: hostLineShown)
         for (i, row) in health.accounts.enumerated() {
-            let y = tableY + 34 + origins[i]
+            let y = rowsTop + origins[i]
             let rowRect = NSRect(x: innerX, y: y, width: card.width - 32, height: teamClaudeRowHeight(lines[i]))
             let state = availability[i]
             let subscriptionMuted = state.subscriptionAppearance.isMuted
@@ -2069,8 +2121,8 @@ final class TeamClaudeTableView: NSView {
             let nameColor = subscriptionMuted ? inactive : showCurrent ? green : (row.status == "configured" ? muted : text)
             drawText((showCurrent ? ">" : " ") + clipped(row.name, 30), innerX + 24, y + 5, rowFont, nameColor)
             if state.subscriptionAppearance == .ended {
-                for offset: CGFloat in [270, 450, 620] {
-                    drawText("—", innerX + offset, y + 5, rowFont, inactive)
+                for rightEdge: CGFloat in [306, 486, 674] {
+                    drawRight("—", innerX + rightEdge, y + 5, rowFont, inactive)
                 }
                 drawText("종료", innerX + 790, y + 5, smallFont, inactive)
                 continue
@@ -2080,12 +2132,12 @@ final class TeamClaudeTableView: NSView {
             let session = teamClaudeSessionState(percent: row.sessionPercent, lastUsed: row.probedAt, now: evaluatedAt)
             let sessionPercent = session.percent
             let sesColor = subscriptionMuted ? inactive : tone(sessionPercent)
-            drawText(percentText(sessionPercent), innerX + 270, y + 5, rowFont, subscriptionMuted ? inactive : sessionPercent == nil ? blue : sesColor)
+            drawRight(percentText(sessionPercent), innerX + 306, y + 5, rowFont, subscriptionMuted ? inactive : sessionPercent == nil ? blue : sesColor)
             bar(sessionPercent, x: innerX + 314, y: y + 10, width: 74, color: sesColor)
             let sessionDetail = session.isStale
                 ? (row.measurementIssue == .quotaBlocked ? "한도리셋" : "재측정")
                 : (sessionPercent != nil ? teamClaudeResetLabel(row.sessionResetSeconds, checkedAt: health.checkedAt, now: evaluatedAt, resetAt: row.sessionResetAt) : (attempted ? "확인필요" : "측정전"))
-            drawText(sessionDetail, innerX + 398, y + 5, smallFont, muted)
+            drawRight(sessionDetail, innerX + 442, y + 5, smallFont, muted)
 
             // 주간·Fable 독립 표시 — 프록시는 재시작 후 Fable(7d_oi) 창을 의도적으로
             // 스냅샷 복원하지 않고 재측정한다(self-lock 방지). 구 all-four 페어링
@@ -2093,17 +2145,17 @@ final class TeamClaudeTableView: NSView {
             // 두 열 모두 "동기화중"으로 떨어뜨렸다 (2026-07-22 사고).
             let wkPercent = row.weeklyPercent
             let wkColor = subscriptionMuted ? inactive : tone(wkPercent)
-            drawText(wkPercent != nil ? percentText(wkPercent) : "동기화중", innerX + 450, y + 5, rowFont, subscriptionMuted ? inactive : wkPercent != nil ? wkColor : yellow)
+            drawRight(wkPercent != nil ? percentText(wkPercent) : "동기화중", innerX + 486, y + 5, rowFont, subscriptionMuted ? inactive : wkPercent != nil ? wkColor : yellow)
             bar(wkPercent, x: innerX + 494, y: y + 10, width: 74, color: wkColor)
-            drawText(teamClaudeResetLabel(row.weeklyResetSeconds, checkedAt: health.checkedAt, now: evaluatedAt, resetAt: row.weeklyResetAt), innerX + 578, y + 5, smallFont, muted)
+            drawRight(teamClaudeResetLabel(row.weeklyResetSeconds, checkedAt: health.checkedAt, now: evaluatedAt, resetAt: row.weeklyResetAt), innerX + 612, y + 5, smallFont, muted)
 
             let fbPercent = row.fablePercent
             let fbColor = subscriptionMuted ? inactive : tone(fbPercent)
-            drawText(fbPercent != nil ? percentText(fbPercent) : "측정전", innerX + 620, y + 5, rowFont, fbPercent != nil ? fbColor : muted)
+            drawRight(fbPercent != nil ? percentText(fbPercent) : "측정전", innerX + 674, y + 5, rowFont, fbPercent != nil ? fbColor : muted)
             bar(fbPercent, x: innerX + 682, y: y + 10, width: 48, color: fbColor)
             if !teamClaudeCanReauthenticate(enabled: row.enabled, status: row.status,
                 source: row.source, provider: row.provider, errorReason: row.errorReason) {
-                drawText(teamClaudeResetLabel(row.fableResetSeconds, checkedAt: health.checkedAt, now: evaluatedAt, resetAt: row.fableResetAt), innerX + 738, y + 5, smallFont, muted)
+                drawRight(teamClaudeResetLabel(row.fableResetSeconds, checkedAt: health.checkedAt, now: evaluatedAt, resetAt: row.fableResetAt), innerX + 780, y + 5, smallFont, muted)
             }
             if teamClaudeCanReauthenticate(
                 enabled: row.enabled,
@@ -2127,23 +2179,30 @@ final class TeamClaudeTableView: NSView {
                     drawText(issue.compactText, innerX + 790, y + 5, smallFont, issue == .quotaBlocked ? red : muted)
                 }
             } else {
-                let probeText = row.probedAt.map(formatTeamClaudeProbe) ?? (row.source.map { "\($0)" } ?? "-")
-                drawText(probeText, innerX + 790, y + 5, smallFont, muted)
+                // 마지막 측정 시각. 없으면 "-" — 예전엔 계정 종류(oauth)로 채웠는데 그건 상태도 측정도 아니다.
+                drawText(formatTeamClaudeProbe(row.probedAt), innerX + 790, y + 5, smallFont, muted)
             }
         }
 
         window?.invalidateCursorRects(for: self)
 
-        let footerY = card.maxY - 33
+        let footerY = card.maxY - 32
         NSBezierPath.strokeLine(from: NSPoint(x: innerX, y: footerY - 8), to: NSPoint(x: card.maxX - 16, y: footerY - 8))
         let thresholdLabel = health.quotaThresholdPercent.isFinite ? String(format: "%.0f", health.quotaThresholdPercent) : "미확인"
-        drawText("Fable 가능 = 세션 + 전체 주간 + Fable 여유 · \(thresholdLabel)%부터 대기 · 미측정 제외", innerX, footerY, smallFont, muted)
+        // 구독 기록 진입점은 행에서 감춰 두므로, 존재를 알리는 문장을 여기 한 번만 둔다.
+        // 행마다 두면 기록 없는 계정이 대다수라 같은 문구가 표를 덮는다.
+        drawText("Fable 가능 = 세션 + 전체 주간 + Fable 여유 · \(thresholdLabel)%부터 대기 · 미측정 제외 · 행에 마우스를 올리면 구독 기록",
+                 innerX, footerY, smallFont, muted)
         markDraw("TeamClaudeTableView.done")
     }
 }
 
 final class ServiceAvailabilitySummaryView: NSView {
-    static let preferredHeight: CGFloat = 396
+    /// 한 줄 요약 밴드. 예전 카드 3장(396pt)은 "N개 사용 가능"을 32pt로 말하고 바로 아래 표가 같은 수를 반복했다.
+    /// 지금은 세 서비스의 사용 가능 수와 상태 색만 한 줄에 담는다 — "지금 쓸 수 있는가"는 여전히 첫눈에 보인다.
+    static let preferredHeight: CGFloat = 48
+    /// 왼쪽 "지금 사용 가능" 라벨이 차지하는 폭. 그 뒤를 세 서비스가 균등 분할한다.
+    static let leadWidth: CGFloat = 104
 
     var teamClaude: TeamClaudeHealth? { didSet { refreshSummary() } }
     var teamCodex: TeamCodexPoolHealth? { didSet { refreshSummary() } }
@@ -2189,7 +2248,6 @@ final class ServiceAvailabilitySummaryView: NSView {
         super.draw(dirtyRect)
         let card = bounds.insetBy(dx: 8, dy: 4)
         let bg = TeamClaudePalette.bg
-        let panel = TeamClaudePalette.panel2
         let line = TeamClaudePalette.line
         let text = TeamClaudePalette.text
         let muted = TeamClaudePalette.muted
@@ -2197,13 +2255,16 @@ final class ServiceAvailabilitySummaryView: NSView {
         let yellow = TeamClaudePalette.yellow
         let red = TeamClaudePalette.red
         let gray = TeamClaudePalette.inactive
-        let titleFont = TeamClaudePalette.summaryTitleFont
-        let bodyFont = TeamClaudePalette.summaryBodyFont
-        let monoFont = TeamClaudePalette.summaryValueFont
-        let smallFont = TeamClaudePalette.summaryNameFont
+        let leadFont = TeamClaudePalette.summaryTitleFont
+        let nameFont = TeamClaudePalette.summaryBodyFont
+        let countFont = TeamClaudePalette.summaryValueFont
+        let detailFont = TeamClaudePalette.summaryNameFont
 
         func attrs(_ font: NSFont, _ color: NSColor) -> [NSAttributedString.Key: Any] {
             [.font: font, .foregroundColor: color]
+        }
+        func width(_ value: String, _ font: NSFont) -> CGFloat {
+            value.size(withAttributes: attrs(font, text)).width
         }
         func drawText(_ value: String, _ x: CGFloat, _ y: CGFloat, _ font: NSFont, _ color: NSColor) {
             value.draw(at: NSPoint(x: x, y: y), withAttributes: attrs(font, color))
@@ -2231,60 +2292,69 @@ final class ServiceAvailabilitySummaryView: NSView {
                 $0.isUsable(switchThresholdPercent: pool.switchThresholdPercent, now: evaluatedAt)
             }.map(\.name)
         }
+        // 색의 의미는 카드 시절과 같다: 미연동 회색, 서버 오프라인 빨강, 0개 노랑, 1개 이상 초록.
         func statusColor(_ count: Int, hasService: Bool, reachable: Bool) -> NSColor {
             guard hasService else { return gray }
             if !reachable { return red }
             return count > 0 ? green : yellow
         }
+        /// 수 뒤에 붙는 설명. 사용 가능 계정이 있으면 이름(2개까지, 나머지는 +N), 없으면 왜 0인지.
+        func detail(_ names: [String], hasService: Bool, reachable: Bool) -> (String, NSColor) {
+            guard hasService else { return ("연동되지 않음", muted) }
+            guard reachable else { return ("서버 오프라인", red) }
+            guard !names.isEmpty else { return ("", muted) }
+            let shown = names.prefix(2).joined(separator: " · ")
+            return (names.count > 2 ? "\(shown) +\(names.count - 2)" : shown, text)
+        }
+        func clippedToWidth(_ value: String, _ font: NSFont, _ maxWidth: CGFloat) -> String {
+            if width(value, font) <= maxWidth { return value }
+            var trimmed = value
+            while !trimmed.isEmpty, width(trimmed + "…", font) > maxWidth { trimmed.removeLast() }
+            return trimmed.isEmpty ? "" : trimmed + "…"
+        }
 
-        fillRound(card, bg, 14)
-        strokeRound(card, line, 14)
-        drawText("사용 가능 현황", card.minX + 16, card.minY + 10, titleFont, text)
-        drawText("지금 바로 요청을 받을 수 있는 계정", card.minX + 16, card.minY + 42, smallFont, muted)
+        fillRound(card, bg, 12)
+        strokeRound(card, line, 12)
+        let textY = card.minY + 12
+        drawText("지금 사용 가능", card.minX + 16, textY + 1, leadFont, muted)
 
-        let columnY = card.minY + 72
-        let columnGap: CGFloat = 8
-        let columnWidth = (card.width - 32 - columnGap) / 2
         let namesClaude = namesForClaude()
-        let namesCodex = namesForCodex()
         let namesOpus = teamClaude?.opusAvailability(now: evaluatedAt) ?? []
-        let claudeColor = statusColor(namesClaude.count, hasService: teamClaude != nil,
-                                      reachable: teamClaude?.serverReachable ?? false)
-        let codexColor = statusColor(namesCodex.count, hasService: teamCodex != nil,
-                                     reachable: teamCodex?.serverReachable ?? false)
-
-        let columns: [(String, [String], NSColor, String)] = [
-            ("TeamClaude · Fable", namesClaude, claudeColor,
-             teamClaude == nil ? "연동되지 않음" : (teamClaude?.serverReachable == true ? "Fable 기준" : "서버 오프라인")),
-            ("TeamClaude · Opus", namesOpus, statusColor(namesOpus.count, hasService: teamClaude != nil, reachable: teamClaude?.serverReachable ?? false),
-             "일반 모델 · 세션 + 전체 주간 기준"),
-            ("TeamCodex", namesCodex, codexColor,
-             teamCodex == nil ? "연동되지 않음" : (teamCodex?.serverReachable == true ? "Codex 풀 기준" : "서버 오프라인"))
+        let namesCodex = namesForCodex()
+        let claudeService = teamClaude != nil
+        let claudeReachable = teamClaude?.serverReachable ?? false
+        let codexService = teamCodex != nil
+        let codexReachable = teamCodex?.serverReachable ?? false
+        let columns: [(String, [String], NSColor, (String, NSColor))] = [
+            ("Claude Fable", namesClaude,
+             statusColor(namesClaude.count, hasService: claudeService, reachable: claudeReachable),
+             detail(namesClaude, hasService: claudeService, reachable: claudeReachable)),
+            ("Claude Opus", namesOpus,
+             statusColor(namesOpus.count, hasService: claudeService, reachable: claudeReachable),
+             detail(namesOpus, hasService: claudeService, reachable: claudeReachable)),
+            ("Codex", namesCodex,
+             statusColor(namesCodex.count, hasService: codexService, reachable: codexReachable),
+             detail(namesCodex, hasService: codexService, reachable: codexReachable)),
         ]
+        let columnsX = card.minX + 16 + Self.leadWidth
+        let columnWidth = (card.maxX - 16 - columnsX) / CGFloat(columns.count)
+        guard columnWidth > 0 else { return }
         for (index, column) in columns.enumerated() {
-            if columnWidth <= 0 { continue }
-            let x = card.minX + 16 + CGFloat(index % 2) * (columnWidth + columnGap)
-            let columnY = columnY + CGFloat(index / 2) * 156
-            let rect = NSRect(x: x, y: columnY, width: columnWidth, height: 148)
-            fillRound(rect, panel, 8)
-            strokeRound(rect, column.2.withAlphaComponent(0.42), 8)
-            fillRound(NSRect(x: x + 14, y: columnY + 17, width: 10, height: 10), column.2, 4)
-            drawText(column.0, x + 32, columnY + 10, bodyFont, text)
-            let countText = column.1.isEmpty ? "0개 사용 가능" : "\(column.1.count)개 사용 가능"
-            drawText(countText, x + 14, columnY + 40, monoFont, column.2)
-            let names = column.1.isEmpty ? [column.3] : Array(column.1.prefix(2))
-            let nameColor = column.1.isEmpty ? muted : text
-            for (row, name) in names.enumerated() {
-                drawText(name, x + 14, columnY + 84 + CGFloat(row) * 24, smallFont, nameColor)
-            }
-            if column.1.count > 2 {
-                drawText("추가 계정은 아래 목록에서 확인", x + 14, columnY + 128,
-                         TeamClaudePalette.summaryFootFont, muted)
+            let x = columnsX + CGFloat(index) * columnWidth
+            fillRound(NSRect(x: x, y: card.midY - 4, width: 8, height: 8), column.2, 4)
+            var cursor = x + 16
+            drawText(column.0, cursor, textY, nameFont, text)
+            cursor += width(column.0, nameFont) + 8
+            let count = "\(column.1.count)개"
+            drawText(count, cursor, textY - 1, countFont, column.2)
+            cursor += width(count, countFont) + 8
+            let remaining = x + columnWidth - 12 - cursor
+            if !column.3.0.isEmpty, remaining > 0 {
+                drawText(clippedToWidth(column.3.0, detailFont, remaining), cursor, textY + 2, detailFont, column.3.1)
             }
         }
     }
 }
-
 
 /// 메뉴 대시보드 한 장. 요약 카드 아래로 섹션(제목 띠 + 본문)이 이어지는 하나의 연속 문서다 — 섹션별 안쪽 스크롤은 없다.
 /// 화면보다 길면 AppDelegate.hostDashboard가 통째로 NSScrollView에 넣고 현재 섹션 이름을 고정 헤더로 띄운다.
@@ -2333,8 +2403,8 @@ final class StatusMenuDashboardView: NSView {
 
     static func teamContentHeight(_ health: TeamClaudeHealth?, now: Date = Date()) -> CGFloat {
         guard let health = health else { return 0 }
-        // 호스트 라인이 표시될 때만 20pt 추가 (구버전 서버·미측정 시 여백 없음)
-        let base: CGFloat = health.hostSummaryText != nil ? 276 : 256
+        // 카드 상단 기하는 layout()/draw()와 같은 TeamClaudeCardMetrics에서 온다(호스트 줄 유무만 갈린다).
+        let base = teamClaudeCardBaseHeight(hostLine: health.hostSummaryText != nil)
         // 행 높이는 보조 줄 유무에 따라 다르다. 표의 layout()/draw()와 같은 rowLines 판정을 쓴다.
         return base + teamClaudeRowsHeight(health.rowLines(now: now))
     }

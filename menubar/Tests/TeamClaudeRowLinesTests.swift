@@ -50,6 +50,33 @@ struct TeamClaudeRowLinesTests {
         precondition(teamClaudeRowOrigins([]) == [0] && teamClaudeRowsHeight([]) == 0)
         precondition(teamClaudeRowsHeight(Array(repeating: .full, count: 17)) == 17 * 72, "all-full rows reproduce the legacy table height")
 
-        print("teamclaude row lines: reason/subscription gating and row geometry passed")
+        // 4. 구독 진입점 — 기록이 없어도 사라지지 않는다. 이름이 짧으면 이름 줄 안, 길면 3행으로 내려간다.
+        precondition(teamClaudeNameWidthUnits("acct-01") == 7)
+        precondition(teamClaudeNameWidthUnits("검증 계정 1") == 4 * 2 + 3, "non-ASCII glyphs take two cells in the monospaced row font")
+        precondition(teamClaudeSubscriptionEntryFitsInline(name: "acct-01"))
+        precondition(teamClaudeSubscriptionEntryFitsInline(name: String(repeating: "a", count: 20)))
+        precondition(!teamClaudeSubscriptionEntryFitsInline(name: String(repeating: "a", count: 21)), "a long name would collide with the inline button")
+        precondition(!teamClaudeSubscriptionEntryFitsInline(name: String(repeating: "가", count: 11)))
+        precondition(TeamClaudeSubscriptionEntry.inlineX + TeamClaudeSubscriptionEntry.inlineWidth <= 270,
+                     "the inline entry must end before the session column")
+        // 평상시엔 감춘다. 기록 없는 계정이 대다수라 옅게라도 남기면 같은 문구가 17행을 덮고,
+        // 그건 이번 정리가 걷어낸 반복 노이즈와 같다. 발견은 표 아래 안내 문장 한 줄이 맡고,
+        // 접근성 트리에는 alpha와 무관하게 남는다.
+        precondition(TeamClaudeSubscriptionEntry.restingAlpha == 0,
+                     "the inline entry stays hidden until the row is pointed at")
+
+        // 5. 카드 기하 — 4pt 리듬. 행 시작 y와 행 없는 높이가 한 함수에서 나온다.
+        for value in [TeamClaudeCardMetrics.topInset, TeamClaudeCardMetrics.headerHeight, TeamClaudeCardMetrics.hostLineHeight,
+                      TeamClaudeCardMetrics.stripHeight, TeamClaudeCardMetrics.stripGap, TeamClaudeCardMetrics.tableHeadHeight,
+                      TeamClaudeCardMetrics.tableHeadGap, TeamClaudeCardMetrics.footerHeight, TeamClaudeCardMetrics.cardInset] {
+            precondition(value.truncatingRemainder(dividingBy: 4) == 0, "card spacing follows a 4pt scale: \(value)")
+        }
+        precondition(TeamClaudeCardMetrics.rowsTop(hostLine: false) == 144)
+        precondition(TeamClaudeCardMetrics.rowsTop(hostLine: true) == 164)
+        precondition(teamClaudeCardBaseHeight(hostLine: false) == 192)
+        precondition(teamClaudeCardBaseHeight(hostLine: true) == 212, "the host line adds exactly its own height")
+        precondition(teamClaudeCardBaseHeight(hostLine: false) < 256, "stage 2 removed the four stat tiles, so the base must shrink")
+
+        print("teamclaude row lines: reason/subscription gating, row geometry, inline entry and card metrics passed")
     }
 }
