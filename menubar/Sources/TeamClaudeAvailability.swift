@@ -37,7 +37,7 @@ func teamClaudeFableAvailability(
     if let provider = row.provider, provider != "anthropic" {
         return result(.excluded, "Claude 계정 아님")
     }
-    if !health.serverReachable { return result(.unconfirmed, "오프라인 · 확인 필요") }
+    if !health.serverReachable { return result(.unconfirmed, TeamClaudeRowReason.offline) }
     guard ["active", "throttled", "exhausted"].contains(row.status) else {
         return result(.unconfirmed, "서버 상태 확인 필요")
     }
@@ -49,7 +49,7 @@ func teamClaudeFableAvailability(
     }
     let elapsed = now.timeIntervalSince(health.checkedAt)
     guard elapsed >= 0, elapsed < 60, row.fableMeasurementCurrent else {
-        return result(.unconfirmed, "최신 한도 측정 필요")
+        return result(.unconfirmed, TeamClaudeRowReason.measurementStale)
     }
     var windows: [(String, Double?, Int?)] = [
         ("세션", row.sessionPercent, row.sessionResetSeconds),
@@ -58,7 +58,7 @@ func teamClaudeFableAvailability(
     if includeFable { windows.append(("Fable", row.fablePercent, row.fableResetSeconds)) }
     let threshold = health.quotaThresholdPercent
     guard threshold.isFinite, threshold > 0, threshold <= 100 else {
-        return result(.unconfirmed, "한도 기준 확인 필요")
+        return result(.unconfirmed, TeamClaudeRowReason.thresholdUnknown)
     }
     if [row.sessionResetAt, row.weeklyResetAt, includeFable ? row.fableResetAt : nil].compactMap({ $0 }).contains(where: { now >= $0 }) {
         return result(.unconfirmed, "한도 리셋 경과 · 재측정 필요")
@@ -84,7 +84,7 @@ func teamClaudeFableAvailability(
         guard let percent, percent.isFinite, percent >= 0,
               let reset, reset > 0 else { return result(.unconfirmed, name + " 한도 확인 필요") }
     }
-    return result(.ready, includeFable ? "Fable 사용 가능" : "Opus 사용 가능")
+    return result(.ready, includeFable ? TeamClaudeRowReason.fableReady : TeamClaudeRowReason.opusReady)
 }
 
 func teamClaudeResetLabel(_ seconds: Int?, checkedAt: Date, now: Date, resetAt: Date? = nil) -> String {
@@ -109,6 +109,26 @@ extension TeamClaudeHealth {
             let local = accountSubscriptionLocalAccount(provider: "anthropic", uuid: row.accountUuid, name: row.name)
             return teamClaudeFableAvailability(row, health: self,
                 subscription: store.details(provider: "anthropic", uuid: local.uuid, fallbackConfirmation: row.subscriptionConfirmation), now: now)
+        }
+    }
+
+    /// 각 계정 행에 그릴 보조 줄. 높이 계산과 그리기가 이 한 함수의 답을 나눠 쓴다(TeamClaudeRowLines.swift).
+    /// 구독 판정은 행의 AccountSubscriptionButton이 제목을 만들 때와 같은 details(로컬 설정 플랜 폴백 포함)로 해야
+    /// 버튼이 보이는데 줄 높이가 없거나, 높이는 있는데 버튼이 숨는 어긋남이 없다.
+    /// draw()처럼 이미 fableAvailability를 계산한 호출자는 availability를 넘겨 같은 시각의 판정을 재사용한다.
+    func rowLines(store: AccountSubscriptionStore = .shared, now: Date = Date(),
+                  availability: [TeamClaudeFableAvailability]? = nil) -> [TeamClaudeRowLines] {
+        let availability = availability ?? fableAvailability(store: store, now: now)
+        return zip(accounts, availability).map { row, state in
+            let local = accountSubscriptionLocalAccount(provider: "anthropic", uuid: row.accountUuid, name: row.name)
+            let details = store.details(provider: "anthropic", uuid: local.uuid, fallbackPlan: local.plan,
+                                        fallbackConfirmation: row.subscriptionConfirmation)
+            let appearance = state.subscriptionAppearance == .standard ? details.appearance(now: now) : state.subscriptionAppearance
+            // 구독 줄은 기록이 있을 때, 또는 기록이 없어도 이름이 길어 이름 줄에 조용한 진입점을 못 둘 때 그린다.
+            return TeamClaudeRowLines(
+                reason: teamClaudeReasonLineIsInformative(state.reason),
+                subscription: accountSubscriptionLineIsInformative(details, appearance: appearance)
+                    || !teamClaudeSubscriptionEntryFitsInline(name: row.name))
         }
     }
 }

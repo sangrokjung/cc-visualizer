@@ -8,8 +8,10 @@ let grokBillingURL = URL(string: "https://cli-chat-proxy.grok.com/v1/billing?for
 let grokBillingTokenHeader = "xai-grok-cli"
 let grokUsageFetchInterval: TimeInterval = 60
 
-enum GrokCredential {
+enum GrokCredential: Equatable {
     case usable(token: String)
+    /// 자격은 있는데 기한이 지났다. grok을 한 번 부르면 갱신된다(재로그인 아님).
+    case expired
     case login
 }
 
@@ -26,6 +28,7 @@ struct GrokCardModel: Equatable {
 
 enum GrokMenuOutcome: Equatable {
     case percent(GrokPercentOutcome)
+    case expired
     case login
     case unavailable
 }
@@ -72,7 +75,10 @@ func grokCredential(from data: Data, now: Date) -> GrokCredential {
     if let usable = candidates.first(where: { $0.expires == nil || ($0.expires ?? .distantPast) > now }) {
         return .usable(token: usable.token)
     }
-    return .login
+    // 후보가 있었는데 전부 기한이 지난 경우와, 애초에 자격이 없는 경우는 할 일이 다르다.
+    // 전자를 "로그인"이라고 쓰면 필요 없는 재로그인을 하게 된다(2026-09-24: 만료된 토큰이
+    // 계속 "Grok 로그인"으로 표시돼 원인을 찾는 데 시간이 들었다).
+    return candidates.isEmpty ? .login : .expired
 }
 
 func grokFinitePercent(_ value: Any?) -> Double? {
@@ -168,6 +174,8 @@ func fetchGrokMenuOutcome(now: Date = Date(), authURL: URL = grokAuthFileURL(), 
     switch grokCredential(from: data, now: now) {
     case .login:
         completion(.login)
+    case .expired:
+        completion(.expired)
     case .usable(let token):
         grokFetchBilling(token: token) { billing in
             guard let billing,
