@@ -85,7 +85,11 @@ final class CliQuotaLanesView: NSView {
         let agyY = Self.topInset + Self.laneHeight
         drawText("agy", 20, agyY, laneFont, muted)
         guard let group = agy.groups.first else {
-            drawText(agy.message ?? "agy 확인 중", valueX, agyY - 1, valueFont, text)
+            // 기동 후 한 번도 성공하지 못한 경우가 여기다. 지연 꼬리말을 함께 그리지 않으면
+            // 접근성 레이블만 "갱신 없음"을 말하고 화면은 조용해진다(적대 리뷰 2026-09-24).
+            let message = agy.message ?? StatusVocabulary.checking
+            let line = staleNotes["agy"].map { "\(message) · \($0)" } ?? message
+            drawText(line, valueX, agyY - 1, valueFont, text)
             return
         }
         // 레인이 여럿이면 첫 줄만 그리고 나머지는 세어서 알린다. 조용히 버리면 화면과

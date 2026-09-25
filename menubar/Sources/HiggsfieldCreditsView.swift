@@ -11,6 +11,16 @@ final class HiggsfieldCreditsView: NSView {
         }
     }
 
+    /// 조회가 끊긴 지 오래됐다는 꼬리말. 크레딧은 마지막 성공값을 계속 그리므로,
+    /// 이 표시가 없으면 낡은 숫자가 최신값처럼 읽힌다(적대 리뷰 2026-09-24).
+    var staleNote: String? {
+        didSet {
+            guard staleNote != oldValue else { return }
+            updateAccessibility()
+            needsDisplay = true
+        }
+    }
+
     override var isFlipped: Bool { true }
 
     static let normalHeight: CGFloat = 148
@@ -39,9 +49,9 @@ final class HiggsfieldCreditsView: NSView {
             return
         }
         let cycle = higgsfieldEstimateCycle(data.transactions, now: Date())
-        setAccessibilityLabel(
-            "힉스필드 크레딧 \(higgsfieldFormatCredits(data.credits)), 다음 리셋 \(higgsfieldFormatDday(cycle.daysRemaining))"
-        )
+        var label = "힉스필드 크레딧 \(higgsfieldFormatCredits(data.credits)), 다음 리셋 \(higgsfieldFormatDday(cycle.daysRemaining))"
+        if let staleNote { label += ", \(staleNote)" }
+        setAccessibilityLabel(label)
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -145,6 +155,12 @@ final class HiggsfieldCreditsView: NSView {
 
         // 잔액 · D-day
         drawText(higgsfieldFormatCredits(data.credits), left, y, bigFont, text)
+        if let staleNote {
+            // 크레딧 숫자 옆에 붙인다. 숫자만 크게 남기면 낡은 값이 최신값으로 읽힌다.
+            let used = higgsfieldFormatCredits(data.credits).size(withAttributes: [.font: bigFont]).width
+            drawText(staleNote, left + used + 12, y + 8,
+                     NSFont.systemFont(ofSize: 11, weight: .medium), muted)
+        }
         drawRight(higgsfieldFormatDday(cycle.daysRemaining), right, y + 3, ddayFont, ddayColor)
         y += 32
 

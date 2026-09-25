@@ -2545,6 +2545,7 @@ final class StatusMenuDashboardView: NSView {
             case "higgsfield":
                 let higgsView = HiggsfieldCreditsView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: bodyHeight))
                 higgsView.data = higgsfield
+                higgsView.staleNote = laneStaleNotes["higgsfield"]
                 addSubview(higgsView)
                 higgsfieldView = higgsView
             case "cli":
@@ -2638,6 +2639,7 @@ final class StatusMenuDashboardView: NSView {
         codexView?.onRecover = onRecoverTeamCodex
         phases.mark("codex")
         higgsfieldView?.data = higgsfield
+        higgsfieldView?.staleNote = laneStaleNotes["higgsfield"]
         cliLanesView?.grok = grok
         cliLanesView?.staleNotes = laneStaleNotes
         cliLanesView?.agy = agy
@@ -5739,18 +5741,28 @@ if let dashIndex = CommandLine.arguments.firstIndex(of: "--dashboard-snapshot") 
     let health = (fixture["teamclaude"] as? [String: Any]).map {
         parseTeamClaudeHealth(config: nil, server: nil, status: $0, port: 3456)
     }
+    // 힉스필드 카드는 픽스처에 크레딧이 있을 때만 그린다. 지연 표시처럼 실패했을 때만
+    // 나타나는 화면은 스냅샷이 다루지 않으면 눈으로 확인된 적이 없는 상태로 남는다.
+    let higgsfield = (fixture["higgsfieldCredits"] as? NSNumber).map {
+        HiggsfieldCreditsData(credits: $0.doubleValue, planType: fixture["higgsfieldPlan"] as? String,
+                              email: nil, transactions: [], checkedAt: Date(),
+                              error: nil, partialError: nil)
+    }
     let view = StatusMenuDashboardView(frame: NSRect(
         x: 0, y: 0,
         width: StatusMenuDashboardView.preferredWidth,
         height: StatusMenuDashboardView.preferredHeight(
-            teamClaude: health, codex: nil, teamCodex: nil, usage: nil
+            teamClaude: health, codex: nil, teamCodex: nil, usage: nil, higgsfield: higgsfield
         )
     ))
     view.configure(
         teamClaude: health, codex: nil, teamCodex: nil, usage: nil,
-        higgsfield: nil,
+        higgsfield: higgsfield,
         grok: GrokCardModel(headline: (fixture["grok"] as? String) ?? "Grok 21%", detail: nil),
         agy: AgyCardModel(message: nil, groups: []),
+        // 픽스처가 지연 상태를 담고 있으면 그대로 그린다. 이 경로는 실패했을 때만 나타나서
+        // 스냅샷이 다루지 않으면 눈으로 확인된 적 없는 화면이 된다(적대 리뷰 2026-09-24).
+        laneStaleNotes: (fixture["staleNotes"] as? [String: String]) ?? [:],
         parallelCount: 0, active: true,
         isMeasuringTeamClaude: false, teamClaudeMeasureDetail: nil,
         onMeasureTeamClaude: nil

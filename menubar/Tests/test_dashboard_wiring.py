@@ -187,6 +187,22 @@ class CliLaneHealthWiringTests(unittest.TestCase):
             with self.subTest(lane=name):
                 self.assertRegex(self.main, rf"\b{name}LastSuccessAt\s*=\s*Date\(\)")
 
+    def test_stale_state_reaches_every_lane_view(self):
+        # 계산해 두고 화면 일부에만 넘기면 나머지 카드는 낡은 값을 최신값처럼 보인다.
+        self.assertIn('higgsView.staleNote = laneStaleNotes["higgsfield"]', self.main)
+        self.assertIn('higgsfieldView?.staleNote = laneStaleNotes["higgsfield"]', self.main)
+        higgs = (SOURCES / "HiggsfieldCreditsView.swift").read_text()
+        self.assertIn("var staleNote: String?", higgs)
+        # 그리기와 접근성 둘 다에 반영돼야 한다.
+        self.assertIn("if let staleNote { label +=", higgs)
+        self.assertIn("drawText(staleNote,", higgs)
+
+    def test_stale_tail_survives_the_empty_agy_path(self):
+        # 기동 후 한 번도 성공하지 못한 경우가 조기 반환으로 빠져나가던 자리다.
+        card = (SOURCES / "CliQuotaCards.swift").read_text()
+        empty_branch = card[card.index("guard let group = agy.groups.first"):]
+        self.assertIn('staleNotes["agy"]', empty_branch[:600])
+
     def test_stale_state_reaches_the_screen(self):
         # 지연이 로그에만 남으면 화면은 멀쩡해 보인다. 그게 이번 사고들의 공통 모양이었다.
         self.assertIn("staleNotes", (SOURCES / "CliQuotaCards.swift").read_text())

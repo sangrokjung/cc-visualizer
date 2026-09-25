@@ -45,10 +45,17 @@ def build():
     accounts.append(account("acct-15", usable=False, enabled=False))
     accounts.append(account("acct-16", session=0.99, weekly=0.995, usable=False))
     accounts.append(account("acct-17", session=0.98, weekly=0.99, usable=False))
-    return {
+    fixture = {
         "teamclaude": {"accounts": accounts, "usableCount": 12, "totalCount": len(accounts)},
         "grok": "Grok 21%",
     }
+    fixture["higgsfieldCredits"] = 1494
+    fixture["higgsfieldPlan"] = "ultra"
+    if "--stale" in sys.argv:
+        # 실패 화면은 실패했을 때만 나타나서 평소 스냅샷에 걸리지 않는다. 그래서 따로 그린다.
+        fixture["staleNotes"] = {"grok": "12분째 갱신 없음", "agy": "31분째 갱신 없음",
+                                 "higgsfield": "48분째 갱신 없음"}
+    return fixture
 
 
 if __name__ == "__main__":
