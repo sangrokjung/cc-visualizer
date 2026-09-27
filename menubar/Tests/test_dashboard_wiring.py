@@ -440,6 +440,21 @@ class SubscriptionBurnWiringTests(unittest.TestCase):
         # 높이 계산과 배치가 같은 섹션 목록을 봐야 섹션이 잘리지 않는다.
         self.assertEqual(self.main.count('(id: "burn", title: "구독·소진"'), 2)
 
+    def test_every_height_call_passes_the_model(self):
+        """높이 계산과 그리기가 다른 모델을 보면 화면이 그만큼 잘린다.
+
+        기본값이 있으면 호출부가 조용히 빈 모델을 본다. 실제로 그렇게 잘렸다
+        (2026-09-27: 계산 114pt 대 그리기 236pt). 기본값을 없애 컴파일러가
+        강제하게 했고, 그 계약이 되살아나지 않도록 여기서 고정한다.
+        """
+        self.assertNotIn(
+            "burnModel: SubscriptionBurnModel = SubscriptionBurnModel(", self.main,
+            "burnModel에 기본값을 두면 호출부가 다른 모델을 볼 수 있다")
+        for call in re.finditer(r"StatusMenuDashboardView\.preferredHeight\(", self.main):
+            tail = self.main[call.end():call.end() + 400]
+            with self.subTest(pos=call.start()):
+                self.assertIn("burnModel:", tail[:tail.index(")")+1] if ")" in tail else tail)
+
     def test_height_uses_the_view_metric(self):
         self.assertIn("SubscriptionBurnView.preferredHeight(", self.main)
 
