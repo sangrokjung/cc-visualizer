@@ -46,6 +46,12 @@ struct SubscriptionRatesTests {
         precondition(subscriptionMonthlyTotal(rates: partial,
                                               paidAccounts: ["claude": 2, "agy": 1]) == 200)
 
+        // 통화 기호. 모르는 코드는 지어내지 않고 코드를 그대로 붙인다.
+        precondition(subscriptionCurrencySymbol(["currency": "USD"]) == "$")
+        precondition(subscriptionCurrencySymbol(["currency": "krw"]) == "₩")
+        precondition(subscriptionCurrencySymbol(["currency": "CHF"]) == "CHF ")
+        precondition(subscriptionCurrencySymbol(nil) == "")
+
         print("SubscriptionRatesTests: 통과")
     }
 }

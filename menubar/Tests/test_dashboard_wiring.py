@@ -475,6 +475,22 @@ class SubscriptionBurnWiringTests(unittest.TestCase):
             with self.subTest(lane=lane):
                 self.assertIn(lane, head)
 
+    def test_unsubscribed_accounts_are_neither_paid_nor_errors(self):
+        # 실측(2026-09-27): 오류 6개가 전부 구독 종료였다. 오류로 세면 "재인증"을 권하고,
+        # 지불로 세면 월 지출이 $1,200 부풀려진다.
+        # 두 풀은 종료 표식이 다르다. 한쪽만 보면 다른 풀의 종료 계정이 지불로 잡힌다
+        # (Codex end-date-reached 2개가 그렇게 잡혀 있었다).
+        self.assertIn('subscriptionEnded: $0.errorReason == "subscription-disabled"', self.main)
+        self.assertIn("subscriptionEnded: $0.isSubscriptionRetired(now: now)", self.main)
+        self.assertIn("paidAccounts: subscribed.count", self.main)
+        self.assertIn("unsubscribedAccounts: unsubscribed.count", self.main)
+        # 계정당 한 칸. 해지이면서 꺼 둠인 계정을 두 번 세지 않는다.
+        self.assertIn('disabledAccounts: subscribed.filter { $0.status != "error" && !$0.enabled }', self.main)
+
+    def test_currency_symbol_reaches_the_screen(self):
+        self.assertIn("currency: subscriptionCurrency()", self.main)
+        self.assertIn("currency: model.currency", (SOURCES / "SubscriptionBurnView.swift").read_text())
+
     def test_dead_pool_is_not_reported_as_exhausted(self):
         # 살아 있는 계정이 없으면 "한도 소진"이 아니라 "잴 수 없음"이다.
         self.assertIn("!measured.isEmpty && measured.count == live.count", self.main)

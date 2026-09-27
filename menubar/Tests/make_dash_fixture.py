@@ -54,10 +54,13 @@ def build():
     # 구독·소진 섹션. 단가는 기본이 비어 있다 — 금액을 지어내지 않는 화면을 먼저 본다.
     fixture["burn"] = {
         "usages": [
-            {"lane": "claude", "paid": 17, "contributing": 7, "error": 6, "disabled": 4,
-             "weekly": 0.41, "session": 0.055, "blocked": 0},
-            {"lane": "codex", "paid": 7, "contributing": 7, "error": 0, "disabled": 0,
-             "weekly": 0.365, "session": 0.0, "blocked": 0},
+            # 실측(2026-09-27): 오류 6개가 전부 구독 종료였다. 지불은 11, 해지는 따로 센다.
+            # 해지 4개가 enabled=false이기도 하다. 계정당 한 칸이라 꺼 둠은 0이다.
+            {"lane": "claude", "paid": 11, "contributing": 11, "error": 0, "disabled": 0,
+             "unsubscribed": 6, "weekly": 0.41, "session": 0.055, "blocked": 0},
+            # Codex 2개는 subscription.state=end-date-reached. 서빙은 가능해도 결제는 끝났다.
+            {"lane": "codex", "paid": 5, "contributing": 5, "error": 0, "disabled": 0,
+             "unsubscribed": 2, "weekly": 0.365, "session": 0.0, "blocked": 0},
             {"lane": "agy", "paid": 1, "contributing": 1, "error": 0, "disabled": 0,
              "weekly": 0.03, "session": 0.0, "blocked": 0},
             {"lane": "grok", "paid": 1, "contributing": 1, "error": 0, "disabled": 0,
@@ -69,6 +72,7 @@ def build():
         # 가용 0이 관측된 주기. 전망과 무관하게 부족이어야 한다.
         fixture["burn"]["usages"][0]["blocked"] = 2
     if "--rates" in sys.argv:
+        fixture["burn"]["currency"] = "USD"
         fixture["burn"]["rates"] = {
             "claude": {"plan": "Max 20x", "monthly": 280000},
             "codex": {"plan": "Pro", "monthly": 290000},
