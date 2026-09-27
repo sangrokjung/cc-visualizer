@@ -33,6 +33,45 @@ func installCrashRecorder() {
     }
 }
 
+/// "Grok 24%" 형태의 제목 슬롯에서 숫자만 떼어낸다. 상태 문구("Grok 로그인" 등)면 없다.
+func burnGrokPercent(_ slot: String) -> Double? {
+    guard let range = slot.range(of: #"[0-9]+(\.[0-9]+)?(?=%)"#, options: .regularExpression) else {
+        return nil
+    }
+    return Double(slot[range])
+}
+
+/// 스냅샷 픽스처를 구독·소진 모델로 옮긴다. 실패 화면은 실패했을 때만 나타나므로
+/// 이 경로가 없으면 눈으로 확인된 적 없는 화면이 된다.
+func subscriptionBurnFixture(_ raw: [String: Any]?) -> SubscriptionBurnModel {
+    guard let raw else {
+        return SubscriptionBurnModel(usages: [], rates: [:], recommendations: [])
+    }
+    let rows = raw["usages"] as? [[String: Any]] ?? []
+    let usages: [LaneUsage] = rows.map { row in
+        func projection(_ key: String) -> BurnProjection {
+            guard let value = (row[key] as? NSNumber)?.doubleValue else {
+                return BurnProjection(current: nil, projected: nil, range: nil, basis: .collecting)
+            }
+            // 픽스처는 주기 절반을 지난 상태로 고정한다. 렌더 비교가 시각에 흔들리지 않게 한다.
+            return BurnProjection(current: value, projected: value / 0.5, range: nil,
+                                  basis: .extrapolation(confidence: .normal))
+        }
+        return LaneUsage(
+            lane: row["lane"] as? String ?? "?",
+            paidAccounts: (row["paid"] as? NSNumber)?.intValue ?? 0,
+            contributingAccounts: (row["contributing"] as? NSNumber)?.intValue ?? 0,
+            errorAccounts: (row["error"] as? NSNumber)?.intValue ?? 0,
+            disabledAccounts: (row["disabled"] as? NSNumber)?.intValue ?? 0,
+            weekly: projection("weekly"), session: projection("session"),
+            blockedMoments: (row["blocked"] as? NSNumber)?.intValue ?? 0)
+    }
+    return SubscriptionBurnModel(
+        usages: usages,
+        rates: subscriptionRateParse(["version": 1, "lanes": raw["rates"] as? [String: Any] ?? [:]]),
+        recommendations: burnRecommendations(usages))
+}
+
 // MARK: - 데이터 모델
 
 struct DailyUsage {
@@ -2386,6 +2425,7 @@ final class StatusMenuDashboardView: NSView {
     private var codexView: CodexStatusView?
     private var higgsfieldView: HiggsfieldCreditsView?
     private var cliLanesView: CliQuotaLanesView?
+    private var burnView: SubscriptionBurnView?
     private var usageView: UsageDashboardView?
     private(set) var sections: [DashboardSection] = []
     private var headerViews: [DashboardSectionHeaderView] = []
@@ -2419,8 +2459,10 @@ final class StatusMenuDashboardView: NSView {
     /// "CLI 쿼터" 본문 = Grok·agy 두 레인이 든 카드 한 장. 두 모델은 옵셔널이 아니라 항상 그린다.
     static let cliHeight: CGFloat = CliQuotaLanesView.fixedHeight
 
-    static func preferredHeight(teamClaude: TeamClaudeHealth?, codex: CodexHealth?, teamCodex: TeamCodexPoolHealth?, usage: UsageData?, higgsfield: HiggsfieldCreditsData? = nil) -> CGFloat {
+    static func preferredHeight(teamClaude: TeamClaudeHealth?, codex: CodexHealth?, teamCodex: TeamCodexPoolHealth?, usage: UsageData?, higgsfield: HiggsfieldCreditsData? = nil,
+                                burnModel: SubscriptionBurnModel = SubscriptionBurnModel(usages: [], rates: [:], recommendations: [])) -> CGFloat {
         dashboardSectionLayout(startY: sectionStartY, bodies: [
+            (id: "burn", title: "구독·소진", summary: "", height: SubscriptionBurnView.preferredHeight(burnModel)),
             (id: "claude", title: "Claude 풀", summary: "", height: teamContentHeight(teamClaude)),
             (id: "codex", title: "Codex 풀", summary: "", height: codexHeight(codex, teamCodex: teamCodex)),
             (id: "higgsfield", title: "Higgsfield", summary: "", height: HiggsfieldCreditsView.preferredHeight(for: higgsfield)),
@@ -2474,6 +2516,7 @@ final class StatusMenuDashboardView: NSView {
         higgsfield: HiggsfieldCreditsData? = nil,
         grok: GrokCardModel = GrokCardModel(headline: "Grok 확인 중", detail: nil),
         agy: AgyCardModel = AgyCardModel(message: "agy 확인 중", groups: []),
+        burnModel: SubscriptionBurnModel = SubscriptionBurnModel(usages: [], rates: [:], recommendations: []),
         laneStaleNotes: [String: String] = [:],
         parallelCount: Int,
         active: Bool,
@@ -2507,6 +2550,7 @@ final class StatusMenuDashboardView: NSView {
         // preferredHeight와 같은 순서·같은 높이. 섹션을 더하면 두 목록과 sectionSummaries를 같이 고친다.
         let summaries = Self.sectionSummaries(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage, higgsfield: higgsfield)
         sections = dashboardSectionLayout(startY: Self.sectionStartY, bodies: [
+            (id: "burn", title: "구독·소진", summary: summaries["burn"] ?? "", height: SubscriptionBurnView.preferredHeight(burnModel)),
             (id: "claude", title: "Claude 풀", summary: summaries["claude"] ?? "", height: Self.teamContentHeight(teamClaude)),
             (id: "codex", title: "Codex 풀", summary: summaries["codex"] ?? "", height: Self.codexHeight(codex, teamCodex: teamCodex)),
             (id: "higgsfield", title: "Higgsfield", summary: summaries["higgsfield"] ?? "", height: HiggsfieldCreditsView.preferredHeight(for: higgsfield)),
@@ -2548,6 +2592,12 @@ final class StatusMenuDashboardView: NSView {
                 higgsView.staleNote = laneStaleNotes["higgsfield"]
                 addSubview(higgsView)
                 higgsfieldView = higgsView
+            case "burn":
+                let view = SubscriptionBurnView(frame: NSRect(x: 0, y: bodyY,
+                                                              width: bounds.width, height: bodyHeight))
+                view.model = burnModel
+                addSubview(view)
+                burnView = view
             case "cli":
                 let lanes = CliQuotaLanesView(frame: NSRect(x: 0, y: bodyY, width: bounds.width, height: CliQuotaLanesView.fixedHeight))
                 lanes.grok = grok
@@ -2576,6 +2626,7 @@ final class StatusMenuDashboardView: NSView {
         higgsfield: HiggsfieldCreditsData? = nil,
         grok: GrokCardModel = GrokCardModel(headline: "Grok 확인 중", detail: nil),
         agy: AgyCardModel = AgyCardModel(message: "agy 확인 중", groups: []),
+        burnModel: SubscriptionBurnModel = SubscriptionBurnModel(usages: [], rates: [:], recommendations: []),
         laneStaleNotes: [String: String] = [:],
         parallelCount: Int,
         active: Bool,
@@ -2599,7 +2650,7 @@ final class StatusMenuDashboardView: NSView {
             // 가장 비싼 경로다. 여기서도 단계 시간을 남긴다(예전엔 phases=- 로 비어 보였다).
             let structurePhases = DashboardRefreshPhases()
             lastRefreshPhases = structurePhases
-            frame.size.height = Self.preferredHeight(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage, higgsfield: higgsfield)
+            frame.size.height = Self.preferredHeight(teamClaude: teamClaude, codex: codex, teamCodex: teamCodex, usage: usage, higgsfield: higgsfield, burnModel: burnModel)
             structurePhases.mark("height")
             configure(
                 teamClaude: teamClaude,
@@ -2640,6 +2691,7 @@ final class StatusMenuDashboardView: NSView {
         phases.mark("codex")
         higgsfieldView?.data = higgsfield
         higgsfieldView?.staleNote = laneStaleNotes["higgsfield"]
+        burnView?.model = burnModel
         cliLanesView?.grok = grok
         cliLanesView?.staleNotes = laneStaleNotes
         cliLanesView?.agy = agy
@@ -3615,6 +3667,102 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// 화면에 넘길 최신 지연 꼬리말. 로그 쿨다운과 무관하게 매번 갱신한다 —
     /// 쿨다운은 로그가 도배되지 않게 하는 장치이지 화면을 감추는 장치가 아니다.
     var laneStaleNotes: [String: String] = [:]
+
+    var currentBurnModel = SubscriptionBurnModel(usages: [], rates: [:], recommendations: [])
+    /// 레인·창별 직전 관측. 경계는 값이 바뀌는 순간이라 직전 값이 있어야 안다.
+    var lastQuotaObservations: [String: QuotaObservation] = [:]
+    var quotaHistory: [QuotaCycle] = quotaHistoryDecode((try? Data(contentsOf: quotaHistoryURL)) ?? Data())
+
+    /// 폴링이 끝날 때마다 부른다. 경계가 넘어갔으면 직전 주기를 확정해 남긴다.
+    func recordQuotaObservation(_ observation: QuotaObservation, now: Date = Date()) {
+        let key = "\(observation.lane)/\(observation.window)"
+        let previous = lastQuotaObservations[key]
+        // 리셋 시각을 주는 레인은 그 변화로, 주지 않는 레인(Grok)은 큰 하락으로 경계를 본다.
+        let closed = observation.resetAt == nil
+            ? quotaDropBoundary(previous: previous, current: observation, now: now)
+            : quotaCycleBoundary(previous: previous, current: observation, now: now)
+        if let closed {
+            quotaHistory = quotaHistoryTrimmed(quotaHistory + [closed])
+            if let data = quotaHistoryEncode(quotaHistory) {
+                try? FileManager.default.createDirectory(
+                    at: quotaHistoryURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try? data.write(to: quotaHistoryURL, options: [.atomic])
+            }
+        }
+        lastQuotaObservations[key] = observation
+    }
+
+    /// 평균은 살아 있는 계정만으로 낸다. 오류·비활성 계정을 분모에 넣으면
+    /// 소비량이 실제보다 작게 보이고, 그 숫자로 구독을 줄이면 막힌다.
+    private func burnMean(_ values: [Double]) -> Double? {
+        values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
+    }
+
+    private func burnPoolUsage(lane: String, rows: [TeamClaudeAccountHealth], now: Date) -> LaneUsage {
+        let live = rows.filter { $0.enabled && $0.status != "error" }
+        let laneHistory = quotaHistory.filter { $0.lane == lane }
+        let weekly = burnMean(live.compactMap { $0.weeklyPercent }.map { $0 / 100 })
+        let session = burnMean(live.compactMap { $0.sessionPercent }.map { $0 / 100 })
+        let observation = QuotaObservation(
+            lane: lane, window: "7d",
+            resetAt: live.compactMap { $0.weeklyResetAt }.min(),
+            contributing: live.count, paid: rows.count,
+            meanUtilization: weekly ?? 0,
+            maxUtilization: live.compactMap { $0.weeklyPercent }.map { $0 / 100 }.max() ?? 0,
+            exhaustedAccounts: live.filter { ($0.weeklyPercent ?? 0) >= 100 }.count,
+            blocked: !rows.isEmpty && live.allSatisfy { ($0.weeklyPercent ?? 0) >= 100 })
+        if weekly != nil { recordQuotaObservation(observation, now: now) }
+        return LaneUsage(
+            lane: lane, paidAccounts: rows.count, contributingAccounts: live.count,
+            errorAccounts: rows.filter { $0.status == "error" }.count,
+            disabledAccounts: rows.filter { !$0.enabled }.count,
+            weekly: burnProject(current: weekly, windowSeconds: 7 * 86_400,
+                                resetAt: observation.resetAt,
+                                history: laneHistory.filter { $0.window == "7d" }, now: now),
+            session: burnProject(current: session, windowSeconds: 5 * 3_600,
+                                 resetAt: live.compactMap { $0.sessionResetAt }.min(),
+                                 history: laneHistory.filter { $0.window == "5h" }, now: now),
+            blockedMoments: laneHistory.filter { $0.window == "7d" }.reduce(0) { $0 + $1.blockedMoments })
+    }
+
+    /// 단일 구독 레인(agy·Grok). 계정이 하나라 판정은 사용률만 본다.
+    private func burnSingleUsage(lane: String, utilization: Double?, resetAt: Date?,
+                                 windowSeconds: Double, now: Date) -> LaneUsage {
+        let laneHistory = quotaHistory.filter { $0.lane == lane && $0.window == "7d" }
+        if let utilization {
+            recordQuotaObservation(QuotaObservation(
+                lane: lane, window: "7d", resetAt: resetAt, contributing: 1, paid: 1,
+                meanUtilization: utilization, maxUtilization: utilization,
+                exhaustedAccounts: utilization >= 1 ? 1 : 0, blocked: utilization >= 1), now: now)
+        }
+        return LaneUsage(
+            lane: lane, paidAccounts: 1, contributingAccounts: 1,
+            errorAccounts: 0, disabledAccounts: 0,
+            weekly: burnProject(current: utilization, windowSeconds: windowSeconds,
+                                resetAt: resetAt, history: laneHistory, now: now),
+            session: BurnProjection(current: nil, projected: nil, range: nil, basis: .collecting),
+            blockedMoments: laneHistory.reduce(0) { $0 + $1.blockedMoments })
+    }
+
+    /// 네 레인을 한 모델로 모은다. 폴링 결과가 바뀔 때마다 부른다.
+    func refreshBurnModel(now: Date = Date()) {
+        var usages: [LaneUsage] = []
+        if let claude = currentTeamClaude {
+            usages.append(burnPoolUsage(lane: "claude", rows: claude.accounts, now: now))
+        }
+        // agy는 잔량을 주므로 1에서 빼 사용률로 뒤집는다.
+        if let gemini = currentAgyCard.groups.first, let weekly = gemini.weekly {
+            usages.append(burnSingleUsage(lane: "agy", utilization: 1 - weekly.remaining,
+                                          resetAt: weekly.resetAt, windowSeconds: 7 * 86_400, now: now))
+        }
+        // Grok은 리셋 시각을 주지 않는다. 창 길이를 모르므로 전망은 이력이 쌓인 뒤에 나온다.
+        if let slot = currentGrokSlot, let percent = burnGrokPercent(slot) {
+            usages.append(burnSingleUsage(lane: "grok", utilization: percent / 100,
+                                          resetAt: nil, windowSeconds: 7 * 86_400, now: now))
+        }
+        currentBurnModel = SubscriptionBurnModel(usages: usages, rates: subscriptionRates(),
+                                                 recommendations: burnRecommendations(usages))
+    }
     var cachedPulseImage: NSImage?
     var cachedPulseKey: String?
     var cachedComposedImage: NSImage?
@@ -4038,6 +4186,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             higgsfield: currentHiggsfield,
             grok: currentGrokCard,
             agy: currentAgyCard,
+            burnModel: currentBurnModel,
             laneStaleNotes: laneStaleNotes,
             parallelCount: parallelCount,
             active: isActive,
@@ -4105,6 +4254,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 print("GROK-SLOT: \(slot)")
                 fflush(stdout)
                 self.updateTitle()
+                self.refreshBurnModel()
                 self.scheduleDashboardRefresh(reason: "loadGrokUsageInBackground")
             }
         }
@@ -4139,6 +4289,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
                 print("AGY: \(agyLogLine(self.currentAgyCard))")
                 fflush(stdout)
+                self.refreshBurnModel()
                 self.scheduleDashboardRefresh(reason: "loadAgyUsageInBackground")
             }
         }
@@ -4265,6 +4416,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self.teamClaudeOutageStartedAt = teamClaude.serverReachable ? nil : outageStartedAt
                 self.commitTeamClaudeHealth(teamClaude, outageDuration: outageDuration)
                 let shouldRefreshAgain = self.teamClaudeRefreshCoordinator.finish()
+                self.refreshBurnModel()
                 self.scheduleDashboardRefresh(reason: "loadTeamClaudeStatusInBackground")
                 self.updateTitle()
                 let displayed = self.currentTeamClaude ?? teamClaude
@@ -4601,6 +4753,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             higgsfield: currentHiggsfield,
             grok: currentGrokCard,
             agy: currentAgyCard,
+            burnModel: currentBurnModel,
             laneStaleNotes: laneStaleNotes,
             parallelCount: parallelCount,
             active: isActive,
@@ -4666,6 +4819,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             higgsfield: currentHiggsfield,
             grok: currentGrokCard,
             agy: currentAgyCard,
+            burnModel: currentBurnModel,
             laneStaleNotes: laneStaleNotes,
             parallelCount: parallelCount,
             active: isActive,
@@ -5738,6 +5892,7 @@ if let dashIndex = CommandLine.arguments.firstIndex(of: "--dashboard-snapshot") 
         exit(1)
     }
     _ = NSApplication.shared
+    let burnModel = subscriptionBurnFixture(fixture["burn"] as? [String: Any])
     let health = (fixture["teamclaude"] as? [String: Any]).map {
         parseTeamClaudeHealth(config: nil, server: nil, status: $0, port: 3456)
     }
@@ -5752,7 +5907,8 @@ if let dashIndex = CommandLine.arguments.firstIndex(of: "--dashboard-snapshot") 
         x: 0, y: 0,
         width: StatusMenuDashboardView.preferredWidth,
         height: StatusMenuDashboardView.preferredHeight(
-            teamClaude: health, codex: nil, teamCodex: nil, usage: nil, higgsfield: higgsfield
+            teamClaude: health, codex: nil, teamCodex: nil, usage: nil,
+            higgsfield: higgsfield, burnModel: burnModel
         )
     ))
     view.configure(
@@ -5760,6 +5916,7 @@ if let dashIndex = CommandLine.arguments.firstIndex(of: "--dashboard-snapshot") 
         higgsfield: higgsfield,
         grok: GrokCardModel(headline: (fixture["grok"] as? String) ?? "Grok 21%", detail: nil),
         agy: AgyCardModel(message: nil, groups: []),
+        burnModel: burnModel,
         // 픽스처가 지연 상태를 담고 있으면 그대로 그린다. 이 경로는 실패했을 때만 나타나서
         // 스냅샷이 다루지 않으면 눈으로 확인된 적 없는 화면이 된다(적대 리뷰 2026-09-24).
         laneStaleNotes: (fixture["staleNotes"] as? [String: String]) ?? [:],
