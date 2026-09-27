@@ -51,6 +51,29 @@ def build():
     }
     fixture["higgsfieldCredits"] = 1494
     fixture["higgsfieldPlan"] = "ultra"
+    # 구독·소진 섹션. 단가는 기본이 비어 있다 — 금액을 지어내지 않는 화면을 먼저 본다.
+    fixture["burn"] = {
+        "usages": [
+            {"lane": "claude", "paid": 17, "contributing": 7, "error": 6, "disabled": 4,
+             "weekly": 0.41, "session": 0.055, "blocked": 0},
+            {"lane": "codex", "paid": 7, "contributing": 7, "error": 0, "disabled": 0,
+             "weekly": 0.365, "session": 0.0, "blocked": 0},
+            {"lane": "agy", "paid": 1, "contributing": 1, "error": 0, "disabled": 0,
+             "weekly": 0.03, "session": 0.0, "blocked": 0},
+            {"lane": "grok", "paid": 1, "contributing": 1, "error": 0, "disabled": 0,
+             "weekly": None, "session": None, "blocked": 0},
+        ],
+        "rates": {},
+    }
+    if "--blocked" in sys.argv:
+        # 가용 0이 관측된 주기. 전망과 무관하게 부족이어야 한다.
+        fixture["burn"]["usages"][0]["blocked"] = 2
+    if "--rates" in sys.argv:
+        fixture["burn"]["rates"] = {
+            "claude": {"plan": "Max 20x", "monthly": 280000},
+            "codex": {"plan": "Pro", "monthly": 290000},
+            "grok": {"plan": "SuperGrok", "monthly": 45000},
+        }
     if "--stale" in sys.argv:
         # 실패 화면은 실패했을 때만 나타나서 평소 스냅샷에 걸리지 않는다. 그래서 따로 그린다.
         fixture["staleNotes"] = {"grok": "12분째 갱신 없음", "agy": "31분째 갱신 없음",

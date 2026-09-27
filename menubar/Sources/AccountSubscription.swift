@@ -167,7 +167,9 @@ func accountSubscriptionConfiguredAccount(provider: String, uuid: String?, name:
 /// 구독 판정은 계정마다 불리고, 표는 메뉴가 열려 있는 동안 1초마다 갱신된다. 캐시가 없으면
 /// 계정 17개 화면에서 파일 읽기·JSON 파싱·SHA256이 초당 열일곱 번씩 메인 스레드에서 돈다
 /// (2026-09-24 적대 리뷰 지적). 두 파일 모두 외부 프로세스가 가끔 쓰므로 mtime 확인으로 충분하다.
-private final class AccountSubscriptionFileCache {
+/// 구독 단가 설정(SubscriptionRates.swift)도 같은 캐시를 탄다. 같은 mtime 캐시를 또 만들면
+/// 같은 버그를 두 벌 관리하게 되므로 접근 수준만 연다.
+final class AccountSubscriptionFileCache {
     static let shared = AccountSubscriptionFileCache()
     private let lock = NSLock()
     private var entries: [String: (stamp: Date, size: Int, json: [String: Any])] = [:]

@@ -69,11 +69,11 @@ class DashboardWiringTests(unittest.TestCase):
     def test_section_order_is_the_same_in_layout_and_configure(self):
         body = class_body(self.main, "StatusMenuDashboardView")
         ids = re.findall(r'\(id: "([a-z]+)", title: "([^"]+)"', body)
-        self.assertEqual(len(ids), 10, "preferredHeight and configure each list the five sections")
-        expected = [("claude", "Claude 풀"), ("codex", "Codex 풀"), ("higgsfield", "Higgsfield"),
-                    ("cli", "CLI 쿼터"), ("usage", "사용량")]
-        self.assertEqual(ids[:5], expected)
-        self.assertEqual(ids[5:], expected)
+        self.assertEqual(len(ids), 12, "preferredHeight and configure each list the six sections")
+        expected = [("burn", "구독·소진"), ("claude", "Claude 풀"), ("codex", "Codex 풀"),
+                    ("higgsfield", "Higgsfield"), ("cli", "CLI 쿼터"), ("usage", "사용량")]
+        self.assertEqual(ids[:6], expected)
+        self.assertEqual(ids[6:], expected)
 
 
 class DashboardRefreshCostTests(unittest.TestCase):
@@ -423,6 +423,56 @@ class Stage2StructureTests(unittest.TestCase):
         self.assertIn("TeamClaudeCardMetrics.tableHeadY(hostLine:", draw)
         for literal in ("tableY + 34", "statY + 88", "topY + 14"):
             self.assertNotIn(literal, self.table, f"a hard-coded offset would diverge from the shared metrics: {literal}")
+
+
+
+class SubscriptionBurnWiringTests(unittest.TestCase):
+    """구독·소진 섹션이 모든 소비 지점에 연결됐는지 본다.
+
+    상태를 계산해 놓고 화면 일부에만 전달하는 실수가 이 저장소에서 다섯 번 났다
+    (2026-09-24 적대 리뷰). 섹션 등록·높이·갱신·이력·스냅샷을 각각 단언한다.
+    """
+
+    def setUp(self):
+        self.main = MAIN.read_text()
+
+    def test_section_is_registered_in_both_lists(self):
+        # 높이 계산과 배치가 같은 섹션 목록을 봐야 섹션이 잘리지 않는다.
+        self.assertEqual(self.main.count('(id: "burn", title: "구독·소진"'), 2)
+
+    def test_height_uses_the_view_metric(self):
+        self.assertIn("SubscriptionBurnView.preferredHeight(", self.main)
+
+    def test_model_reaches_the_view_on_refresh(self):
+        self.assertIn("burnView?.model = burnModel", self.main)
+
+    def test_history_is_recorded_from_polling(self):
+        self.assertIn("quotaCycleBoundary(", self.main)
+        self.assertIn("quotaDropBoundary(", self.main)
+        self.assertIn("quotaHistoryTrimmed(", self.main)
+
+    def test_every_paid_lane_reaches_the_model(self):
+        # 픽스처에는 있는데 실제 경로에 없으면 렌더 검증이 누락을 가린다.
+        # Codex가 정확히 그렇게 빠져 있었다(적대 리뷰 2026-09-24).
+        body = self.main[self.main.index("func refreshBurnModel("):]
+        head = body[:body.index("\n    func ", 10)]
+        for lane in ('"claude"', '"codex"', '"agy"', '"grok"'):
+            with self.subTest(lane=lane):
+                self.assertIn(lane, head)
+
+    def test_dead_pool_is_not_reported_as_exhausted(self):
+        # 살아 있는 계정이 없으면 "한도 소진"이 아니라 "잴 수 없음"이다.
+        self.assertIn("!measured.isEmpty && measured.count == live.count", self.main)
+
+    def test_cycles_are_recorded_per_account(self):
+        # 계정마다 리셋 시각이 다르므로 풀 전체를 한 경계로 닫으면 평균이 섞인다.
+        self.assertIn('account: String? = nil', self.main)
+        self.assertIn('\\(account ?? "-")', self.main)
+
+    def test_snapshot_can_render_the_section(self):
+        # 실패 화면은 실패했을 때만 나타나 평소 스냅샷에 걸리지 않는다.
+        self.assertIn('fixture["burn"]', self.main)
+
 
 
 if __name__ == "__main__":
