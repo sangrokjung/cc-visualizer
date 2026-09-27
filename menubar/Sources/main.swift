@@ -2471,7 +2471,7 @@ final class StatusMenuDashboardView: NSView {
     static let cliHeight: CGFloat = CliQuotaLanesView.fixedHeight
 
     static func preferredHeight(teamClaude: TeamClaudeHealth?, codex: CodexHealth?, teamCodex: TeamCodexPoolHealth?, usage: UsageData?, higgsfield: HiggsfieldCreditsData? = nil,
-                                burnModel: SubscriptionBurnModel = SubscriptionBurnModel(usages: [], rates: [:], recommendations: [])) -> CGFloat {
+                                burnModel: SubscriptionBurnModel) -> CGFloat {
         dashboardSectionLayout(startY: sectionStartY, bodies: [
             (id: "burn", title: "구독·소진", summary: "", height: SubscriptionBurnView.preferredHeight(burnModel)),
             (id: "claude", title: "Claude 풀", summary: "", height: teamContentHeight(teamClaude)),
@@ -2527,7 +2527,7 @@ final class StatusMenuDashboardView: NSView {
         higgsfield: HiggsfieldCreditsData? = nil,
         grok: GrokCardModel = GrokCardModel(headline: "Grok 확인 중", detail: nil),
         agy: AgyCardModel = AgyCardModel(message: "agy 확인 중", groups: []),
-        burnModel: SubscriptionBurnModel = SubscriptionBurnModel(usages: [], rates: [:], recommendations: []),
+        burnModel: SubscriptionBurnModel,
         laneStaleNotes: [String: String] = [:],
         parallelCount: Int,
         active: Bool,
@@ -2637,7 +2637,7 @@ final class StatusMenuDashboardView: NSView {
         higgsfield: HiggsfieldCreditsData? = nil,
         grok: GrokCardModel = GrokCardModel(headline: "Grok 확인 중", detail: nil),
         agy: AgyCardModel = AgyCardModel(message: "agy 확인 중", groups: []),
-        burnModel: SubscriptionBurnModel = SubscriptionBurnModel(usages: [], rates: [:], recommendations: []),
+        burnModel: SubscriptionBurnModel,
         laneStaleNotes: [String: String] = [:],
         parallelCount: Int,
         active: Bool,
@@ -2671,6 +2671,7 @@ final class StatusMenuDashboardView: NSView {
                 higgsfield: higgsfield,
                 grok: grok,
                 agy: agy,
+                burnModel: burnModel,
                 parallelCount: parallelCount,
                 active: active,
                 isMeasuringTeamClaude: isMeasuringTeamClaude,
@@ -4846,7 +4847,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             codex: currentCodex,
             teamCodex: currentTeamCodex,
             usage: currentData,
-            higgsfield: currentHiggsfield
+            higgsfield: currentHiggsfield,
+            burnModel: currentBurnModel
         )
         dashboard.lastRefreshPhases?.mark("height")
         dashboard.frame.size.height = contentHeight
@@ -4881,7 +4883,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // 메뉴 열릴 때마다 최신 데이터로 항목 재구성
         menu.removeAllItems()
 
-        let dashboardContentHeight = StatusMenuDashboardView.preferredHeight(teamClaude: currentTeamClaude, codex: currentCodex, teamCodex: currentTeamCodex, usage: currentData, higgsfield: currentHiggsfield)
+        let dashboardContentHeight = StatusMenuDashboardView.preferredHeight(teamClaude: currentTeamClaude, codex: currentCodex, teamCodex: currentTeamCodex, usage: currentData, higgsfield: currentHiggsfield, burnModel: currentBurnModel)
         let dashboard = StatusMenuDashboardView(frame: NSRect(x: 0, y: 0, width: StatusMenuDashboardView.preferredWidth, height: dashboardContentHeight))
         dashboard.onTeamRowsChange = { [weak self] in self?.scheduleDashboardRefresh(reason: "team-rows") }
         dashboard.configure(
@@ -5608,7 +5610,9 @@ if CommandLine.arguments.contains("--teamcodex-dashboard-selftest") {
             teamClaude: nil,
             codex: nil,
             teamCodex: initial,
-            usage: nil
+            usage: nil,
+            higgsfield: nil,
+            burnModel: SubscriptionBurnModel(usages: [], rates: [:], recommendations: [])
         )
     ))
     dashboard.configure(
@@ -5616,6 +5620,7 @@ if CommandLine.arguments.contains("--teamcodex-dashboard-selftest") {
         codex: nil,
         teamCodex: initial,
         usage: nil,
+        burnModel: SubscriptionBurnModel(usages: [], rates: [:], recommendations: []),
         parallelCount: 0,
         active: false,
         isMeasuringTeamClaude: false,
@@ -5629,6 +5634,7 @@ if CommandLine.arguments.contains("--teamcodex-dashboard-selftest") {
             codex: nil,
             teamCodex: health,
             usage: nil,
+            burnModel: SubscriptionBurnModel(usages: [], rates: [:], recommendations: []),
             parallelCount: 0,
             active: false,
             isMeasuringTeamClaude: false,
@@ -5640,7 +5646,9 @@ if CommandLine.arguments.contains("--teamcodex-dashboard-selftest") {
                 teamClaude: nil,
                 codex: nil,
                 teamCodex: health,
-                usage: nil
+                usage: nil,
+                higgsfield: nil,
+                burnModel: SubscriptionBurnModel(usages: [], rates: [:], recommendations: [])
             )
         )
     }
