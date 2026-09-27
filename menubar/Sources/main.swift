@@ -63,13 +63,15 @@ func subscriptionBurnFixture(_ raw: [String: Any]?) -> SubscriptionBurnModel {
             contributingAccounts: (row["contributing"] as? NSNumber)?.intValue ?? 0,
             errorAccounts: (row["error"] as? NSNumber)?.intValue ?? 0,
             disabledAccounts: (row["disabled"] as? NSNumber)?.intValue ?? 0,
+            unsubscribedAccounts: (row["unsubscribed"] as? NSNumber)?.intValue ?? 0,
             weekly: projection("weekly"), session: projection("session"),
             blockedMoments: (row["blocked"] as? NSNumber)?.intValue ?? 0)
     }
     return SubscriptionBurnModel(
         usages: usages,
         rates: subscriptionRateParse(["version": 1, "lanes": raw["rates"] as? [String: Any] ?? [:]]),
-        recommendations: burnRecommendations(usages))
+        recommendations: burnRecommendations(usages),
+        currency: subscriptionCurrencySymbol(["currency": raw["currency"] as? String ?? ""]))
 }
 
 /// 두 풀(Claude·Codex)의 계정 타입이 달라 판정에 필요한 값만 같은 모양으로 옮겨 담는다.
@@ -77,6 +79,11 @@ struct BurnAccountRow {
     let name: String
     let enabled: Bool
     let status: String
+    let errorReason: String?
+    /// 구독이 끝나 돈이 안 나가는 계정. 두 풀이 표식이 다르다 — Claude는
+    /// errorReason=subscription-disabled, Codex는 subscription.state=end-date-reached.
+    /// 여기서 하나로 합쳐야 판정 함수가 풀마다 갈라지지 않는다.
+    let subscriptionEnded: Bool
     let weeklyPercent: Double?
     let weeklyResetAt: Date?
     let sessionPercent: Double?
@@ -3757,7 +3764,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func burnPoolUsage(lane: String, rows: [BurnAccountRow], now: Date) -> LaneUsage {
-        let live = rows.filter { $0.enabled && $0.status != "error" }
+        // 구독이 끝난 계정은 오류가 아니라 해지다. 프록시는 이를 error + subscription-disabled로
+        // 보고한다. 오류로 세면 "재인증"을 권하고, 지불 계정으로 세면 지출이 부풀려진다.
+        let unsubscribed = rows.filter { $0.subscriptionEnded }
+        let subscribed = rows.filter { !$0.subscriptionEnded }
+        let live = subscribed.filter { $0.enabled && $0.status != "error" }
         let weeklyPerAccount = live.compactMap {
             burnAccountProjection(lane: lane, name: $0.name, percent: $0.weeklyPercent,
                                   resetAt: $0.weeklyResetAt, window: "7d",
@@ -3775,9 +3786,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let blockedNow = !measured.isEmpty && measured.count == live.count
             && measured.allSatisfy { $0 >= 100 }
         return LaneUsage(
-            lane: lane, paidAccounts: rows.count, contributingAccounts: live.count,
-            errorAccounts: rows.filter { $0.status == "error" }.count,
-            disabledAccounts: rows.filter { !$0.enabled }.count,
+            lane: lane, paidAccounts: subscribed.count, contributingAccounts: live.count,
+            // 계정당 한 칸이다. 해지 계정 4개가 enabled=false이기도 했는데(2026-09-27 실측)
+            // 그걸 "꺼 둠"에 또 세면 기여 없는 계정이 6이 아니라 10으로 보인다.
+            errorAccounts: subscribed.filter { $0.status == "error" }.count,
+            disabledAccounts: subscribed.filter { $0.status != "error" && !$0.enabled }.count,
+            unsubscribedAccounts: unsubscribed.count,
             weekly: burnCombine(weeklyPerAccount, history: laneHistory.filter { $0.window == "7d" },
                                 current: burnMean(measured.map { $0 / 100 })),
             session: burnCombine(sessionPerAccount, history: laneHistory.filter { $0.window == "5h" },
@@ -3811,6 +3825,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let claude = currentTeamClaude {
             usages.append(burnPoolUsage(lane: "claude", rows: claude.accounts.map {
                 BurnAccountRow(name: $0.name, enabled: $0.enabled, status: $0.status,
+                               errorReason: $0.errorReason,
+                               subscriptionEnded: $0.errorReason == "subscription-disabled"
+                                   || $0.subscriptionConfirmation?.state == .ended,
                                weeklyPercent: $0.weeklyPercent, weeklyResetAt: $0.weeklyResetAt,
                                sessionPercent: $0.sessionPercent, sessionResetAt: $0.sessionResetAt)
             }, now: now))
@@ -3819,6 +3836,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let codex = currentTeamCodex {
             usages.append(burnPoolUsage(lane: "codex", rows: codex.accounts.map {
                 BurnAccountRow(name: $0.name, enabled: $0.enabled, status: $0.status,
+                               errorReason: $0.errorReason,
+                               subscriptionEnded: $0.isSubscriptionRetired(now: now)
+                                   || $0.isSubscriptionEndDateReached(now: now),
                                weeklyPercent: $0.weeklyPercent, weeklyResetAt: $0.weeklyResetAt,
                                sessionPercent: $0.sessionPercent, sessionResetAt: $0.sessionResetAt)
             }, now: now))
@@ -3834,7 +3854,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                           resetAt: nil, windowSeconds: 7 * 86_400, now: now))
         }
         currentBurnModel = SubscriptionBurnModel(usages: usages, rates: subscriptionRates(),
-                                                 recommendations: burnRecommendations(usages))
+                                                 recommendations: burnRecommendations(usages),
+                                                 currency: subscriptionCurrency())
     }
 
     var cachedPulseImage: NSImage?

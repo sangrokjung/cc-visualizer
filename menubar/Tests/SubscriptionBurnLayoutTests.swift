@@ -8,6 +8,9 @@ struct SubscriptionBurnLayoutTests {
         precondition(burnAmountLabel(nil, accounts: 17) == "미입력")
         precondition(burnAmountLabel(280_000, accounts: 17) == "4,760,000")
         precondition(burnAmountLabel(280_000, accounts: 0) == "0")
+        // 통화 기호는 금액 앞에 붙고, 미입력에는 붙지 않는다.
+        precondition(burnAmountLabel(200, accounts: 11, currency: "$") == "$2,200")
+        precondition(burnAmountLabel(nil, accounts: 11, currency: "$") == "미입력")
 
         // 전망 표시는 근거를 함께 말한다.
         let extrapolated = BurnProjection(current: 0.82, projected: 1.12, range: nil,

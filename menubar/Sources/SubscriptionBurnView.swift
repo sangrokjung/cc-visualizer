@@ -7,6 +7,16 @@ struct SubscriptionBurnModel: Equatable {
     let usages: [LaneUsage]
     let rates: [String: LaneRate]
     let recommendations: [String]
+    /// 금액 앞에 붙는 통화 기호. 단가 파일의 currency에서 온다.
+    let currency: String
+
+    init(usages: [LaneUsage], rates: [String: LaneRate], recommendations: [String],
+         currency: String = "") {
+        self.usages = usages
+        self.rates = rates
+        self.recommendations = recommendations
+        self.currency = currency
+    }
 }
 
 private let burnNumberFormatter: NumberFormatter = {
@@ -16,10 +26,10 @@ private let burnNumberFormatter: NumberFormatter = {
 }()
 
 /// 단가가 없으면 숫자를 만들지 않는다.
-func burnAmountLabel(_ monthly: Int?, accounts: Int) -> String {
+func burnAmountLabel(_ monthly: Int?, accounts: Int, currency: String = "") -> String {
     guard let monthly else { return "미입력" }
     let total = monthly * max(accounts, 0)
-    return burnNumberFormatter.string(from: NSNumber(value: total)) ?? "\(total)"
+    return currency + (burnNumberFormatter.string(from: NSNumber(value: total)) ?? "\(total)")
 }
 
 private func burnPercent(_ value: Double) -> String { "\(Int((value * 100).rounded()))%" }
@@ -144,15 +154,20 @@ final class SubscriptionBurnView: NSView {
         let total = subscriptionMonthlyTotal(rates: model.rates, paidAccounts: paidAccounts)
 
         drawText("월 합계", spend.minX + Self.padding, 12, head, muted)
-        drawText(total.map { burnAmountLabel($0, accounts: 1) } ?? "미입력",
+        drawText(total.map { burnAmountLabel($0, accounts: 1, currency: model.currency) } ?? "미입력",
                  spend.minX + Self.padding + 64, 10, body, total == nil ? muted : text)
         drawRight("기여 없는 계정 \(idle) / \(paidTotal)",
                   spend.maxX - Self.padding, 12, head, idle > 0 ? TeamClaudePalette.yellow : muted)
 
         let errors = model.usages.reduce(0) { $0 + $1.errorAccounts }
         let disabled = model.usages.reduce(0) { $0 + $1.disabledAccounts }
+        let unsubscribed = model.usages.reduce(0) { $0 + $1.unsubscribedAccounts }
         drawText("오류 \(errors) · 복구 가능", spend.minX + Self.padding, 34, small, muted)
         drawText("꺼 둠 \(disabled) · 결정 필요", spend.minX + Self.padding + 160, 34, small, muted)
+        if unsubscribed > 0 {
+            // 돈이 안 나가는 계정이라 지출 합계에 없다. 그 사실을 화면이 말해야 "왜 17개가 아니지"가 안 생긴다.
+            drawText("해지 \(unsubscribed) · 지출 제외", spend.minX + Self.padding + 320, 34, small, muted)
+        }
 
         let burnTop = Self.spendHeight + Self.blockGap
         let burn = NSRect(x: inner.minX, y: burnTop, width: inner.width,
@@ -182,7 +197,7 @@ final class SubscriptionBurnView: NSView {
                 : "\(usage.paidAccounts) (\(usage.contributingAccounts))"
             drawText(accounts, columnAccounts, y, body, text)
             let monthly = model.rates[usage.lane]?.monthly
-            drawText(burnAmountLabel(monthly, accounts: usage.paidAccounts),
+            drawText(burnAmountLabel(monthly, accounts: usage.paidAccounts, currency: model.currency),
                      columnSpend, y, body, monthly == nil ? muted : text)
             drawText(burnProjectionLabel(burnBindingProjection(usage)), columnBurn, y + 1, small, muted)
             drawRight(burnVerdictLabel(verdict), columnVerdict, y, body, burnVerdictColor(verdict))

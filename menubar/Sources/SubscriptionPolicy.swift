@@ -15,13 +15,32 @@ enum BurnVerdict: Equatable {
 
 struct LaneUsage: Equatable {
     let lane: String
+    /// 돈이 나가는 계정 수. 해지된 계정은 뺀다 — 넣으면 지출이 실제보다 크게 잡히고,
+    /// 그 숫자로 "줄이자"는 결정을 하게 된다(2026-09-27 실측: 17계정 중 6개가 해지 상태였다).
     let paidAccounts: Int
     let contributingAccounts: Int
+    /// 재인증·복구로 살아날 수 있는 오류. 해지는 여기 넣지 않는다.
     let errorAccounts: Int
     let disabledAccounts: Int
+    /// 구독이 끝난 계정. 돈도 안 나가고 살릴 수도 없다. 정리 대상이다.
+    let unsubscribedAccounts: Int
     let weekly: BurnProjection
     let session: BurnProjection
     let blockedMoments: Int
+
+    init(lane: String, paidAccounts: Int, contributingAccounts: Int, errorAccounts: Int,
+         disabledAccounts: Int, unsubscribedAccounts: Int = 0,
+         weekly: BurnProjection, session: BurnProjection, blockedMoments: Int) {
+        self.lane = lane
+        self.paidAccounts = paidAccounts
+        self.contributingAccounts = contributingAccounts
+        self.errorAccounts = errorAccounts
+        self.disabledAccounts = disabledAccounts
+        self.unsubscribedAccounts = unsubscribedAccounts
+        self.weekly = weekly
+        self.session = session
+        self.blockedMoments = blockedMoments
+    }
 }
 
 /// 주간과 세션 중 사용률이 높은 쪽이 병목이고, 병목이 판정을 지배해야 한다.
@@ -58,6 +77,9 @@ func burnRecommendations(_ usages: [LaneUsage]) -> [String] {
     var lines: [String] = []
     let errors = usages.reduce(0) { $0 + $1.errorAccounts }
     if errors > 0 { lines.append("오류 \(errors)개 재인증이 먼저") }
+    // 해지된 계정은 살릴 수 없다. "재인증"이라고 하면 없는 계정을 살리려 든다.
+    let unsubscribed = usages.reduce(0) { $0 + $1.unsubscribedAccounts }
+    if unsubscribed > 0 { lines.append("해지 \(unsubscribed)개 풀에서 정리") }
     let disabled = usages.reduce(0) { $0 + $1.disabledAccounts }
     if disabled > 0 { lines.append("꺼 둔 \(disabled)개 유지 여부 결정") }
     for usage in usages where burnVerdict(usage) == .excess {

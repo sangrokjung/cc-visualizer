@@ -38,6 +38,23 @@ func subscriptionRates() -> [String: LaneRate] {
     subscriptionRateParse(AccountSubscriptionFileCache.shared.json(at: subscriptionRatesURL))
 }
 
+/// 통화 기호. "3,400"만 그리면 원인지 달러인지 알 수 없어 지출 판단이 흔들린다.
+/// 모르는 통화 코드는 코드를 그대로 붙인다 — 지어내지 않는다.
+func subscriptionCurrencySymbol(_ json: [String: Any]?) -> String {
+    switch (json?["currency"] as? String)?.uppercased() {
+    case "USD": return "$"
+    case "KRW": return "₩"
+    case "EUR": return "€"
+    case "JPY": return "¥"
+    case let code?: return code + " "
+    case nil: return ""
+    }
+}
+
+func subscriptionCurrency() -> String {
+    subscriptionCurrencySymbol(AccountSubscriptionFileCache.shared.json(at: subscriptionRatesURL))
+}
+
 /// 합계 = 레인별 단가 × 지불 계정 수. 단가가 하나도 없으면 합계도 없다(0원이 아니다).
 func subscriptionMonthlyTotal(rates: [String: LaneRate], paidAccounts: [String: Int]) -> Int? {
     var total = 0

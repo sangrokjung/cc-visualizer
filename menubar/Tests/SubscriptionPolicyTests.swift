@@ -50,6 +50,14 @@ struct SubscriptionPolicyTests {
         precondition(lines.first?.contains("오류") == true, "\(lines)")
         precondition(lines.contains { $0.contains("agy") }, "\(lines)")
 
+        // 해지된 계정은 "재인증"이 아니라 "정리"다. 살릴 수 없는 계정을 살리라고 하면 안 된다.
+        let unsubscribed = LaneUsage(lane: "claude", paidAccounts: 11, contributingAccounts: 7,
+                                     errorAccounts: 0, disabledAccounts: 4, unsubscribedAccounts: 6,
+                                     weekly: projection(0.82), session: projection(0.11), blockedMoments: 0)
+        let unsubLines = burnRecommendations([unsubscribed])
+        precondition(unsubLines.contains { $0.contains("해지 6개") }, "\(unsubLines)")
+        precondition(!unsubLines.contains { $0.contains("재인증") }, "해지에 재인증을 권하면 안 된다: \(unsubLines)")
+
         // 모두 정상이면 권고가 없다. 할 말이 없을 때 지어내지 않는다.
         precondition(burnRecommendations([usage(paid: 7, contributing: 7, error: 0, disabled: 0,
                                                 weekly: 0.95)]).isEmpty)
