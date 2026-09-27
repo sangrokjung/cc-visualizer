@@ -23,10 +23,12 @@ struct SubscriptionRatesTests {
           "a":{"monthly":-5},
           "b":{"monthly":"많이"},
           "c":{"monthly":0},
-          "d":{"plan":"Pro"}
+          "d":{"plan":"Pro"},
+          "e":{"monthly":true}
         }}
         """)
-        for lane in ["a", "b", "c", "d"] {
+        // true가 1원으로 읽히면 합계가 조용히 틀린다(적대 리뷰 2026-09-24).
+        for lane in ["a", "b", "c", "d", "e"] {
             precondition(bad[lane]?.monthly == nil, "\(lane)은 미입력이어야 한다")
         }
         precondition(bad["d"]?.plan == "Pro", "금액이 없어도 요금제 이름은 남긴다")

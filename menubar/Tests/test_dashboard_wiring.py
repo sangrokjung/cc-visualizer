@@ -451,6 +451,24 @@ class SubscriptionBurnWiringTests(unittest.TestCase):
         self.assertIn("quotaDropBoundary(", self.main)
         self.assertIn("quotaHistoryTrimmed(", self.main)
 
+    def test_every_paid_lane_reaches_the_model(self):
+        # 픽스처에는 있는데 실제 경로에 없으면 렌더 검증이 누락을 가린다.
+        # Codex가 정확히 그렇게 빠져 있었다(적대 리뷰 2026-09-24).
+        body = self.main[self.main.index("func refreshBurnModel("):]
+        head = body[:body.index("\n    func ", 10)]
+        for lane in ('"claude"', '"codex"', '"agy"', '"grok"'):
+            with self.subTest(lane=lane):
+                self.assertIn(lane, head)
+
+    def test_dead_pool_is_not_reported_as_exhausted(self):
+        # 살아 있는 계정이 없으면 "한도 소진"이 아니라 "잴 수 없음"이다.
+        self.assertIn("!measured.isEmpty && measured.count == live.count", self.main)
+
+    def test_cycles_are_recorded_per_account(self):
+        # 계정마다 리셋 시각이 다르므로 풀 전체를 한 경계로 닫으면 평균이 섞인다.
+        self.assertIn('account: String? = nil', self.main)
+        self.assertIn('\\(account ?? "-")', self.main)
+
     def test_snapshot_can_render_the_section(self):
         # 실패 화면은 실패했을 때만 나타나 평소 스냅샷에 걸리지 않는다.
         self.assertIn('fixture["burn"]', self.main)

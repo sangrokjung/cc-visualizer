@@ -72,6 +72,17 @@ func subscriptionBurnFixture(_ raw: [String: Any]?) -> SubscriptionBurnModel {
         recommendations: burnRecommendations(usages))
 }
 
+/// 두 풀(Claude·Codex)의 계정 타입이 달라 판정에 필요한 값만 같은 모양으로 옮겨 담는다.
+struct BurnAccountRow {
+    let name: String
+    let enabled: Bool
+    let status: String
+    let weeklyPercent: Double?
+    let weeklyResetAt: Date?
+    let sessionPercent: Double?
+    let sessionResetAt: Date?
+}
+
 // MARK: - 데이터 모델
 
 struct DailyUsage {
@@ -3674,15 +3685,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var quotaHistory: [QuotaCycle] = quotaHistoryDecode((try? Data(contentsOf: quotaHistoryURL)) ?? Data())
 
     /// 폴링이 끝날 때마다 부른다. 경계가 넘어갔으면 직전 주기를 확정해 남긴다.
-    func recordQuotaObservation(_ observation: QuotaObservation, now: Date = Date()) {
-        let key = "\(observation.lane)/\(observation.window)"
+    func recordQuotaObservation(_ observation: QuotaObservation, now: Date = Date(),
+                                account: String? = nil) {
+        let key = "\(observation.lane)/\(observation.window)/\(account ?? "-")"
         let previous = lastQuotaObservations[key]
         // 리셋 시각을 주는 레인은 그 변화로, 주지 않는 레인(Grok)은 큰 하락으로 경계를 본다.
         let closed = observation.resetAt == nil
             ? quotaDropBoundary(previous: previous, current: observation, now: now)
             : quotaCycleBoundary(previous: previous, current: observation, now: now)
         if let closed {
-            quotaHistory = quotaHistoryTrimmed(quotaHistory + [closed])
+            quotaHistory = quotaHistoryTrimmed(quotaHistory + [closed], keepPerLane: 256)
             if let data = quotaHistoryEncode(quotaHistory) {
                 try? FileManager.default.createDirectory(
                     at: quotaHistoryURL.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -3698,43 +3710,91 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
     }
 
-    private func burnPoolUsage(lane: String, rows: [TeamClaudeAccountHealth], now: Date) -> LaneUsage {
+    /// 계정 하나의 주간·세션 관측을 남기고 그 계정만의 전망을 낸다.
+    ///
+    /// 풀 전체를 최소 리셋 하나로 판정하면, 한 계정이 리셋되는 순간 아직 이전 주기인
+    /// 계정과 새 주기인 계정이 섞여 평균이 오염된다. 실측에서 Claude 11계정의 리셋이
+    /// 147시간, Codex 7계정이 642시간에 걸쳐 흩어져 있었다(적대 리뷰 2026-09-24).
+    private func burnAccountProjection(lane: String, name: String, percent: Double?,
+                                       resetAt: Date?, window: String, windowSeconds: Double,
+                                       now: Date) -> BurnProjection? {
+        guard let percent else { return nil }
+        let utilization = percent / 100
+        // 기록이 전망보다 먼저다. 순서를 뒤집으면 방금 닫힌 주기가 한 틱 늦게 반영된다.
+        recordQuotaObservation(QuotaObservation(
+            lane: lane, window: window, resetAt: resetAt,
+            contributing: 1, paid: 1,
+            meanUtilization: utilization, maxUtilization: utilization,
+            exhaustedAccounts: utilization >= 1 ? 1 : 0,
+            blocked: utilization >= 1), now: now, account: name)
+        return burnProject(current: utilization, windowSeconds: windowSeconds,
+                           resetAt: resetAt, history: [], now: now)
+    }
+
+    /// 계정별 전망을 하나로 합친다. 레인 이력이 충분하면 그 평균이 이긴다.
+    private func burnCombine(_ perAccount: [BurnProjection], history: [QuotaCycle],
+                             current: Double?) -> BurnProjection {
+        let complete = history.filter { $0.complete }
+        if complete.count >= 2 {
+            let means = complete.map { $0.meanUtilization }
+            let mean = means.reduce(0, +) / Double(means.count)
+            return BurnProjection(current: current, projected: mean,
+                                  range: (means.min() ?? mean)...(means.max() ?? mean),
+                                  basis: .history(cycles: complete.count))
+        }
+        let projected = perAccount.compactMap { $0.projected }
+        guard !projected.isEmpty else {
+            return BurnProjection(current: current, projected: nil, range: nil,
+                                  basis: current == nil ? .collecting : .unmeasured)
+        }
+        // 한 계정이라도 주기 초반이면 전체를 낮은 신뢰로 본다. 나쁜 소식을 숨기지 않는다.
+        let low = perAccount.contains { $0.basis == .extrapolation(confidence: .low) }
+        return BurnProjection(current: current,
+                              projected: projected.reduce(0, +) / Double(projected.count),
+                              range: nil,
+                              basis: .extrapolation(confidence: low ? .low : .normal))
+    }
+
+    private func burnPoolUsage(lane: String, rows: [BurnAccountRow], now: Date) -> LaneUsage {
         let live = rows.filter { $0.enabled && $0.status != "error" }
+        let weeklyPerAccount = live.compactMap {
+            burnAccountProjection(lane: lane, name: $0.name, percent: $0.weeklyPercent,
+                                  resetAt: $0.weeklyResetAt, window: "7d",
+                                  windowSeconds: 7 * 86_400, now: now)
+        }
+        let sessionPerAccount = live.compactMap {
+            burnAccountProjection(lane: lane, name: $0.name, percent: $0.sessionPercent,
+                                  resetAt: $0.sessionResetAt, window: "5h",
+                                  windowSeconds: 5 * 3_600, now: now)
+        }
         let laneHistory = quotaHistory.filter { $0.lane == lane }
-        let weekly = burnMean(live.compactMap { $0.weeklyPercent }.map { $0 / 100 })
-        let session = burnMean(live.compactMap { $0.sessionPercent }.map { $0 / 100 })
-        let observation = QuotaObservation(
-            lane: lane, window: "7d",
-            resetAt: live.compactMap { $0.weeklyResetAt }.min(),
-            contributing: live.count, paid: rows.count,
-            meanUtilization: weekly ?? 0,
-            maxUtilization: live.compactMap { $0.weeklyPercent }.map { $0 / 100 }.max() ?? 0,
-            exhaustedAccounts: live.filter { ($0.weeklyPercent ?? 0) >= 100 }.count,
-            blocked: !rows.isEmpty && live.allSatisfy { ($0.weeklyPercent ?? 0) >= 100 })
-        if weekly != nil { recordQuotaObservation(observation, now: now) }
+        // 살아 있는 계정이 없으면 "한도 소진"이 아니라 "잴 수 없음"이다. 인증 실패를
+        // 소진으로 오인하면 적색 부족 판정과 이력이 함께 오염된다(적대 리뷰 2026-09-24).
+        let measured = live.compactMap { $0.weeklyPercent }
+        let blockedNow = !measured.isEmpty && measured.count == live.count
+            && measured.allSatisfy { $0 >= 100 }
         return LaneUsage(
             lane: lane, paidAccounts: rows.count, contributingAccounts: live.count,
             errorAccounts: rows.filter { $0.status == "error" }.count,
             disabledAccounts: rows.filter { !$0.enabled }.count,
-            weekly: burnProject(current: weekly, windowSeconds: 7 * 86_400,
-                                resetAt: observation.resetAt,
-                                history: laneHistory.filter { $0.window == "7d" }, now: now),
-            session: burnProject(current: session, windowSeconds: 5 * 3_600,
-                                 resetAt: live.compactMap { $0.sessionResetAt }.min(),
-                                 history: laneHistory.filter { $0.window == "5h" }, now: now),
-            blockedMoments: laneHistory.filter { $0.window == "7d" }.reduce(0) { $0 + $1.blockedMoments })
+            weekly: burnCombine(weeklyPerAccount, history: laneHistory.filter { $0.window == "7d" },
+                                current: burnMean(measured.map { $0 / 100 })),
+            session: burnCombine(sessionPerAccount, history: laneHistory.filter { $0.window == "5h" },
+                                 current: burnMean(live.compactMap { $0.sessionPercent }.map { $0 / 100 })),
+            blockedMoments: laneHistory.filter { $0.window == "7d" }
+                .reduce(0) { $0 + $1.blockedMoments } + (blockedNow ? 1 : 0))
     }
 
     /// 단일 구독 레인(agy·Grok). 계정이 하나라 판정은 사용률만 본다.
     private func burnSingleUsage(lane: String, utilization: Double?, resetAt: Date?,
                                  windowSeconds: Double, now: Date) -> LaneUsage {
-        let laneHistory = quotaHistory.filter { $0.lane == lane && $0.window == "7d" }
         if let utilization {
             recordQuotaObservation(QuotaObservation(
                 lane: lane, window: "7d", resetAt: resetAt, contributing: 1, paid: 1,
                 meanUtilization: utilization, maxUtilization: utilization,
                 exhaustedAccounts: utilization >= 1 ? 1 : 0, blocked: utilization >= 1), now: now)
         }
+        let laneHistory = quotaHistory.filter { $0.lane == lane && $0.window == "7d" }
         return LaneUsage(
             lane: lane, paidAccounts: 1, contributingAccounts: 1,
             errorAccounts: 0, disabledAccounts: 0,
@@ -3748,14 +3808,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func refreshBurnModel(now: Date = Date()) {
         var usages: [LaneUsage] = []
         if let claude = currentTeamClaude {
-            usages.append(burnPoolUsage(lane: "claude", rows: claude.accounts, now: now))
+            usages.append(burnPoolUsage(lane: "claude", rows: claude.accounts.map {
+                BurnAccountRow(name: $0.name, enabled: $0.enabled, status: $0.status,
+                               weeklyPercent: $0.weeklyPercent, weeklyResetAt: $0.weeklyResetAt,
+                               sessionPercent: $0.sessionPercent, sessionResetAt: $0.sessionResetAt)
+            }, now: now))
+        }
+        // Codex도 같은 풀이다. 빠뜨리면 월 합계가 줄고 그 레인의 권고가 사라진다.
+        if let codex = currentTeamCodex {
+            usages.append(burnPoolUsage(lane: "codex", rows: codex.accounts.map {
+                BurnAccountRow(name: $0.name, enabled: $0.enabled, status: $0.status,
+                               weeklyPercent: $0.weeklyPercent, weeklyResetAt: $0.weeklyResetAt,
+                               sessionPercent: $0.sessionPercent, sessionResetAt: $0.sessionResetAt)
+            }, now: now))
         }
         // agy는 잔량을 주므로 1에서 빼 사용률로 뒤집는다.
         if let gemini = currentAgyCard.groups.first, let weekly = gemini.weekly {
             usages.append(burnSingleUsage(lane: "agy", utilization: 1 - weekly.remaining,
                                           resetAt: weekly.resetAt, windowSeconds: 7 * 86_400, now: now))
         }
-        // Grok은 리셋 시각을 주지 않는다. 창 길이를 모르므로 전망은 이력이 쌓인 뒤에 나온다.
+        // Grok은 리셋 시각을 주지 않는다. 전망은 이력이 쌓인 뒤에 나온다.
         if let slot = currentGrokSlot, let percent = burnGrokPercent(slot) {
             usages.append(burnSingleUsage(lane: "grok", utilization: percent / 100,
                                           resetAt: nil, windowSeconds: 7 * 86_400, now: now))
@@ -3763,6 +3835,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         currentBurnModel = SubscriptionBurnModel(usages: usages, rates: subscriptionRates(),
                                                  recommendations: burnRecommendations(usages))
     }
+
     var cachedPulseImage: NSImage?
     var cachedPulseKey: String?
     var cachedComposedImage: NSImage?

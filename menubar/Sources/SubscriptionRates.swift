@@ -24,7 +24,10 @@ func subscriptionRateParse(_ json: [String: Any]?) -> [String: LaneRate] {
     for (lane, raw) in lanes {
         guard let row = raw as? [String: Any] else { continue }
         // 0과 음수는 "적지 않았다"로 본다. 숫자가 아닌 값도 마찬가지다.
-        let monthly = (row["monthly"] as? NSNumber)?.intValue
+        // Bool도 NSNumber로 들어와 true가 1원이 되므로 따로 막는다(적대 리뷰 2026-09-24).
+        let number = row["monthly"] as? NSNumber
+        let isBool = number.map { CFGetTypeID($0) == CFBooleanGetTypeID() } ?? false
+        let monthly = isBool ? nil : number?.intValue
         out[lane] = LaneRate(plan: row["plan"] as? String,
                              monthly: (monthly ?? 0) > 0 ? monthly : nil)
     }
