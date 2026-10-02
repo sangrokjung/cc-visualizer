@@ -20,4 +20,6 @@
 - qworker `1790911516220404000-2542`: exit 0. Swift 20개, Python 11개 통과, known-red 1개 묶음, env-skip 1개. 후보 바이너리 오프스크린 스냅샷도 통과했다.
 - GitHub Actions run `36960234733`: `build-and-test` 성공. 동일한 `menubar/build.sh`와 스냅샷 스모크를 macOS 14에서 실행했다.
 - 설치 바이너리 `/Users/sangrok/Applications/cc-menubar/cc-menubar`: SHA-256 `feb02718e2e1bf4961fbea7aa50bd501c733469ad1cee13fa07ec081cd99de80`.
-- 운영 LaunchAgent는 개발 worktree가 아니라 `/Users/sangrok/Applications/cc-menubar/cc-menubar`를 실행하도록 변경한다. 기존 plist와 바이너리는 `backups/`에 보존한다.
+- 운영 LaunchAgent는 개발 worktree가 아니라 `/Users/sangrok/Applications/cc-menubar/cc-menubar`를 실행하도록 변경했다. 기존 plist와 바이너리는 `backups/`에 보존했다.
+- 실제 운영 QA: 12:35 재기동 후 PID 4535, `runs=1`, `last exit code=(never exited)`. 메뉴를 열어 접근성 트리의 단일 스크롤 영역, `구독 지출과 한도 소진`, `해지 미확인`을 확인했다. 메뉴 열기 로그 15ms. 설치 바이너리의 `--dashboard-snapshot`도 880×1316 PNG 생성에 성공했다.
+- 한계: 기존 known-red는 초/일 단위 종료 경계와 과거 수동 QA 해시 검사 2건이다. 이번 작업에서 허용 목록·assertion을 완화하지 않았다. 메일함 브라우저 라이브 검사는 기존 러너의 opt-in 정책을 유지했다.
