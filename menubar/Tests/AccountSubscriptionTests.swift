@@ -38,7 +38,7 @@ struct AccountSubscriptionTests {
         let original = try! Data(contentsOf: configURL)
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [SubscriptionMockProtocol.self]
-        var now = Date()
+        var now = accountSubscriptionDate("2026-09-09")!.addingTimeInterval(3600)
         func makeStore() -> AccountSubscriptionStore {
             AccountSubscriptionStore(defaults: defaults, configURL: configURL, sessionConfiguration: config, clock: { now })
         }
@@ -79,6 +79,7 @@ struct AccountSubscriptionTests {
         _ = NSApplication.shared
         let refreshedButton = AccountSubscriptionButton(provider: "anthropic", accountUuid: "account-a",
             accountName: "플랜 변경 검증", plan: "max_20x", store: reopened)
+        refreshedButton.refreshTitle(now: now)
         precondition(refreshedButton.title.hasPrefix("Pro ·"))
         precondition(refreshedButton.title.contains("해지 재확인") || refreshedButton.title.contains("해지 예약"))
         precondition(try! Data(contentsOf: configURL) == original)

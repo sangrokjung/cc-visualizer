@@ -267,7 +267,8 @@ final class AccountSubscriptionStore {
            details.confirmation.map({ fallbackConfirmation.checkedAt > $0.checkedAt }) ?? true {
             details.confirmation = fallbackConfirmation
         }
-        return accountSubscriptionMonitored(details, uuid: uuid, url: monitorURL, now: clock())
+        return accountSubscriptionMonitored(details, uuid: uuid, url: monitorURL, now: clock(),
+            dismissedBefore: data["emailEventsDismissedBefore"] as? Date)
     }
 
     func saveConfirmation(_ state: AccountSubscriptionState?, date: String?, provider: String, uuid: String,
@@ -283,6 +284,7 @@ final class AccountSubscriptionStore {
             data["confirmation"] = record
         } else {
             data.removeValue(forKey: "confirmation")
+            data["emailEventsDismissedBefore"] = clock()
         }
         defaults.set(data, forKey: key)
         return true
@@ -356,7 +358,8 @@ final class AccountSubscriptionRedirectDelegate: NSObject, URLSessionTaskDelegat
 }
 
 // 메일 수집기는 별도 캐시만 쓴다. UI의 수동 기록은 변경하지 않는다.
-func accountSubscriptionMonitored(_ saved: AccountSubscriptionDetails, uuid: String, url: URL, now: Date) -> AccountSubscriptionDetails {
+func accountSubscriptionMonitored(_ saved: AccountSubscriptionDetails, uuid: String, url: URL, now: Date,
+                                  dismissedBefore: Date? = nil) -> AccountSubscriptionDetails {
     var result = saved
     guard let root = AccountSubscriptionFileCache.shared.json(at: url, maxBytes: 1_048_576),
           root["version"] as? Int == 1,
@@ -398,6 +401,7 @@ func accountSubscriptionMonitored(_ saved: AccountSubscriptionDetails, uuid: Str
     guard checked <= attempted, let event = row["event"] as? [String: Any],
           let eventAt = date(event["eventAt"]), eventAt <= checked,
           let kind = event["kind"] as? String, ["cancel", "join"].contains(kind) else { return result }
+    if let dismissedBefore, dismissedBefore <= now, eventAt <= dismissedBefore { return result }
     let end = event["endsOn"] as? String
     if kind == "cancel", end.flatMap(accountSubscriptionDate) == nil { return result }
     if let previous = saved.confirmation {
@@ -416,4 +420,3 @@ func accountSubscriptionMonitored(_ saved: AccountSubscriptionDetails, uuid: Str
     }
     return result
 }
-
