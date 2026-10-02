@@ -17,4 +17,7 @@
 
 ## Verification
 
-진행 중. 실제 실행 결과와 배포 해시를 검증 후 기록한다.
+- qworker `1790911516220404000-2542`: exit 0. Swift 20개, Python 11개 통과, known-red 1개 묶음, env-skip 1개. 후보 바이너리 오프스크린 스냅샷도 통과했다.
+- GitHub Actions run `36960234733`: `build-and-test` 성공. 동일한 `menubar/build.sh`와 스냅샷 스모크를 macOS 14에서 실행했다.
+- 설치 바이너리 `/Users/sangrok/Applications/cc-menubar/cc-menubar`: SHA-256 `feb02718e2e1bf4961fbea7aa50bd501c733469ad1cee13fa07ec081cd99de80`.
+- 운영 LaunchAgent는 개발 worktree가 아니라 `/Users/sangrok/Applications/cc-menubar/cc-menubar`를 실행하도록 변경한다. 기존 plist와 바이너리는 `backups/`에 보존한다.
