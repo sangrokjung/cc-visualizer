@@ -88,6 +88,31 @@ struct SubscriptionMonitorTests {
             confirmation: AccountSubscriptionConfirmation(state: .ended, date: "2026-09-09",
                 checkedAt: now.addingTimeInterval(-48 * 3600), source: "proxy-record"))
         precondition(accountSubscriptionLabel(staleEnded, now: now).contains("종료 재확인"))
+        var clearedAt = now
+        let clearStore = AccountSubscriptionStore(defaults: defaults, configURL: folder.appendingPathComponent("missing.json"), monitorURL: url, clock: { clearedAt })
+        row = ["status": "error", "lastSuccessAt": "2026-09-09T23:59:00Z",
+               "event": ["kind": "cancel", "eventAt": "2026-09-08T04:40:00Z", "endsOn": "2026-09-09"]]
+        try write()
+        precondition(clearStore.saveConfirmation(.scheduled, date: "2026-09-09", provider: "anthropic", uuid: uuid, source: "confirmation-email"))
+        precondition(clearStore.details(provider: "anthropic", uuid: uuid).appearance(now: now).isMuted)
+        precondition(clearStore.saveConfirmation(nil, date: nil, provider: "anthropic", uuid: uuid))
+        let reopened = AccountSubscriptionStore(defaults: defaults, configURL: folder.appendingPathComponent("missing.json"), monitorURL: url, clock: { clearedAt })
+        precondition(reopened.details(provider: "anthropic", uuid: uuid).confirmation == nil)
+        let clearedButton = AccountSubscriptionButton(provider: "anthropic", accountUuid: uuid, accountName: "기록 삭제 회귀", store: reopened)
+        clearedButton.refreshTitle(now: now)
+        precondition(!clearedButton.title.contains("종료일 경과"))
+        precondition(reopened.details(provider: "anthropic", uuid: uuid).appearance(now: now) == .standard)
+        clearedAt = now.addingTimeInterval(3600)
+        root["checkedAt"] = "2026-09-10T01:00:00Z"
+        row["status"] = "ok"
+        row["lastSuccessAt"] = "2026-09-10T01:00:00Z"
+        try write()
+        precondition(reopened.details(provider: "anthropic", uuid: uuid).confirmation == nil)
+        row["event"] = ["kind": "cancel", "eventAt": "2026-09-10T00:30:00Z", "endsOn": "2026-10-09"]
+        try write()
+        precondition(reopened.details(provider: "anthropic", uuid: uuid).confirmation?.date == "2026-10-09")
+        precondition(reopened.saveConfirmation(.ended, date: "2026-09-10", provider: "anthropic", uuid: uuid))
+        precondition(reopened.details(provider: "anthropic", uuid: uuid).confirmation?.state == .ended)
         print("MONITOR assertions passed: identity, manual priority, rejoin, stale, failed query and visible labels")
     }
 }
