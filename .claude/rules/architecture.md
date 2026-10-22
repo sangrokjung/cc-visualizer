@@ -25,14 +25,17 @@ Tauri 실행 시: Rust 백엔드(`commands.rs`)가 JSON 파일을 직접 읽어 
 
 | 파일 | 역할 |
 |------|------|
-| `lib.rs` | Tauri 앱 엔트리. 커맨드 등록 + 워처 시작 |
-| `commands.rs` | IPC 커맨드 13개: read_file, list_dir, get_system_paths, rescan_system/usage, load_{system,usage,external}_data, backfill_session, fetch_ccusage_{daily,weekly,monthly}, fetch_usd_krw_rate. ccusage 호출은 `run_ccusage(subcommand)` 공유 — 주간/월간/누적을 native 명령으로 조회해 `ccusage weekly`/`monthly` CLI와 정확히 일치. 환율은 `curl`로 open.er-api.com(키 불필요) 호출 + 폴백 상수(1450). GUI .app PATH 제한 회피용 npm/npx 절대경로 폴백(`run_tsx_script`) + 3단 데이터 폴백(cache→bundle→dev source) 내장 |
+| `lib.rs` | Tauri 앱 엔트리. 커맨드 20개 등록 + 워처 시작 |
+| `harness.rs` | `load_harness_inventory` — 번들 `harness-scanner.cjs`(`npm run build:harness`)로 AI 구성 인벤토리 수집 + app_data_dir `harness-v1` 캐시. `open_ax_contact`(qjc.app/contact 열기) |
+| `commands.rs` | IPC 커맨드: read_file, list_dir, get_system_paths, rescan_system/usage, load_{system,usage}_data, load_external_systems, backfill_session, fetch_ccusage_{daily,weekly,monthly}, fetch_usd_krw_rate, fetch_teamclaude_health, fetch_teamcodex_pool, run_teamcodex_account_action, fetch_higgsfield_{account,transactions}. ccusage 호출은 `run_ccusage(subcommand)` 공유 — 주간/월간/누적을 native 명령으로 조회해 `ccusage weekly`/`monthly` CLI와 정확히 일치. 환율은 `curl`로 open.er-api.com(키 불필요) 호출 + 폴백 상수(1450). GUI .app PATH 제한 회피용 npm/npx 절대경로 폴백(`run_tsx_script`) + 3단 데이터 폴백(cache→bundle→dev source) 내장 |
 | `file_watcher.rs` | 두 그룹 감시 → 이벤트 emit. **WorkLog 그룹** (`~/.claude/work-log`, `agent-memory`) → `file-changed`. **ClaudeSystem 그룹** — `~/.claude/{agents,commands,rules,settings.json}` symlink + `~/qjc-office/dotclaude/{agents,commands,rules,reference/agent-pipeline.md}` SSOT 실경로 (notify가 symlink target 미추적 회피) → `claude-system-changed` (1초 디바운스). DashboardView + AgentOfficeView 양쪽 리스너로 실시간 갱신 |
 | `session_watcher.rs` | `~/.claude/projects/*/` 에서 최신 JSONL 세션 파일 tail → `session-event` 이벤트 emit |
 
 ## 프론트엔드 라우팅
 
-`App.tsx`의 `ViewType` 상태로 9개 뷰를 전환 (react-router 미사용). `Layout.tsx`에서 `React.lazy`로 코드 스플리팅.
+앱 진입점 `main.tsx`는 `features/harness/LocalHarnessApp`(AI 구성 인벤토리)을 렌더한다. 아래 뷰들은 `LegacyOperations`(DataProvider + SessionEventsProvider + `App`)로 감싸 그 화면의 '운영 상세'에 lazy 로드된다.
+
+`App.tsx`의 `ViewType` 상태로 11개 뷰를 전환 (react-router 미사용). `Layout.tsx`에서 `React.lazy`로 코드 스플리팅.
 
 | ViewType | Feature 폴더 | 설명 |
 |----------|-------------|------|
@@ -41,6 +44,8 @@ Tauri 실행 시: Rust 백엔드(`commands.rs`)가 JSON 파일을 직접 읽어 
 | agent-office | agent-office/ | 에이전트 픽셀아트 + 3컬럼 BI 레이아웃 (KPI/Filter/Insight, Phase 2B) |
 | architecture | architecture/ | 훅/파이프라인/메모리/룰 레이어 시각화 |
 | live-monitor | live-monitor/ | 실시간 세션 JSONL 파싱 + 파일 변경 모니터링 |
+| runtime-health | runtime-health/ | TeamClaude/TeamCodex 계정 풀 진단 |
+| higgsfield | higgsfield/ | Higgsfield 크레딧 잔액·재구독 D-day |
 | catalog | catalog/ | 에이전트/스킬/훅/룰 카탈로그 (검색/필터) |
 | systems | systems/ | 외부 QJC 프로젝트 10개 연동 현황 |
 | usage | usage/ | Claude Code 사용 통계 분석 |
@@ -70,23 +75,23 @@ cc-visualizer 앱과 **독립 실행**되는 Swift 데몬. 같은 ccusage 데이
 ```
 ~/.claude/projects/ (디렉토리 mtime → 활동 감지)   pgrep claude (병렬 세션 수)
   ↓ 15초                                              ↓ 15초
-        npx ccusage daily --json (60초, tmp 파일 redirect)
+        npx ccusage {daily,weekly,monthly} --json --offline (300초, tmp 파일 redirect)
   ↓
-AppDelegate: 1초 펄스 tick / 5초 슬롯 롤링 / 60초 데이터
+AppDelegate: 1초 펄스 tick / 5초 슬롯 롤링 / 10초 팀 상태 / 60초 Codex 세션 스캔 / 300초 사용량
   ↓
-NSStatusItem.button: makePulseDot + makeSparklineImage(NSImage 합성) + 롤링 텍스트
-NSMenu: TrendChartView(14일 막대) + ParallelGaugeView(병렬 게이지) NSView 임베드
+NSStatusItem.button: CLI 쿼터 + makePulseDot + makeSparklineImage(NSImage 합성) + 롤링 텍스트
+NSMenu: StatusMenuDashboardView — 한 장 스크롤 대시보드(구독·소진/Claude 풀/Codex 풀/Higgsfield/CLI 쿼터/사용량)
 ```
 
 핵심 제약 (Tauri 백엔드 commands.rs와 동일 패턴):
 - **ccusage 호출**: fnm symlink(`~/.local/share/fnm/aliases/default/bin/npx`) 직접 spawn. `zsh -ilc`는 launchd tty 없는 환경에서 hang → 회피.
-- **pipe deadlock**: 142KB JSON > 64KB OS pipe buffer → 자식 write block. stdout을 `/tmp/cc-menubar-ccusage-<pid>.json` 파일로 redirect.
-- **동시 호출 가드** (`isFetching`): 60초 주기 호출이 느린 ccusage와 겹치면 자식 프로세스가 무한 누적 (426 좀비 사고). 진행 중이면 skip + 실패 시 기존 데이터 유지.
+- **pipe deadlock**: 142KB JSON > 64KB OS pipe buffer → 자식 write block. stdout을 `/tmp/cc-menubar-ccusage-<subcommand>-<pid>.json` 파일로 redirect.
+- **동시 호출 가드** (`isFetching`): 주기 호출이 느린 ccusage와 겹치면 자식 프로세스가 무한 누적 (426 좀비 사고). 진행 중이면 skip + 실패 시 기존 데이터 유지.
 - **활동 감지**: 26K+ jsonl 전체 traverse 금지. 1-depth 디렉토리 mtime만 stat (OS가 자식 변경 시 자동 갱신).
 - LaunchAgent KeepAlive=true → 새 빌드 반영은 본체 PID `kill`로 자동 재시작.
 
-데이터 모델: `DayPoint{date,cost,tokens}` 배열(recent7/14Days)이 일별 추이 차트·리스트 공유 소스. NSMenu에 `TrendChartView`/`DailyRowView`/`ParallelGaugeView` NSView 임베드(`NSMenuItem.view`).
+데이터 모델: `DayPoint{date,cost,tokens}` 배열(recent7/14Days)이 스파크라인과 `UsageDashboardView`(최근 14일 비용·일별 추이·모델별 비용) 공유 소스.
 
 주간·월간·환율 (2026-06-20): `runCcusage()`가 `runCcusageRaw(subcommand)`로 daily+weekly+monthly를 **순차 호출**(isFetching 가드 → 좀비 방지)하여 native CLI와 일치하는 이번 주(월요일 시작)·이번 달(YYYY-MM)·전체 누적(monthly totals)을 산출. 실패 시 daily 파생 폴백. `fetchUsdKrwRate()`가 open.er-api.com 라이브 환율 + UserDefaults 12h 캐시 + 폴백 1450으로 USD→KRW 변환(`formatKRW`/`formatKRWShort`). 드롭다운 비용 항목·롤링 슬롯에 `$` + `₩` 병기. (본체 앱은 동일 데이터를 Tauri 커맨드 3개로 **병렬** 호출 — `use-global-token-stats.ts` + `buildTokenStats`, 환율은 `use-usd-krw-rate.ts`.)
 
-모델·제공자 추적 (codex, 2026-06-20): 양쪽 표면이 ccusage 엔트리의 `modelBreakdowns[]`에서 이번 달 모델별 비용을 추출해 **제공자별(Claude/Codex/Gemini/…)** 로 그룹핑. `providerOf`(claude→Claude, gpt-*·*codex→Codex, gemini→Gemini)로 분류 — codex(GPT) 가시 추적. TS: `token-aggregation.ts`(`providerOf`/`modelLabel`/`aggregateModels`/`aggregateProviders`/`PROVIDER_COLOR`) → `UsageView` "모델별 사용량" 패널(ProviderChips + ModelBar). Swift: `parseModelBreakdown`+`ModelRowView`(드롭다운) + 롤링 "코덱스 $X" 슬롯. native monthly 엔트리의 modelBreakdowns 우선, 없으면 이번 달 daily 집계.
+모델·제공자 추적 (codex, 2026-06-20): 양쪽 표면이 ccusage 엔트리의 `modelBreakdowns[]`에서 이번 달 모델별 비용을 추출해 **제공자별(Claude/Codex/Gemini/…)** 로 그룹핑. `providerOf`(claude→Claude, gpt-*·*codex→Codex, gemini→Gemini)로 분류 — codex(GPT) 가시 추적. TS: `token-aggregation.ts`(`providerOf`/`modelLabel`/`aggregateModels`/`aggregateProviders`/`PROVIDER_COLOR`) → `UsageView` "모델별 사용량" 패널(ProviderChips + ModelBar). Swift: `parseModelBreakdown` → `UsageDashboardView` "모델별 비용" + 롤링 "코덱스 $X" 슬롯. native monthly 엔트리의 modelBreakdowns 우선, 없으면 이번 달 daily 집계.

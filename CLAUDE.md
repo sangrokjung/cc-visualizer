@@ -19,7 +19,7 @@ Claude Code 시스템 시각화 도구. 에이전트, 스킬, 훅, 룰, 파이�
 
 ```bash
 npm run dev          # Vite 개발 서버 (포트 5173, --host 필수)
-npm run build        # tsc && vite build (noEmit은 tsconfig)
+npm run build        # build:harness(하네스 스캐너 번들) && tsc && vite build (noEmit은 tsconfig)
 npm run test         # vitest run
 npm run scan         # system-data.json 재생성
 npm run scan:usage   # 사용 통계 재생성 (usage 뷰용)
@@ -38,8 +38,8 @@ bash menubar/build.sh                                          # swiftc 컴파�
 launchctl load ~/Library/LaunchAgents/com.qjc.cc-menubar.plist # 로그인 자동 시작 등록
 ```
 
-- 메뉴바: 펄스 도트(활성=초록/idle=회색) + 7일 비용 스파크라인 + 롤링 슬롯(오늘$/오늘₩/토큰/주간/이번달$/이번달₩/누적₩/병렬/코덱스$/최다모델)
-- 드롭다운: 14일 추이 막대 차트 + 병렬 세션 게이지 + 오늘/이번주/이번달/누적 비용($+₩) + 환율 + **모델별 (이번 달)** 섹션(`ProviderSummaryView` 색점+분할 비례 바 + ModelRowView 상위 6모델 $/₩, codex 포함)
+- 메뉴바: CLI 쿼터(Grok/Antigravity) + 펄스 도트(활성=초록/idle=회색) + 7일 비용 스파크라인 + 롤링 슬롯(TeamClaude/TeamCodex/Codex 상태·오늘$/오늘₩/토큰/주간/이번주/이번달$/이번달₩/누적₩/총토큰/병렬/코덱스$/최다모델)
+- 드롭다운: 한 장으로 이어지는 스크롤 대시보드(`StatusMenuDashboardView`, 현재 섹션 헤더 고정) — 요약 카드 + 구독·소진 / Claude 풀 / Codex 풀 / Higgsfield / CLI 쿼터 / 사용량 6섹션. 사용량 섹션(`UsageDashboardView`)은 최근 14일 비용·일별 추이·**모델별 비용**(이번 달, codex 포함)
 - 데이터: `npx ccusage {daily,weekly,monthly} --json` 순차 호출(isFetching 가드 → 좀비 방지) — 주간/월간/누적을 native CLI와 일치하게 산출, 실패 시 daily 파생 폴백. fnm symlink 직접 spawn, 142KB JSON은 tmp 파일 redirect로 pipe deadlock 회피
 - 모델 추적: `parseModelBreakdown`(이번 달 modelBreakdowns) + `providerOf`(claude/gpt·codex/gemini 분류) → Claude/Codex/Gemini 제공자별 + 모델별 비용. codex(gpt-*) 가시 추적. `shortenModelName`은 8자리 날짜 접미사 제거+공백 버전(TS `modelLabel` 정합), `formatCost` 천단위 구분
 - 환율: open.er-api.com 라이브 USD→KRW + UserDefaults 12h 캐시 + 폴백 1450 (`fetchUsdKrwRate`/`formatKRW`)
@@ -60,14 +60,15 @@ launchctl load ~/Library/LaunchAgents/com.qjc.cc-menubar.plist # 로그인 자�
 
 ```
 src/renderer/src/
-├── features/     # 11개 뷰 (dashboard, agent-map, agent-office, runtime-health, higgsfield 등)
+├── features/     # harness/ + 11개 ViewType 뷰 (dashboard, agent-map, agent-office, runtime-health, higgsfield 등)
+│   └── harness/  # 앱 진입 화면 — main.tsx가 LocalHarnessApp(AI 구성 인벤토리)을 렌더하고, App(ViewType 뷰들)은 LegacyOperations로 '운영 상세'에 내장
 │   └── higgsfield/  # 힉스필드 크레딧 — CLI 경유 잔액·재구독 D-day·소멸 예측 (higgsfieldCredits.ts가 계산 전담)
 │   └── dashboard/GamificationPanel.tsx  # 레벨/XP/스트릭/업적 (lib/gamification.ts)
 ├── lib/          # types.ts(zod), gamification.ts, DataProvider.tsx, api.ts, agent-category-map.ts, parsers/
 │                 # token-aggregation.ts(ccusage 주/월/누적 집계 + 모델/제공자 분해 codex 추적), fx.ts(USD→KRW), hooks/{use-global-token-stats,use-usd-krw-rate}.ts
 ├── data/         # system-data.json (정적 스냅샷) + ccusage-snapshot.json (dev 폴백, gitignore)
 └── App.tsx       # ViewType 상태로 뷰 전환
-src-tauri/src/    # Rust 백엔드 (commands, file_watcher, session_watcher)
+src-tauri/src/    # Rust 백엔드 (commands, harness, file_watcher, session_watcher)
 menubar/Sources/  # macOS 메뉴바 Swift 데몬 — main.swift + CodexStatus* + TeamClaude/TeamCodex 로직
 menubar/Tests/    # 메뉴바 파싱·상태·레이아웃 Swift 테스트
 __tests__/        # Vitest 테스트 (프로젝트 루트)
@@ -75,9 +76,9 @@ __tests__/        # Vitest 테스트 (프로젝트 루트)
 
 ## 주요 데이터 (system-data.json 기준)
 
-agents(207), skills(191), hooks(100), rules(74), pipelines(18), mcpServers(46)
+agents(207), skills(193), hooks(100), rules(78), pipelines(18), mcpServers(46)
 
-*수치는 scan-system.ts 파싱 결과 — hooks는 settings.json 등록 command 단위 (29 matchers / 100 commands), skills는 ~/.claude/commands 하위 디렉토리+파일, rules는 ~/qjc-office/dotclaude/rules 기준. 2026-05-22 재스캔.*
+*수치는 scan-system.ts 파싱 결과 — hooks는 settings.json 등록 command 단위 (29 matchers / 100 commands), skills는 ~/.claude/commands 하위 디렉토리+파일, rules는 ~/qjc-office/dotclaude/rules 기준. scanTimestamp 2026-06-02.*
 
 ## 힉스필드 크레딧 데이터 계약 (features/higgsfield)
 

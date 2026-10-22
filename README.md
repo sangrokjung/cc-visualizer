@@ -14,6 +14,7 @@ CC Visualizer는 Claude Code의 에이전트·스킬·훅·룰·파이프라인�
 
 | 영역 | 제공 기능 |
 |---|---|
+| AI 구성 인벤토리 | 앱 첫 화면. 이 PC의 Claude Code·Codex·Grok·Antigravity 구성(스킬·에이전트·플러그인 등)을 수집해 연결 관계를 표시. 아래 기능들은 그 아래 운영 상세에 들어 있음 |
 | 시스템 시각화 | Dashboard, Agent Map, Agent Office, Architecture, Catalog, Process |
 | 실시간 모니터링 | Claude Code JSONL 세션 tail, 도구 호출·에이전트 활동·토큰 흐름 |
 | 사용량 분석 | 오늘·주간·월간·누적 비용, USD/KRW 환산, 제공자·모델별 집계 |
@@ -125,10 +126,11 @@ rm -rf ~/Applications/cc-menubar ~/Library/LaunchAgents/com.qjc.cc-menubar.plist
 
 ### 메뉴바 화면 구성
 
-메뉴바 제목은 왼쪽부터 CLI 쿼터(Grok, Antigravity), 그다음 5초마다 바뀌는 정보 슬롯입니다. 클릭하면 한 장으로 이어지는 대시보드가 열리고, 위에서부터 요약 카드와 다섯 섹션이 차례로 놓입니다.
+메뉴바 제목은 왼쪽부터 CLI 쿼터(Grok, Antigravity), 그다음 5초마다 바뀌는 정보 슬롯입니다. 클릭하면 한 장으로 이어지는 대시보드가 열리고, 위에서부터 요약 카드와 여섯 섹션이 차례로 놓입니다.
 
 | 섹션 | 내용 |
 |---|---|
+| 구독·소진 | 월 구독 지출 합계와 기여 없는 계정 수, 서비스별 계정·월 지출·주간 한도 소진과 판정 |
 | Claude 풀 | 계정별 상태·5시간/7일 사용률·Fable 주간 한도, 측정과 재인증 버튼 |
 | Codex 풀 | TeamCodex 계정별 사용률과 복구 예정 시각, 사용 가능·제외 집계 |
 | Higgsfield | 크레딧 잔액과 재구독까지 남은 일수 |
@@ -182,7 +184,7 @@ TeamCodex 서버가 꺼져 있거나 quota가 아직 측정되지 않은 계정�
 ## 개발 명령
 
 ```bash
-npm run build                         # TypeScript + Vite
+npm run build                         # 하네스 스캐너 번들 + TypeScript + Vite
 npm test                              # Vitest
 cargo test --manifest-path src-tauri/Cargo.toml
 bash menubar/build.sh                 # Swift 메뉴바 컴파일

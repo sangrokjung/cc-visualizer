@@ -40,7 +40,7 @@ paths:
 ## tsconfig.json 중요 옵션
 
 - **`noEmit: true` 필수**: `tsc`가 `src/`에 `.js`/`.d.ts` 자동 생성 차단 → Vite stale 파일 오염 방지
-- `npm run build`는 `tsc && vite build`로 타입 체크만 수행하고 번들은 Vite가 담당
+- `npm run build`는 `build:harness && tsc && vite build`로 타입 체크만 수행하고 번들은 Vite가 담당
 
 ## 테스트 관행
 
